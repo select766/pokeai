@@ -62,7 +62,35 @@ def get_sample_parties():
     poke.base_s = 55
     pokes.append(Poke(poke))
 
-    parties = [Party(pokes[0:2]), Party(pokes[2:4])]
+    poke = PokeStaticParam()
+    poke.dexno = Dexno.Starmie
+    poke.move_ids = [MoveID.ThunderWave, MoveID.Thunderbolt,
+                     MoveID.Toxic, MoveID.Recover]
+    poke.type1 = PokeType.Water
+    poke.type2 = PokeType.Psychc
+    poke.max_hp = 167
+    poke.st_a = 127
+    poke.st_b = 137
+    poke.st_c = 152
+    poke.st_s = 167
+    poke.base_s = 115
+    pokes.append(Poke(poke))
+
+    poke = PokeStaticParam()
+    poke.dexno = Dexno.Jynx
+    poke.move_ids = [MoveID.RockSlide, MoveID.Slash,
+                     MoveID.Splash, MoveID.Strength]
+    poke.type1 = PokeType.Ice
+    poke.type2 = PokeType.Psychc
+    poke.max_hp = 202
+    poke.st_a = 147
+    poke.st_b = 137
+    poke.st_c = 177
+    poke.st_s = 107
+    poke.base_s = 55
+    pokes.append(Poke(poke))
+
+    parties = [Party(pokes[0:3]), Party(pokes[3:6])]
     return parties
 
 
