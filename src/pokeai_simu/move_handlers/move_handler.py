@@ -109,6 +109,10 @@ class MoveHandler(object):
             move_poke_type, enemy_poke.type1)
         type_match_2 = type_match.get_type_match_x2(
             move_poke_type, enemy_poke.type2)
+        if type_match_1 * type_match_2 > 4:
+            self._log_msg("こうかはばつぐんだ (*{})".format(type_match_1 * type_match_2 // 4))
+        if type_match_1 * type_match_2 < 4:
+            self._log_msg("こうかはいまひとつのようだ (/{})".format(4 // (type_match_1 * type_match_2)))
         damage = damage * type_bonus // 2
         damage = damage * type_match_1 // 2
         damage = damage * type_match_2 // 2
