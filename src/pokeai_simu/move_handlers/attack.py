@@ -123,4 +123,13 @@ class MoveHandlerAttack(MoveHandler):
                     if self.enemy_poke.rank_s > -6:
                         self._log_msg("追加効果 とくしゅ-1")
                         self.enemy_poke.rank_s -= 1
+        
+        if self.move_entry.move_id is MoveID.HyperBeam:
+            # はかいこうせん用処理(反動ターン処理は継承クラスで処理)
+            if self.enemy_poke.hp > 0:
+                # 相手を倒すと反動なし
+                self.hyper_beam_kickback = True
+                self._log_msg("次のターンは反動")
+            else:
+                self._log_msg("倒したので反動なし")
         return
