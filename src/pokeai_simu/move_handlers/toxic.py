@@ -23,6 +23,7 @@ class MoveHandlerToxic(MoveHandlerEnemyNonAttack):
     def _can_effect(self):
         """
         仮に発動すると効果があるかどうかを判定
+        状態異常はタイプにより無効な場合がある
         """
         if self.move_entry.move_id is MoveID.ConfuseRay:
             if self.enemy_poke.confusion_turn == 0:
@@ -30,9 +31,14 @@ class MoveHandlerToxic(MoveHandlerEnemyNonAttack):
             else:
                 self._log_msg("すでにこんらんしている")
                 return False
-        else:
-            # 状態異常でなければ効果がある
-            return self.enemy_poke.nv_condition is PokeNVCondition.Empty
+        elif self.move_entry.move_id in [MoveID.Toxic]:
+            return self.enemy_poke.can_poisoned
+        elif self.move_entry.move_id in [MoveID.LovelyKiss]:
+            return self.enemy_poke.can_sleep
+        elif self.move_entry.move_id in [MoveID.ThunderWave]:
+            return self.enemy_poke.can_paralyzed
+        elif self.move_entry.move_id in []:
+            return self.enemy_poke.can_burned
         raise NotImplementedError()
 
     def _do_effect(self):

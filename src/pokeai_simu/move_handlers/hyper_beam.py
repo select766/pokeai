@@ -37,7 +37,7 @@ class MoveHandlerHyperBeam(MoveHandlerAttack):
                 return
 
             # 命中判定
-            is_hit = self._check_hit_by_accuracy(self.move_entry.accuracy)
+            is_hit = self._check_hit_by_accuracy()
             if not is_hit:
                 self._log_msg("こうげきははずれた")
                 return

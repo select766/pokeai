@@ -115,11 +115,17 @@ class MoveHandler(object):
         damage = damage * d_random // 255
         return damage
 
-    def _check_hit_by_accuracy(self, accuracy):
+    def _check_hit_by_accuracy(self):
         """
         技が命中するかどうかの判定
         ランク補正込みの命中率で判定
+        考慮:
+        あなをほる
         """
+        if self.enemy_poke.digging:
+            # あなをほる状態なのであたらない
+            # TODO: そらをとぶ
+            return False
         # 技の命中率×自分のランク補正(命中率)÷相手のランク補正(回避率)
         hit_ratio_table = {100: 255, 95: 242, 90: 229, 85: 216,
                            80: 204, 75: 191, 70: 178, 60: 152, 55: 140, 50: 127, 0: 0}

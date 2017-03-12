@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from enum import Enum, auto
+from .poke_type import PokeType
 from .poke_static_param import PokeStaticParam
 
 
@@ -124,6 +125,57 @@ class Poke(object):
         self._rank_evasion = max(0, min(6, value))
 
     @property
+    def can_poisoned(self):
+        """
+        新たに毒状態になれるか
+        """
+        if self.nv_condition is not PokeNVCondition.Empty:
+            return False
+        if PokeType.Poison in [self.type1, self.type2]:
+            return False
+        return True
+
+    @property
+    def can_paralyzed(self):
+        """
+        新たにまひ状態になれるか
+        """
+        if self.nv_condition is not PokeNVCondition.Empty:
+            return False
+        return True
+
+    @property
+    def can_burned(self):
+        """
+        新たにやけど状態になれるか
+        """
+        if self.nv_condition is not PokeNVCondition.Empty:
+            return False
+        if PokeType.Fire in [self.type1, self.type2]:
+            return False
+        return True
+
+    @property
+    def can_sleep(self):
+        """
+        新たにねむり状態になれるか
+        """
+        if self.nv_condition is not PokeNVCondition.Empty:
+            return False
+        return True
+
+    @property
+    def can_freezed(self):
+        """
+        新たにこおり状態になれるか
+        """
+        if self.nv_condition is not PokeNVCondition.Empty:
+            return False
+        if PokeType.Ice in [self.type1, self.type2]:
+            return False
+        return True
+
+    @property
     def is_faint(self):
         return self._hp == 0
 
@@ -148,6 +200,8 @@ class Poke(object):
         self.bad_poison_turn = 0
         # リフレクター状態(防御ランクとは別)
         self.reflect = False
+        # あなをほる状態
+        self.digging = False
 
         # 「テクスチャー」があるのでタイプは変動しうる
         self.type1 = self.static_param.type1
@@ -160,6 +214,13 @@ class Poke(object):
         self._hp = self.static_param.max_hp
         self.nv_condition = PokeNVCondition.Empty
         self.sleep_turn = 0
+    
+    def reset_turn_end(self):
+        """
+        ターン終了でリセットされるパラメータのリセット
+        """
+        # TODO: ひるみ
+
 
     def calc_ratio_damage(self, ratio_x16):
         """

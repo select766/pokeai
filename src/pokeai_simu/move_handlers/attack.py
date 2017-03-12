@@ -30,7 +30,7 @@ class MoveHandlerAttack(MoveHandler):
             return
 
         # 命中判定
-        is_hit = self._check_hit_by_accuracy(self.move_entry.accuracy)
+        is_hit = self._check_hit_by_accuracy()
         if not is_hit:
             self._log_msg("こうげきははずれた")
             return
@@ -48,20 +48,26 @@ class MoveHandlerAttack(MoveHandler):
             if self.enemy_poke.hp <= 0:
                 # 連続攻撃技で、途中であいてが倒れた場合
                 break
-            # 急所判定
-            critical_ratio = self.friend_poke.static_param.base_s // 2
-            if self.move_entry.move_id in [MoveID.Slash]:
-                # TODO:急所に当たりやすい技
-                critical_ratio *= 8
-            critical_ratio = min(critical_ratio, 255)
-            is_critical = critical_ratio > self.field.rng.get(
-                self.friend_player, BattleRngReason.Critical)
-            if is_critical:
-                self._log_msg("きゅうしょにあたった")
 
-            # ダメージ判定
-            raw_damage = self._calc_damage(
-                self.move_entry.attack, self.move_entry.move_poke_type, self.friend_poke, self.enemy_poke, is_critical)
+            if self.move_entry.move_id is MoveID.NightShade:
+                # 固定ダメージ
+                self._log_msg("固定ダメージ")
+                raw_damage = 40
+            else:
+                # 急所判定
+                critical_ratio = self.friend_poke.static_param.base_s // 2
+                if self.move_entry.move_id in [MoveID.Slash]:
+                    # TODO:急所に当たりやすい技
+                    critical_ratio *= 8
+                critical_ratio = min(critical_ratio, 255)
+                is_critical = critical_ratio > self.field.rng.get(
+                    self.friend_player, BattleRngReason.Critical)
+                if is_critical:
+                    self._log_msg("きゅうしょにあたった")
+
+                # ダメージ判定
+                raw_damage = self._calc_damage(
+                    self.move_entry.attack, self.move_entry.move_poke_type, self.friend_poke, self.enemy_poke, is_critical)
             if raw_damage <= 0:
                 # はずれとみなされる
                 damage = 0
@@ -78,4 +84,43 @@ class MoveHandlerAttack(MoveHandler):
             self._log_msg("{} かいあたった".format(actual_attack_count))
 
         # 追加効果判定
+        if total_damage > 0:
+            # ダメージを与えた場合に限る
+            if self.move_entry.move_id is MoveID.MegaDrain:
+                # 100% ダメージの半分回復
+                self.friend_poke.hp += total_damage // 2
+                self._log_msg("たいりょくをすいとった")
+            else:
+                # 確率発動タイプ
+                side_effect_rnd = self.field.rng.get(
+                self.friend_player, BattleRngReason.SideEffect, top=99)
+
+                effect_freeze = False
+                effect_paralysis = False
+                effect_rank_s_down = False
+                if self.move_entry.move_id is MoveID.Blizzard and side_effect_rnd < 30:
+                    #こおり
+                    effect_freeze = True
+                elif self.move_entry.move_id is MoveID.Thunderbolt and side_effect_rnd < 10:
+                    #まひ
+                    effect_paralysis = True
+                elif self.move_entry.move_id is MoveID.BodySlam and side_effect_rnd < 30:
+                    #まひ
+                    effect_paralysis = True
+                elif self.move_entry.move_id is MoveID.Psychic and side_effect_rnd < 25:
+                    #とくしゅ1段階下がる
+                    effect_rank_s_down = True
+                
+                if effect_freeze:
+                    if self.enemy_poke.can_freezed:
+                        self._log_msg("追加効果 こおり")
+                        self.enemy_poke.nv_condition = PokeNVCondition.Freeze
+                if effect_paralysis:
+                    if self.enemy_poke.can_paralyzed:
+                        self._log_msg("追加効果 まひ")
+                        self.enemy_poke.nv_condition = PokeNVCondition.Paralysis
+                if effect_rank_s_down:
+                    if self.enemy_poke.rank_s > -6:
+                        self._log_msg("追加効果 とくしゅ-1")
+                        self.enemy_poke.rank_s -= 1
         return

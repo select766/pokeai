@@ -54,7 +54,7 @@ def _construct_move_table():
                   PokeType.Normal, 0, 75, 10),
         MoveEntry(MoveID.Toxic, move_handlers.MoveHandlerToxic,
                   PokeType.Poison, 0, 85, 10),
-        MoveEntry(MoveID.Dig, move_handlers.MoveHandlerAttack,
+        MoveEntry(MoveID.Dig, move_handlers.MoveHandlerDig,
                   PokeType.Ground, 60, 100, 10),
         MoveEntry(MoveID.DoubleKick, move_handlers.MoveHandlerAttack,
                   PokeType.Fight, 30, 100, 30),
