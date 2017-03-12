@@ -59,8 +59,10 @@ class MoveHandler(object):
             if friend_poke.confusion_turn > 0:
                 if self.field.rng.get(self.friend_player, BattleRngReason.Paralysis) < 128:
                     # 1/2で行動不能
-                    self._log_msg("こんらんで自分に攻撃")
-                    # TODO 自分へのダメージ
+                    confusion_damage = self._calc_damage(40, PokeType.Empty, friend_poke, self.enemy_poke, False)
+                    confusion_damage = min(friend_poke.hp, confusion_damage)
+                    friend_poke.hp -= confusion_damage
+                    self._log_msg("こんらんで自分に攻撃 ダメージ{}".format(confusion_damage))
                     return False
             else:
                 self._log_msg("こんらんが とけた")
@@ -81,7 +83,7 @@ class MoveHandler(object):
         """
         ダメージ計算コア
         """
-        if move_poke_type in [PokeType.Normal, PokeType.Fight, PokeType.Poison, PokeType.Ground, PokeType.Flying, PokeType.Bug, PokeType.Rock, PokeType.Ghost]:
+        if move_poke_type in [PokeType.Empty, PokeType.Normal, PokeType.Fight, PokeType.Poison, PokeType.Ground, PokeType.Flying, PokeType.Bug, PokeType.Rock, PokeType.Ghost]:
             # ぶつりわざ
             friend_a = friend_poke.eff_a(critical)
             enemy_b = enemy_poke.eff_b(critical)
