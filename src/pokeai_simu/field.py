@@ -94,6 +94,8 @@ class Field(object):
         self.turn_number += 1
         self.actions_begin = None
         self.actions_faint_change = None
+        for player in [0, 1]:
+            self._log_msg("Player {}: {}".format(player, repr(self._get_fighting_poke(player))))
 
         return FieldPhase.Begin
 
@@ -107,7 +109,7 @@ class Field(object):
         """
         # TODO: じばくによる負け、どく等で同時に倒れた場合
         for player in [0, 1]:
-            if self.parties[player].is_all_faint():
+            if self.parties[player].is_all_faint:
                 return 1 - player
         return None
 
