@@ -6,11 +6,12 @@ import gym.spaces
 import pokeai_simu
 
 class PokeaiEnv():
-    def __init__(self, party_generator, initial_seed):
+    def __init__(self, party_generator, initial_seed, enemy_agent=None):
         self.action_space = gym.spaces.Discrete(4)
         self.observation_space = gym.spaces.Box(0.0, 1.0, (16,))
         self.party_generator = party_generator
         self.seed = initial_seed
+        self.enemy_agent = enemy_agent
     
     def reset(self):
         parties = self.party_generator()
@@ -21,9 +22,11 @@ class PokeaiEnv():
         self.friend_player = 0
         return self.make_observation()
     
-    def make_observation(self):
+    def make_observation(self, from_enemy=False):
         vectors = []
-        for player_id in [self.friend_player, 1 - self.friend_player]:
+        #敵から見た場合の特徴も得られる構造。敵エージェントの行動決定に用いる。
+        friend_player = self.friend_player if not from_enemy else 1 - self.friend_player
+        for player_id in [friend_player, 1 - friend_player]:
             party = self.field.parties[player_id]
             poke = party.get_fighting_poke()
             vectors.append(np.array([poke.hp / 1024.0, poke.static_param.max_hp / 1024.0]))
@@ -36,8 +39,13 @@ class PokeaiEnv():
     def step(self, action):
         # action: int 0 to 3 which represents move index
         friend_fa = pokeai_simu.FieldActionBegin.move(action)
-        # ランダムプレイヤー
-        enemy_fa = pokeai_simu.FieldActionBegin.move(np.random.randint(0, 4))
+        if self.enemy_agent is not None:
+            # 敵モデルで最善の行動をとる
+            enemy_action = self.enemy_agent.act(self.make_observation(from_enemy=True))
+        else:
+            # ランダムプレイヤー
+            enemy_action = np.random.randint(0, 4)
+        enemy_fa = pokeai_simu.FieldActionBegin.move(enemy_action)
 
         if self.friend_player == 0:
             fa_list = [friend_fa, enemy_fa]

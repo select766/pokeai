@@ -1,12 +1,15 @@
+#!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
 import sys
 import os
+import argparse
+import json
+import numpy as np
 import chainer
 import chainer.functions as F
 import chainer.links as L
 import chainerrl
-import numpy as np
 import gym
 import gym.spaces
 import pokeai_simu
@@ -35,22 +38,68 @@ def party_generator_one():
 
     return pokeai_simu.Party(pokes)
 
-class QFunction(chainer.Chain):
-    def __init__(self):
-        super().__init__(
-            fc1=L.Linear(16, 10),
-            fc2=L.Linear(10, 4)
-        )
+def construct_model(model_def_path, class_name, kwargs):
+    from importlib import machinery
+    loader = machinery.SourceFileLoader('model', model_def_path)
+    module = loader.load_module()
+    model_class = getattr(module, class_name)
+    model_instance = model_class(**kwargs)
+    return model_instance
+
+def save_agent_meta(save_dir, model_def_path, class_name, kwargs):
+    import shutil
+    shutil.copy(model_def_path, os.path.join(save_dir, "model.py"))
+    with open(os.path.join(save_dir, "model.json"), "w") as f:
+        json.dump({"class_name": class_name, "kwargs": kwargs}, f)
+
+def load_agent(save_dir):
+    with open(os.path.join(save_dir, "model.json")) as f:
+        metadata = json.load(f)
     
-    def __call__(self, x, test=False):
-        h = x
-        h = F.relu(self.fc1(h))
-        h = self.fc2(h)
-        return chainerrl.action_value.DiscreteActionValue(h)
+    q_func = construct_model(os.path.join(save_dir, "model.py"), metadata["class_name"], metadata["kwargs"])
+
+    # unnecessary objects for testing
+    optimizer = chainer.optimizers.Adam()
+    optimizer.setup(q_func)
+    gamma = 0.95
+
+    replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10)
+
+    explorer = chainerrl.explorers.ConstantEpsilonGreedy(
+        epsilon=0.1, random_action_func=None
+    )
+
+    optimizer = chainer.optimizers.Adam()
+    optimizer.setup(q_func)
+    agent = chainerrl.agents.DQN(
+        q_func, optimizer, replay_buffer, gamma, explorer,
+        replay_start_size=500, update_frequency=1,
+        target_update_frequency=100
+    )
+
+    agent.load(save_dir)
+
+    return agent
 
 def train():
-    env = pokeai_env.PokeaiEnv(party_generator, 1)
-    q_func = QFunction()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", default="model.py")
+    parser.add_argument("--model_class", default="QFunction")
+    parser.add_argument("--model_args", default="{}")#json
+    parser.add_argument("--save_dir", default="trained_agent")
+    parser.add_argument("--episodes", type=int, default=1000)
+    parser.add_argument("--enemy_agent")
+
+    args = parser.parse_args()
+
+    if args.enemy_agent is not None:
+        enemy_agent = load_agent(args.enemy_agent)
+    else:
+        enemy_agent = None
+
+    env = pokeai_env.PokeaiEnv(party_generator, 1, enemy_agent)
+    model_args_obj = json.loads(args.model_args)
+    q_func = construct_model(args.model, args.model_class, model_args_obj)
 
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(q_func)
@@ -68,8 +117,7 @@ def train():
         target_update_frequency=100
     )
 
-    n_episodes = 10000
-    for i in range(n_episodes):
+    for i in range(args.episodes):
         obs = env.reset()
         reward = 0
         done = False
@@ -87,7 +135,12 @@ def train():
         agent.stop_episode_and_train(obs, reward, done)
     print('Finished.')
 
-    for i in range(10):
+    agent.save(args.save_dir)
+    save_agent_meta(args.save_dir, args.model, args.model_class, model_args_obj)
+
+    test_sum_R = 0.0
+    n_test = 10
+    for i in range(n_test):
         obs = env.reset()
         done = False
         R = 0
@@ -99,9 +152,11 @@ def train():
             R += r
             t += 1
         print('test episode:', i, 'R:', R)
+        test_sum_R += R
         for log_entry in env.field.logger.buffer:
             print(str(log_entry))
         agent.stop_episode()
+    print("Average R: {}".format(test_sum_R / n_test))
 
 if __name__ == '__main__':
     train()
