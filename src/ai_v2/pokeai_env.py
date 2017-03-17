@@ -10,7 +10,7 @@ FIGHTING_POKE_STATUS_DIMS=20
 BENCH_POKE_STATUS_DIMS=9
 
 class PokeaiEnv():
-    def __init__(self, party_size, party_generator, initial_seed, enemy_agent=None):
+    def __init__(self, party_size, party_generator, initial_seed, enemy_agent=None, reward_damage=False):
         self.action_space = gym.spaces.Discrete(N_MOVES + party_size * 2)#技、交代先、ひんし交代先
         self.party_size = party_size
         # 状態ベクトル 「選べる行動ベクトル」「出ているポケモンを示すバイナリベクトル」「出ているポケモンのステータスベクトル」「控えのポケモンのステータスベクトル」 行動以外は自分と相手で２倍
@@ -19,6 +19,7 @@ class PokeaiEnv():
         self.party_generator = party_generator
         self.seed = initial_seed
         self.enemy_agent = enemy_agent
+        self.reward_damage = reward_damage
     
     def reset(self):
         parties = self.party_generator()
@@ -28,6 +29,7 @@ class PokeaiEnv():
         self.field.logger = pokeai_simu.FieldLoggerBuffer()
         self.friend_player = 0
         self.enemy_player = 1 - self.friend_player
+        self.last_hp_eval_score = self._calc_hp_eval_score(self.friend_player)
         return self.make_observation()
     
     def get_possible_action_vec(self, player):
@@ -85,6 +87,19 @@ class PokeaiEnv():
         vec[3 + poke.nv_condition.value - pokeai_simu.PokeNVCondition.Empty.value] = 1
         return vec
 
+    def _calc_total_hp(self, party):
+        hp_sum = 0
+        for poke in party.pokes:
+            hp_sum += poke.hp
+        return hp_sum
+
+    def _calc_hp_eval_score(self, friend_player):
+        """
+        friend playerからみた体力量の差の評価値
+        """
+        hp_diff = self._calc_total_hp(self.field.parties[friend_player]) - self._calc_total_hp(self.field.parties[1 - friend_player])
+        hp_score = hp_diff / 1024.0
+        return hp_score
     
     def make_observation(self, from_enemy=False):
         vectors = []
@@ -191,9 +206,16 @@ class PokeaiEnv():
             if next_phase in [pokeai_simu.FieldPhase.Begin, pokeai_simu.FieldPhase.GameEnd]:
                 break
         
-        reward = 0.0
+        reward = -0.01
+        if next_phase is pokeai_simu.FieldPhase.Begin:
+            if self.reward_damage:
+                #前のターンでダメージを与えた量に対する報酬
+                current_hp_eval = self._calc_hp_eval_score(self.friend_player)
+                reward += current_hp_eval - self.last_hp_eval_score
+                self.last_hp_eval_score = current_hp_eval
         if not action_valid:
-            reward = -0.1#間接的にまずい行動であることを学習させる
+            reward += -0.1#間接的にまずい行動であることを学習させる
+            return self.make_observation(), -10.0, True, {}
         done = False
         if next_phase is pokeai_simu.FieldPhase.GameEnd:
             done = True

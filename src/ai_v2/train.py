@@ -30,23 +30,23 @@ def party_generator_one():
     Poke = pokeai_simu.Poke
     
     poke = PokeStaticParam()
-    poke.dexno = Dexno.Dugtrio
-    poke.move_ids = [MoveID.Blizzard, MoveID.BodySlam,
-                     MoveID.ConfuseRay, MoveID.Dig]
-    poke.type1 = PokeType.Ground
-    poke.type2 = PokeType.Empty
-    poke.max_hp = 142
-    poke.st_a = 132
-    poke.st_b = 102
-    poke.st_c = 122
-    poke.st_s = 172
-    poke.base_s = 120
+    poke.dexno = Dexno.Lapras
+    poke.move_ids = [MoveID.Blizzard, MoveID.Thunderbolt,
+                     MoveID.Psychic, MoveID.BodySlam]
+    poke.type1 = PokeType.Water
+    poke.type2 = PokeType.Ice
+    poke.max_hp = 237
+    poke.st_a = 137
+    poke.st_b = 132
+    poke.st_c = 147
+    poke.st_s = 112
+    poke.base_s = 60
     pokes.append(Poke(poke))
 
     poke = PokeStaticParam()
     poke.dexno = Dexno.Alakazam
-    poke.move_ids = [MoveID.DoubleKick, MoveID.DoubleTeam,
-                     MoveID.HyperBeam, MoveID.LovelyKiss]
+    poke.move_ids = [MoveID.Psychic, MoveID.Recover,
+                     MoveID.Reflect, MoveID.ThunderWave]
     poke.type1 = PokeType.Psychc
     poke.type2 = PokeType.Empty
     poke.max_hp = 162
@@ -58,17 +58,17 @@ def party_generator_one():
     pokes.append(Poke(poke))
 
     poke = PokeStaticParam()
-    poke.dexno = Dexno.Gengar
-    poke.move_ids = [MoveID.MegaDrain, MoveID.NightShade,
-                     MoveID.Psychic, MoveID.Reflect]
-    poke.type1 = PokeType.Poison
-    poke.type2 = PokeType.Ghost
+    poke.dexno = Dexno.Starmie
+    poke.move_ids = [MoveID.Thunderbolt, MoveID.Psychic,
+                     MoveID.Recover, MoveID.Blizzard]
+    poke.type1 = PokeType.Water
+    poke.type2 = PokeType.Psychc
     poke.max_hp = 167
-    poke.st_a = 117
-    poke.st_b = 112
-    poke.st_c = 182
-    poke.st_s = 162
-    poke.base_s = 110
+    poke.st_a = 127
+    poke.st_b = 137
+    poke.st_c = 152
+    poke.st_s = 167
+    poke.base_s = 115
     pokes.append(Poke(poke))
 
     assert len(pokes) == PARTY_SIZE
@@ -125,6 +125,7 @@ def train():
     parser.add_argument("--save_dir", default="trained_agent")
     parser.add_argument("--episodes", type=int, default=1000)
     parser.add_argument("--enemy_agent")
+    parser.add_argument("--reward_damage", action="store_true")
 
     args = parser.parse_args()
 
@@ -133,8 +134,8 @@ def train():
     else:
         enemy_agent = None
 
-    env = pokeai_env.PokeaiEnv(PARTY_SIZE, party_generator, 1, enemy_agent)
-    model_args_obj = json.loads(args.model_args)
+    env = pokeai_env.PokeaiEnv(PARTY_SIZE, party_generator, 1, enemy_agent, reward_damage=args.reward_damage)
+    model_args_obj = json.loads(args.model_args.replace('\'', '"'))
     q_func = construct_model(args.model, args.model_class, model_args_obj)
 
     optimizer = chainer.optimizers.Adam()
@@ -147,7 +148,7 @@ def train():
 
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10**6)
 
-    agent = chainerrl.agents.DoubleDQN(
+    agent = chainerrl.agents.DQN(
         q_func, optimizer, replay_buffer, gamma, explorer,
         replay_start_size=500, update_frequency=1,
         target_update_frequency=100
