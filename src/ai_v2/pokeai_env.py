@@ -112,6 +112,10 @@ class PokeaiEnv():
             fighting_poke_idx_vec = np.zeros((self.party_size, ), dtype=np.float32)
             fighting_poke_idx_vec[party.fighting_poke_idx] = 1
             vectors.append(fighting_poke_idx_vec)
+            vectors.append(self.get_fighting_poke_vec(party.get_fighting_poke()))
+
+            for poke in party.pokes:
+                vectors.append(self.get_bench_poke_vec(poke))
         return np.concatenate(vectors).astype(np.float32)
     
     def correct_action(self, player, action):

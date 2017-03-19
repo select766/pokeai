@@ -122,7 +122,7 @@ def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="model.py")
     parser.add_argument("--model_class", default="QFunction")
-    parser.add_argument("--model_args", default='{"n_obs":16, "n_action":10}')#json
+    parser.add_argument("--model_args", default='{"n_obs":110, "n_action":10}')#json
     parser.add_argument("--save_dir", default="trained_agent")
     parser.add_argument("--episodes", type=int, default=1000)
     parser.add_argument("--enemy_agent")
