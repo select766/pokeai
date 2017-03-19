@@ -10,7 +10,7 @@ FIGHTING_POKE_STATUS_DIMS=20
 BENCH_POKE_STATUS_DIMS=9
 
 class PokeaiEnv():
-    def __init__(self, party_size, party_generator, initial_seed, enemy_agent=None, reward_damage=False):
+    def __init__(self, party_size, party_generator, initial_seed, enemy_agent=None, reward_damage=False, faint_change_random=False):
         self.action_space = gym.spaces.Discrete(N_MOVES + party_size * 2)#技、交代先、ひんし交代先
         self.party_size = party_size
         # 状態ベクトル 「選べる行動ベクトル」「出ているポケモンを示すバイナリベクトル」「出ているポケモンのステータスベクトル」「控えのポケモンのステータスベクトル」 行動以外は自分と相手で２倍
@@ -20,6 +20,7 @@ class PokeaiEnv():
         self.seed = initial_seed
         self.enemy_agent = enemy_agent
         self.reward_damage = reward_damage
+        self.faint_change_random = faint_change_random
     
     def reset(self):
         parties = self.party_generator()
@@ -111,11 +112,6 @@ class PokeaiEnv():
             fighting_poke_idx_vec = np.zeros((self.party_size, ), dtype=np.float32)
             fighting_poke_idx_vec[party.fighting_poke_idx] = 1
             vectors.append(fighting_poke_idx_vec)
-
-            vectors.append(self.get_fighting_poke_vec(party.get_fighting_poke()))
-
-            for poke in party.pokes:
-                vectors.append(self.get_bench_poke_vec(poke))
         return np.concatenate(vectors).astype(np.float32)
     
     def correct_action(self, player, action):
@@ -201,8 +197,17 @@ class PokeaiEnv():
                     fa_list[self.enemy_player] = enemy_fa
                     self.field.set_actions_faint_change(fa_list)
                 else:
-                    #プレイヤー側が交代の選択をしなければならないので、returnする
-                    break
+                    if self.faint_change_random:
+                        # ランダムに交代
+                        fa_list = [None, None]
+                        if self.field.parties[self.enemy_player].get_fighting_poke().is_faint:
+                            enemy_fa = self._sample_enemy_action()
+                            fa_list[self.enemy_player] = enemy_fa
+                        fa_list[self.friend_player] = self._action_to_field_action(self.random_action_func())
+                        self.field.set_actions_faint_change(fa_list)
+                    else:
+                        #プレイヤー側が交代の選択をしなければならないので、returnする
+                        break
             if next_phase in [pokeai_simu.FieldPhase.Begin, pokeai_simu.FieldPhase.GameEnd]:
                 break
         

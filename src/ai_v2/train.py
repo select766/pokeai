@@ -30,6 +30,20 @@ def party_generator_one():
     Poke = pokeai_simu.Poke
     
     poke = PokeStaticParam()
+    poke.dexno = Dexno.Starmie
+    poke.move_ids = [MoveID.Splash, MoveID.Psychic,
+                     MoveID.Recover, MoveID.Blizzard]
+    poke.type1 = PokeType.Water
+    poke.type2 = PokeType.Psychc
+    poke.max_hp = 167
+    poke.st_a = 127
+    poke.st_b = 137
+    poke.st_c = 152
+    poke.st_s = 167
+    poke.base_s = 115
+    pokes.append(Poke(poke))
+
+    poke = PokeStaticParam()
     poke.dexno = Dexno.Lapras
     poke.move_ids = [MoveID.Blizzard, MoveID.Thunderbolt,
                      MoveID.Psychic, MoveID.BodySlam]
@@ -44,32 +58,19 @@ def party_generator_one():
     pokes.append(Poke(poke))
 
     poke = PokeStaticParam()
-    poke.dexno = Dexno.Alakazam
-    poke.move_ids = [MoveID.Psychic, MoveID.Recover,
-                     MoveID.Reflect, MoveID.ThunderWave]
-    poke.type1 = PokeType.Psychc
+    poke.dexno = Dexno.Dugtrio
+    poke.move_ids = [MoveID.RockSlide, MoveID.DoubleTeam,
+                     MoveID.Strength, MoveID.ThunderWave]
+    poke.type1 = PokeType.Ground
     poke.type2 = PokeType.Empty
-    poke.max_hp = 162
-    poke.st_a = 102
-    poke.st_b = 97
-    poke.st_c = 187
+    poke.max_hp = 142
+    poke.st_a = 132
+    poke.st_b = 102
+    poke.st_c = 122
     poke.st_s = 172
     poke.base_s = 120
     pokes.append(Poke(poke))
 
-    poke = PokeStaticParam()
-    poke.dexno = Dexno.Starmie
-    poke.move_ids = [MoveID.Thunderbolt, MoveID.Psychic,
-                     MoveID.Recover, MoveID.Blizzard]
-    poke.type1 = PokeType.Water
-    poke.type2 = PokeType.Psychc
-    poke.max_hp = 167
-    poke.st_a = 127
-    poke.st_b = 137
-    poke.st_c = 152
-    poke.st_s = 167
-    poke.base_s = 115
-    pokes.append(Poke(poke))
 
     assert len(pokes) == PARTY_SIZE
     return pokeai_simu.Party(pokes)
@@ -121,11 +122,12 @@ def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="model.py")
     parser.add_argument("--model_class", default="QFunction")
-    parser.add_argument("--model_args", default='{"n_obs":110, "n_action":10}')#json
+    parser.add_argument("--model_args", default='{"n_obs":16, "n_action":10}')#json
     parser.add_argument("--save_dir", default="trained_agent")
     parser.add_argument("--episodes", type=int, default=1000)
     parser.add_argument("--enemy_agent")
     parser.add_argument("--reward_damage", action="store_true")
+    parser.add_argument("--alpha", type=float, default=0.001)
 
     args = parser.parse_args()
 
@@ -138,7 +140,7 @@ def train():
     model_args_obj = json.loads(args.model_args.replace('\'', '"'))
     q_func = construct_model(args.model, args.model_class, model_args_obj)
 
-    optimizer = chainer.optimizers.Adam()
+    optimizer = chainer.optimizers.Adam(alpha=args.alpha)
     optimizer.setup(q_func)
     gamma = 0.95
 

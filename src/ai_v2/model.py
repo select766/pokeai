@@ -15,16 +15,16 @@ class QFunction(chainer.Chain):
         super().__init__(
             fc1=L.Linear(n_obs, n_hidden),
             bn1=L.BatchNormalization(n_hidden),
-            fc2=L.Linear(n_action + n_hidden, n_action)
+            fc2=L.Linear(n_hidden, n_action)
         )
         self.n_action = n_action
     
     def __call__(self, x, test=False):
         h = x
-        h = F.relu(self.bn1(self.fc1(h), test=test))
+        h = F.relu(self.fc1(h))
         possible_action, _ = F.split_axis(x, [self.n_action], axis=1)
-        h = F.concat((h, possible_action), axis=1)
         h = self.fc2(h)
+        h = h + (possible_action - 1.0) * 10.0
         return chainerrl.action_value.DiscreteActionValue(h)
 
 class QFunctionShallow(chainer.Chain):
