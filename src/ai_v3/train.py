@@ -18,8 +18,62 @@ import party_generator
 
 PARTY_SIZE=3
 
+def my_party():
+    pokes = []
+
+    MoveID = pokeai_simu.MoveID
+    Dexno = pokeai_simu.Dexno
+    PokeType = pokeai_simu.PokeType
+    PokeStaticParam = pokeai_simu.PokeStaticParam
+    Poke = pokeai_simu.Poke
+    
+    poke = PokeStaticParam()
+    poke.dexno = Dexno.Starmie
+    poke.move_ids = [MoveID.Splash, MoveID.Thunderbolt,
+                     MoveID.Toxic, MoveID.BodySlam]
+    poke.type1 = PokeType.Water
+    poke.type2 = PokeType.Psychc
+    poke.max_hp = 167
+    poke.st_a = 127
+    poke.st_b = 137
+    poke.st_c = 152
+    poke.st_s = 167
+    poke.base_s = 115
+    pokes.append(Poke(poke))
+
+    poke = PokeStaticParam()
+    poke.dexno = Dexno.Lapras
+    poke.move_ids = [MoveID.Reflect, MoveID.Thunderbolt,
+                     MoveID.Psychic, MoveID.NightShade]
+    poke.type1 = PokeType.Water
+    poke.type2 = PokeType.Ice
+    poke.max_hp = 237
+    poke.st_a = 137
+    poke.st_b = 132
+    poke.st_c = 147
+    poke.st_s = 112
+    poke.base_s = 60
+    pokes.append(Poke(poke))
+
+    poke = PokeStaticParam()
+    poke.dexno = Dexno.Dugtrio
+    poke.move_ids = [MoveID.Toxic, MoveID.DoubleTeam,
+                     MoveID.Slash, MoveID.NightShade]
+    poke.type1 = PokeType.Ground
+    poke.type2 = PokeType.Empty
+    poke.max_hp = 142
+    poke.st_a = 132
+    poke.st_b = 102
+    poke.st_c = 122
+    poke.st_s = 172
+    poke.base_s = 120
+    pokes.append(Poke(poke))
+
+    assert len(pokes) == PARTY_SIZE
+    return pokeai_simu.Party(pokes)
+
 def generate_parties():
-    return [party_generator.get_random_party(PARTY_SIZE), party_generator.get_random_party(PARTY_SIZE)]
+    return [my_party(), party_generator.get_random_party(PARTY_SIZE)]
 
 def construct_model(model_def_path, class_name, kwargs):
     from importlib import machinery
@@ -64,11 +118,30 @@ def load_agent(save_dir):
 
     return agent
 
+def show_party(party):
+    for i, poke in enumerate(party.pokes):
+        st = poke.static_param
+        s = ""
+        if i == party.fighting_poke_idx:
+            s += "*"
+        else:
+            s += " "
+        s += st.dexno.name + " "
+        for move_id in st.move_ids:
+            s += move_id.name + " "
+        s += "HP {}/{} ".format(poke.hp, st.max_hp)
+        print(s)
+
+def show_parties(parties):
+    for player in [0, 1]:
+        print("Player {}".format(player))
+        show_party(parties[player])
+
 def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="model.py")
     parser.add_argument("--model_class", default="QFunction")
-    parser.add_argument("--model_args", default='{"n_obs":358, "n_action":26, "n_hidden":128}')#json
+    parser.add_argument("--model_args", default='{"n_obs":130, "n_action":26, "n_hidden":128}')#json
     parser.add_argument("--save_dir", default="trained_agent")
     parser.add_argument("--episodes", type=int, default=1000)
     parser.add_argument("--enemy_agent")
@@ -82,7 +155,10 @@ def train():
     else:
         enemy_agent = None
 
-    env = pokeai_env.PokeaiEnv(PARTY_SIZE, generate_parties, 1, enemy_agent, reward_damage=args.reward_damage)
+    import copy
+    static_party = generate_parties()
+    env = pokeai_env.PokeaiEnv(PARTY_SIZE, generate_parties, 1, enemy_agent,
+                               reward_damage=args.reward_damage, faint_change_random=True)
     model_args_obj = json.loads(args.model_args.replace('\'', '"'))
     q_func = construct_model(args.model, args.model_class, model_args_obj)
 
@@ -124,9 +200,10 @@ def train():
     save_agent_meta(args.save_dir, args.model, args.model_class, model_args_obj)
 
     test_sum_R = 0.0
-    n_test = 10
+    n_test = 100
     for i in range(n_test):
         obs = env.reset()
+        show_parties(env.field.parties)
         done = False
         R = 0
         t = 0

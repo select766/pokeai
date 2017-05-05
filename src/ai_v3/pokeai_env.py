@@ -121,8 +121,8 @@ class PokeaiEnv():
             vectors.append(fighting_poke_idx_vec)
             vectors.append(self.get_fighting_poke_vec(party.get_fighting_poke()))
 
-            for poke in party.pokes:
-                vectors.append(self.get_bench_poke_vec(poke))
+            #for poke in party.pokes:
+            #    vectors.append(self.get_bench_poke_vec(poke))
         return np.concatenate(vectors).astype(np.float32)
     
     def correct_action(self, player, action):
@@ -160,6 +160,10 @@ class PokeaiEnv():
         else:
             # ランダムプレイヤー
             enemy_action = None
+            # TODO: 今は交代を選ばないようにしているが、学習がうまくいくようになれば解除
+            possible_action_vec = self.get_possible_action_vec(self.enemy_player)
+            possible_action_vec[N_MOVES:N_MOVES+self.party_size] = 0#交代を選ばない
+            enemy_action = np.random.choice(np.flatnonzero(possible_action_vec))
         #敵モデルが不正な行動を取る可能性もあるので訂正しておく
         _, enemy_corrected_action = self.correct_action(self.enemy_player, enemy_action)
         enemy_fa = self._action_to_field_action(self.enemy_player, enemy_corrected_action)
@@ -239,7 +243,7 @@ class PokeaiEnv():
             done = True
             winner = self.field.get_winner()
             reward = 1.0 if self.friend_player == winner else -1.0
-        elif self.field.turn_number >= 255:#256ターン以上経過
+        elif self.field.turn_number >= 63:#64ターン以上経過
             done = True
             reward = 0.0#引き分けとする
         
