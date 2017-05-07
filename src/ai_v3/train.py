@@ -3,6 +3,8 @@
 
 import sys
 import os
+from logging import getLogger
+logger = getLogger(__name__)
 import argparse
 import json
 import numpy as np
@@ -12,11 +14,13 @@ import chainer.links as L
 import chainerrl
 import gym
 import gym.spaces
+import util
 import pokeai_simu
 import pokeai_env
 import party_generator
 
-PARTY_SIZE=3
+PARTY_SIZE = 3
+
 
 def my_party():
     pokes = []
@@ -26,7 +30,7 @@ def my_party():
     PokeType = pokeai_simu.PokeType
     PokeStaticParam = pokeai_simu.PokeStaticParam
     Poke = pokeai_simu.Poke
-    
+
     poke = PokeStaticParam()
     poke.dexno = Dexno.Starmie
     poke.move_ids = [MoveID.Splash, MoveID.Thunderbolt,
@@ -72,8 +76,10 @@ def my_party():
     assert len(pokes) == PARTY_SIZE
     return pokeai_simu.Party(pokes)
 
+
 def generate_parties():
     return [my_party(), party_generator.get_random_party(PARTY_SIZE)]
+
 
 def construct_model(model_def_path, class_name, kwargs):
     from importlib import machinery
@@ -83,16 +89,18 @@ def construct_model(model_def_path, class_name, kwargs):
     model_instance = model_class(**kwargs)
     return model_instance
 
+
 def save_agent_meta(save_dir, model_def_path, class_name, kwargs):
     import shutil
     shutil.copy(model_def_path, os.path.join(save_dir, "model.py"))
     with open(os.path.join(save_dir, "model.json"), "w") as f:
         json.dump({"class_name": class_name, "kwargs": kwargs}, f)
 
+
 def load_agent(save_dir):
     with open(os.path.join(save_dir, "model.json")) as f:
         metadata = json.load(f)
-    
+
     q_func = construct_model(os.path.join(save_dir, "model.py"), metadata["class_name"], metadata["kwargs"])
 
     # unnecessary objects for testing
@@ -118,7 +126,8 @@ def load_agent(save_dir):
 
     return agent
 
-def show_party(party):
+
+def show_party(party, print_func):
     for i, poke in enumerate(party.pokes):
         st = poke.static_param
         s = ""
@@ -130,25 +139,28 @@ def show_party(party):
         for move_id in st.move_ids:
             s += move_id.name + " "
         s += "HP {}/{} ".format(poke.hp, st.max_hp)
-        print(s)
+        print_func(s)
 
-def show_parties(parties):
+
+def show_parties(parties, print_func):
     for player in [0, 1]:
-        print("Player {}".format(player))
-        show_party(parties[player])
+        print_func("Player {}".format(player))
+        show_party(parties[player], print_func)
+
 
 def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="model.py")
     parser.add_argument("--model_class", default="QFunction")
-    parser.add_argument("--model_args", default='{"n_obs":130, "n_action":26, "n_hidden":128}')#json
-    parser.add_argument("--save_dir", default="trained_agent")
+    parser.add_argument("--model_args", default='{"n_obs":130, "n_action":26, "n_hidden":128}')  # json
+    parser.add_argument("--suffix")
     parser.add_argument("--episodes", type=int, default=1000)
     parser.add_argument("--enemy_agent")
     parser.add_argument("--reward_damage", action="store_true")
     parser.add_argument("--alpha", type=float, default=0.001)
 
     args = parser.parse_args()
+    util.init(args.suffix)
 
     if args.enemy_agent is not None:
         enemy_agent = load_agent(args.enemy_agent)
@@ -170,7 +182,7 @@ def train():
         epsilon=0.1, random_action_func=env.random_action_func
     )
 
-    replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10**6)
+    replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
 
     agent = chainerrl.agents.DQN(
         q_func, optimizer, replay_buffer, gamma, explorer,
@@ -190,35 +202,36 @@ def train():
             R += reward
             t += 1
         if i % 10 == 0:
-            print('episode:', i,
-                  'R:', R,
-                  'statistics:', agent.get_statistics())
+            logger.info(f'episode: {i}, R: {R}, statistics: {agent.get_statistics()}')
         agent.stop_episode_and_train(obs, reward, done)
-    print('Finished.')
+    logger.info('Finished.')
 
-    agent.save(args.save_dir)
-    save_agent_meta(args.save_dir, args.model, args.model_class, model_args_obj)
+    agent.save(util.get_output_dir())
+    save_agent_meta(util.get_output_dir(), args.model, args.model_class, model_args_obj)
 
     test_sum_R = 0.0
     n_test = 100
     for i in range(n_test):
         obs = env.reset()
-        show_parties(env.field.parties)
+        show_parties(env.field.parties, logger.debug)
         done = False
         R = 0
         t = 0
         while not done and t < 200:
-            #env.render()
+            # env.render()
             action = agent.act(obs)
             obs, r, done, _ = env.step(action)
             R += r
             t += 1
-        print('test episode:', i, 'R:', R)
+        logger.info(f'test episode:{i} R: {R}')
         test_sum_R += R
+        logger.debug("Episode log begin")
         for log_entry in env.field.logger.buffer:
-            print(str(log_entry))
+            logger.debug(str(log_entry))
+        logger.debug("Episode log end")
         agent.stop_episode()
-    print("Average R: {}".format(test_sum_R / n_test))
+    logger.info("Average R: {}".format(test_sum_R / n_test))
+
 
 if __name__ == '__main__':
     train()
