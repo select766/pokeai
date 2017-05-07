@@ -3,7 +3,7 @@ import os
 import time
 import logging
 
-OUTPUT_BASEDIR = "../../log"
+OUTPUT_BASEDIR = os.path.join(os.path.dirname(__file__), "..", "..", "log")
 OUTPUT_DIR: str = None
 
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
+# run as "python -m ai_v3.train [options]"
 
 import sys
 import os
@@ -14,10 +15,10 @@ import chainer.links as L
 import chainerrl
 import gym
 import gym.spaces
-import util
 import pokeai_simu
-import pokeai_env
-import party_generator
+from . import util
+from . import pokeai_env
+from . import party_generator
 
 PARTY_SIZE = 3
 
@@ -172,7 +173,8 @@ def train():
     env = pokeai_env.PokeaiEnv(PARTY_SIZE, generate_parties, 1, enemy_agent,
                                reward_damage=args.reward_damage, faint_change_random=True)
     model_args_obj = json.loads(args.model_args.replace('\'', '"'))
-    q_func = construct_model(args.model, args.model_class, model_args_obj)
+    model_def_path = os.path.join(os.path.dirname(__file__), args.model)
+    q_func = construct_model(model_def_path, args.model_class, model_args_obj)
 
     optimizer = chainer.optimizers.Adam(alpha=args.alpha)
     optimizer.setup(q_func)
@@ -207,7 +209,7 @@ def train():
     logger.info('Finished.')
 
     agent.save(util.get_output_dir())
-    save_agent_meta(util.get_output_dir(), args.model, args.model_class, model_args_obj)
+    save_agent_meta(util.get_output_dir(), model_def_path, args.model_class, model_args_obj)
 
     test_sum_R = 0.0
     n_test = 100
