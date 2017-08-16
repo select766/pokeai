@@ -79,7 +79,9 @@ def my_party():
 
 
 def generate_parties():
-    return [my_party(), party_generator.get_random_party(PARTY_SIZE)]
+    return [party_generator.get_random_party(PARTY_SIZE), party_generator.get_random_party(PARTY_SIZE)]
+    #return [my_party(), party_generator.get_random_party(PARTY_SIZE)]
+    #return [my_party(), my_party()]
 
 
 def construct_model(model_def_path, class_name, kwargs):
@@ -158,30 +160,38 @@ def train():
     parser.add_argument("--episodes", type=int, default=1000)
     parser.add_argument("--enemy_agent")
     parser.add_argument("--reward_damage", action="store_true")
+    parser.add_argument("--reward_damage_friend", type=float, default=1.0)
+    parser.add_argument("--reward_damage_enemy", type=float, default=1.0)
+    parser.add_argument("--no_reward_win", action="store_false")
     parser.add_argument("--alpha", type=float, default=0.001)
+    parser.add_argument("--gamma", type=float, default=0.95)
+    parser.add_argument("--epsilon", type=float, default=0.1)
 
     args = parser.parse_args()
     util.init(args.suffix)
+
+    logger.info(f"arguments: {json.dumps(args.__dict__)}")
 
     if args.enemy_agent is not None:
         enemy_agent = load_agent(args.enemy_agent)
     else:
         enemy_agent = None
 
-    import copy
-    static_party = generate_parties()
     env = pokeai_env.PokeaiEnv(PARTY_SIZE, generate_parties, 1, enemy_agent,
-                               reward_damage=args.reward_damage, faint_change_random=True)
+                               reward_damage=args.reward_damage,
+                               reward_damage_friend=args.reward_damage_friend,
+                               reward_damage_enemy=args.reward_damage_enemy,
+                               faint_change_random=True, reward_win=args.no_reward_win)
     model_args_obj = json.loads(args.model_args.replace('\'', '"'))
     model_def_path = os.path.join(os.path.dirname(__file__), args.model)
     q_func = construct_model(model_def_path, args.model_class, model_args_obj)
 
     optimizer = chainer.optimizers.Adam(alpha=args.alpha)
     optimizer.setup(q_func)
-    gamma = 0.95
+    gamma = args.gamma
 
     explorer = chainerrl.explorers.ConstantEpsilonGreedy(
-        epsilon=0.1, random_action_func=env.random_action_func
+        epsilon=args.epsilon, random_action_func=env.random_action_func
     )
 
     replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
@@ -213,6 +223,7 @@ def train():
 
     test_sum_R = 0.0
     n_test = 100
+    n_win = 0
     for i in range(n_test):
         obs = env.reset()
         show_parties(env.field.parties, logger.debug)
@@ -225,6 +236,8 @@ def train():
             obs, r, done, _ = env.step(action)
             R += r
             t += 1
+        if env.field.phase == pokeai_simu.FieldPhase.GameEnd and env.field.get_winner() == env.friend_player:
+            n_win += 1
         logger.info(f'test episode:{i} R: {R}')
         test_sum_R += R
         logger.debug("Episode log begin")
@@ -232,7 +245,8 @@ def train():
             logger.debug(str(log_entry))
         logger.debug("Episode log end")
         agent.stop_episode()
-    logger.info("Average R: {}".format(test_sum_R / n_test))
+    logger.info(f"Average R: {test_sum_R / n_test}")
+    logger.info(f"Winning: {n_win}/{n_test}")
 
 
 if __name__ == '__main__':

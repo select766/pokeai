@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 
+from logging import getLogger
+logger = getLogger(__name__)
 import numpy as np
 import gym
 import gym.spaces
@@ -11,7 +13,9 @@ FIGHTING_POKE_STATUS_DIMS=N_POKEMON_SPECIES+N_MOVES+20
 BENCH_POKE_STATUS_DIMS=N_POKEMON_SPECIES+N_MOVES+9
 
 class PokeaiEnv():
-    def __init__(self, party_size, party_generator, initial_seed, enemy_agent=None, reward_damage=False, faint_change_random=False):
+    def __init__(self, party_size, party_generator, initial_seed, enemy_agent=None,
+                 reward_damage=False, reward_damage_friend=1.0, reward_damage_enemy=1.0,
+                 faint_change_random=False, reward_win=True):
         self.action_space = gym.spaces.Discrete(N_MOVES + party_size * 2)#技、交代先、ひんし交代先
         self.party_size = party_size
         # 状態ベクトル 「選べる行動ベクトル」「出ているポケモンを示すバイナリベクトル」「出ているポケモンのステータスベクトル」「控えのポケモンのステータスベクトル」 行動以外は自分と相手で２倍
@@ -21,7 +25,10 @@ class PokeaiEnv():
         self.seed = initial_seed
         self.enemy_agent = enemy_agent
         self.reward_damage = reward_damage
+        self.reward_damage_friend = reward_damage_friend
+        self.reward_damage_enemy = reward_damage_enemy
         self.faint_change_random = faint_change_random
+        self.reward_win = reward_win
     
     def reset(self):
         parties = self.party_generator()
@@ -105,7 +112,8 @@ class PokeaiEnv():
         """
         friend playerからみた体力量の差の評価値
         """
-        hp_diff = self._calc_total_hp(self.field.parties[friend_player]) - self._calc_total_hp(self.field.parties[1 - friend_player])
+        hp_diff = self._calc_total_hp(self.field.parties[friend_player]) * self.reward_damage_friend\
+                  - self._calc_total_hp(self.field.parties[1 - friend_player]) * self.reward_damage_enemy
         hp_score = hp_diff / 1024.0
         return hp_score
     
@@ -233,16 +241,20 @@ class PokeaiEnv():
             if self.reward_damage:
                 #前のターンでダメージを与えた量に対する報酬
                 current_hp_eval = self._calc_hp_eval_score(self.friend_player)
-                reward += current_hp_eval - self.last_hp_eval_score
+                reward += (current_hp_eval - self.last_hp_eval_score)
                 self.last_hp_eval_score = current_hp_eval
         if not action_valid:
+            logger.debug("invalid action given")
             reward += -0.1#間接的にまずい行動であることを学習させる
             return self.make_observation(), -10.0, True, {}
         done = False
         if next_phase is pokeai_simu.FieldPhase.GameEnd:
             done = True
             winner = self.field.get_winner()
-            reward = 1.0 if self.friend_player == winner else -1.0
+            if self.reward_win:
+                reward = 1.0 if self.friend_player == winner else -1.0
+            else:
+                reward = 0.0
         elif self.field.turn_number >= 63:#64ターン以上経過
             done = True
             reward = 0.0#引き分けとする

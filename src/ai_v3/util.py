@@ -34,7 +34,11 @@ def init(suffix=None):
     if OUTPUT_DIR:
         return
 
-    OUTPUT_DIR = os.path.join(OUTPUT_BASEDIR, time.strftime("%y%m%d%H%M%S") + "_" + suffix)
+    if suffix is None:
+        suffix = ""
+    else:
+        suffix = "_" + suffix
+    OUTPUT_DIR = os.path.join(OUTPUT_BASEDIR, time.strftime("%y%m%d%H%M%S") + suffix)
     os.mkdir(OUTPUT_DIR)
 
     _init_logger()

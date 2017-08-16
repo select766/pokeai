@@ -25,7 +25,8 @@ class QFunction(chainer.Chain):
         h = F.relu(self.fc2(h))
         possible_action, _ = F.split_axis(x, [self.n_action], axis=1)
         h = self.fc3(h)
-        h = h + (possible_action - 1.0) * 10.0
+        h = h + ((possible_action - 1.0) * 10.0)
+        #h = h * possible_action
         return chainerrl.action_value.DiscreteActionValue(h)
 
 class QFunctionShallow(chainer.Chain):
