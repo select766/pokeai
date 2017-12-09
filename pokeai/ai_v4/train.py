@@ -104,13 +104,15 @@ def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("run_config")
     parser.add_argument("party_generator")
+    parser.add_argument("--eval", help="specify directory of model.npz")
 
     args = parser.parse_args()
 
     run_config = util.yaml_load_file(args.run_config)
     generate_parties_func = load_party_generator(args.party_generator)
 
-    run_id, save_dir = generate_run_id()
+    if not args.eval:
+        run_id, save_dir = generate_run_id()
 
     env_config = run_config["env"]
     env = pokeai_env.PokeaiEnv(env_rule=pokeai_env.EnvRule(**env_config["env_rule"]),
@@ -131,12 +133,32 @@ def train():
 
     agent = construct_agent(run_config, env)
 
-    chainerrl.experiments.train_agent_with_evaluation(
-        agent,
-        env,
-        outdir=os.path.join(save_dir, "agent"),
-        **run_config["train"]["kwargs"]
-    )
+    if args.eval:
+        agent.load(args.eval)
+        train_kwargs = run_config["train"]["kwargs"]
+        for i in range(train_kwargs["eval_n_runs"]):
+            obs = env.reset()
+            done = False
+            R = 0
+            t = 0
+            while not done and t < 200:
+                # env.render()
+                action = agent.act(obs)
+                obs, r, done, _ = env.step(action)
+                R += r
+                t += 1
+            print('test episode:', i, 'R:', R)
+            for log_line in env.field.logger.buffer:
+                print(log_line)
+            agent.stop_episode()
+
+    else:
+        chainerrl.experiments.train_agent_with_evaluation(
+            agent,
+            env,
+            outdir=os.path.join(save_dir, "agent"),
+            **run_config["train"]["kwargs"]
+        )
 
 
 if __name__ == '__main__':
