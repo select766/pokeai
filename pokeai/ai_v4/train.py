@@ -121,11 +121,11 @@ def train():
                                party_generator=generate_parties_func,
                                observers=[pokeai_env.ObserverPossibleAction(),
                                           pokeai_env.ObserverFightingPoke(from_enemy=False,
-                                                                          nv_condition=False,
+                                                                          nv_condition=True,
                                                                           v_condition=False,
                                                                           rank=False),
                                           pokeai_env.ObserverFightingPoke(from_enemy=True,
-                                                                          nv_condition=False,
+                                                                          nv_condition=True,
                                                                           v_condition=False,
                                                                           rank=False)
                                           ],
