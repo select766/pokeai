@@ -214,13 +214,12 @@ class Poke(object):
         self._hp = self.static_param.max_hp
         self.nv_condition = PokeNVCondition.Empty
         self.sleep_turn = 0
-    
+
     def reset_turn_end(self):
         """
         ターン終了でリセットされるパラメータのリセット
         """
         # TODO: ひるみ
-
 
     def calc_ratio_damage(self, ratio_x16):
         """

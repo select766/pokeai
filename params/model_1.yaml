@@ -1,0 +1,35 @@
+env:
+  env_rule:
+    party_size: 3
+    faint_change_random: true
+  reward_config:
+    reward_damage_friend: 0.1
+    reward_damage_enemy: 0.1
+  initial_seed: 1
+
+model:
+  class: FCStateQFunctionWithDiscreteAction
+  kwargs:
+    n_hidden_layers: 2
+    n_hidden_channels: 50
+agent:
+  class: DQN
+  kwargs:
+    replay_start_size: 500
+    gamma: 0.95
+  explorer:
+    class: ConstantEpsilonGreedy
+    kwargs:
+      epsilon: 0.05
+  replay_buffer_capacity: 1000000
+
+train:
+  optimizer:
+    class: Adam
+    kwargs:
+      eps: 0.001
+  kwargs:
+    steps: 100000
+    eval_n_runs: 10
+    max_episode_len: 64
+    eval_interval: 1000

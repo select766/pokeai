@@ -11,6 +11,7 @@ from .field_action import FieldActionBegin, FieldActionBeginCommand
 from .battle_rng import BattleRng, BattleRngReason
 from .field_log import FieldLog, FieldLogReason, FieldLogSender
 from .move_table import MoveTable
+
 Field = FieldPhase = None
 
 

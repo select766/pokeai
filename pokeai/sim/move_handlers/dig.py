@@ -13,11 +13,12 @@ from .move_handler import MoveHandler
 from .. import type_match
 from .attack import MoveHandlerAttack
 
+
 class MoveHandlerDig(MoveHandlerAttack):
     def __init__(self, field, move_entry):
         super().__init__(field, move_entry)
         self.dig_charging = False
-    
+
     def is_continuing(self):
         return self.dig_charging
 

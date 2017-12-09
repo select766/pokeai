@@ -2,6 +2,7 @@
 
 from enum import Enum
 
+
 class Dexno(Enum):
     """
     図鑑番号
@@ -17,6 +18,7 @@ class Dexno(Enum):
     Tauros = 7
     Lapras = 8
     Jolteon = 9
+
 
 '''class Dexno(Enum):
     """

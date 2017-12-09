@@ -31,4 +31,3 @@ class BattleRngReason(Enum):
     ConfusionTurn = auto()
     SleepTurn = auto()
     SideEffect = auto()
-    

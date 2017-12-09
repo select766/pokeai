@@ -67,7 +67,8 @@ class MoveHandlerAttack(MoveHandler):
 
                 # ダメージ判定
                 raw_damage = self._calc_damage(
-                    self.move_entry.attack, self.move_entry.move_poke_type, self.friend_poke, self.enemy_poke, is_critical)
+                    self.move_entry.attack, self.move_entry.move_poke_type, self.friend_poke, self.enemy_poke,
+                    is_critical)
             if raw_damage <= 0:
                 # はずれとみなされる
                 damage = 0
@@ -93,24 +94,24 @@ class MoveHandlerAttack(MoveHandler):
             else:
                 # 確率発動タイプ
                 side_effect_rnd = self.field.rng.get(
-                self.friend_player, BattleRngReason.SideEffect, top=99)
+                    self.friend_player, BattleRngReason.SideEffect, top=99)
 
                 effect_freeze = False
                 effect_paralysis = False
                 effect_rank_s_down = False
                 if self.move_entry.move_id is MoveID.Blizzard and side_effect_rnd < 30:
-                    #こおり
+                    # こおり
                     effect_freeze = True
                 elif self.move_entry.move_id is MoveID.Thunderbolt and side_effect_rnd < 10:
-                    #まひ
+                    # まひ
                     effect_paralysis = True
                 elif self.move_entry.move_id is MoveID.BodySlam and side_effect_rnd < 30:
-                    #まひ
+                    # まひ
                     effect_paralysis = True
                 elif self.move_entry.move_id is MoveID.Psychic and side_effect_rnd < 25:
-                    #とくしゅ1段階下がる
+                    # とくしゅ1段階下がる
                     effect_rank_s_down = True
-                
+
                 if effect_freeze:
                     if self.enemy_poke.can_freezed:
                         self._log_msg("追加効果 こおり")
@@ -123,7 +124,7 @@ class MoveHandlerAttack(MoveHandler):
                     if self.enemy_poke.rank_s > -6:
                         self._log_msg("追加効果 とくしゅ-1")
                         self.enemy_poke.rank_s -= 1
-        
+
         if self.move_entry.move_id is MoveID.HyperBeam:
             # はかいこうせん用処理(反動ターン処理は継承クラスで処理)
             if self.enemy_poke.hp > 0:

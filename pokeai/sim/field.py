@@ -63,7 +63,8 @@ class Field(object):
             self.first_player = 1
 
         self.logger.write(FieldLog(FieldLogSender.Field, FieldLogReason.MoveOrder,
-                                   {"speeds": orig_speeds, "first_player": self.first_player}, "Speeds: {}, first_player: {}".format(orig_speeds, self.first_player)))
+                                   {"speeds": orig_speeds, "first_player": self.first_player},
+                                   "Speeds: {}, first_player: {}".format(orig_speeds, self.first_player)))
 
         return FieldPhase.FirstMove
 

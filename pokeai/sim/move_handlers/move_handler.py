@@ -83,7 +83,8 @@ class MoveHandler(object):
         """
         ダメージ計算コア
         """
-        if move_poke_type in [PokeType.Empty, PokeType.Normal, PokeType.Fight, PokeType.Poison, PokeType.Ground, PokeType.Flying, PokeType.Bug, PokeType.Rock, PokeType.Ghost]:
+        if move_poke_type in [PokeType.Empty, PokeType.Normal, PokeType.Fight, PokeType.Poison, PokeType.Ground,
+                              PokeType.Flying, PokeType.Bug, PokeType.Rock, PokeType.Ghost]:
             # ぶつりわざ
             friend_a = friend_poke.eff_a(critical)
             enemy_b = enemy_poke.eff_b(critical)
@@ -99,11 +100,11 @@ class MoveHandler(object):
         critical_bonus = 2 if critical else 1
         # 217 to 255
         d_random = 217 + \
-            self.field.rng.get(self.friend_player,
-                               BattleRngReason.DamageRandom, top=38)
+                   self.field.rng.get(self.friend_player,
+                                      BattleRngReason.DamageRandom, top=38)
 
         damage = attack * friend_a * \
-            (friend_level * critical_bonus * 2 // 5 + 2) // enemy_b // 50 + 2
+                 (friend_level * critical_bonus * 2 // 5 + 2) // enemy_b // 50 + 2
         # 係数をかけるごとに切り捨て
         type_bonus = type_match.friend_type_bonus_x2(
             move_poke_type, friend_poke)
