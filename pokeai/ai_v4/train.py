@@ -4,7 +4,6 @@
 
 import sys
 import os
-import logging
 from logging import getLogger
 import argparse
 import time
@@ -19,8 +18,7 @@ from pokeai.sim import MoveID, Dexno, PokeType, PokeStaticParam, Poke, Party
 from . import util
 from . import pokeai_env
 
-logging.basicConfig(level=logging.INFO)
-logger = getLogger(__name__)
+logger = util.get_logger(__name__)
 
 
 def generate_run_id():

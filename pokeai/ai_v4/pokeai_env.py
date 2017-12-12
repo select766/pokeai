@@ -215,6 +215,9 @@ class PokeaiEnv(gym.Env):
         self.friend_player = 0
         self.enemy_player = 1 - self.friend_player
         self.last_hp_eval_score = self._calc_hp_eval_score(self.friend_player)
+        self.game_end = False
+        self.result_win = False
+        self.result_draw = False
         return self.make_observation()
 
     def get_possible_action_vec(self, player):
@@ -319,6 +322,7 @@ class PokeaiEnv(gym.Env):
 
     def _step(self, action):
         # action: int 0 to 3 which represents move index
+        assert not self.game_end
         enemy_action_needed = False
         if self.field.phase is sim.FieldPhase.Begin:
             # 技または交代
@@ -390,9 +394,13 @@ class PokeaiEnv(gym.Env):
         if next_phase is sim.FieldPhase.GameEnd:
             done = True
             winner = self.field.get_winner()
-            reward = self.reward_config.reward_win if self.friend_player == winner else -self.reward_config.reward_win
+            self.result_win = self.friend_player == winner
+            self.game_end = True
+            reward = self.reward_config.reward_win if self.result_win else -self.reward_config.reward_win
         elif self.field.turn_number >= 63:  # 64ターン以上経過
             done = True
+            self.result_draw = True
+            self.game_end = True
             reward = 0.0  # 引き分けとする
 
         return self.make_observation(), reward, done, {}
