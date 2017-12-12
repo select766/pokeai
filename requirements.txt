@@ -3,3 +3,4 @@ chainer>=2.1.0
 gym>=0.9.4
 chainerrl>=0.2.0
 tqdm>=4
+PyYAML>=3.12
