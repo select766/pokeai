@@ -7,8 +7,9 @@ from .poke_static_param import PokeStaticParam
 
 class Poke(object):
     """description of class"""
+    static_param: PokeStaticParam
 
-    def __init__(self, static_param):
+    def __init__(self, static_param: PokeStaticParam):
         assert isinstance(static_param, PokeStaticParam)
         self.static_param = static_param
         self.reset_all()

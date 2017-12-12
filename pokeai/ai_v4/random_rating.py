@@ -156,6 +156,37 @@ def evaluate_parties(parties: List[Party], env_rule: pokeai_env.EnvRule, n_play:
     return win_rate
 
 
+def evaluate_parties_groups(parties_target: List[Party], parties_baseline: List[Party], env_rule: pokeai_env.EnvRule,
+                            n_play: int, show_progress=False) -> np.ndarray:
+    """
+    2つのパーティ群それぞれから1つずつパーティを選択し、ランダム対戦により評価する。
+    総当たりで対戦し、parties_target内の各パーティの勝率を得る。
+    :param parties:
+    :param env_rule:
+    :param n_play:
+    :return:
+    """
+    n_parties_target = len(parties_target)
+    n_parties_baseline = len(parties_baseline)
+    party_scores = np.zeros((n_parties_target,), dtype=np.float32)
+    n_pairs = n_parties_target * n_parties_baseline
+    pbar = None
+    if show_progress:
+        pbar = tqdm(total=n_pairs)
+    for i in range(n_parties_target):
+        for j in range(n_parties_baseline):
+            pair_scores = play_party_pair([parties_target[i], parties_baseline[j]], env_rule, n_play)
+            party_scores[i] += pair_scores[0]
+            if show_progress:
+                pbar.update(1)
+    if show_progress:
+        pbar.close()
+
+    # 対戦数で割って勝率に変換
+    win_rate = party_scores / n_parties_baseline
+    return win_rate
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out")
