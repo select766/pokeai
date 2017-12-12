@@ -1,5 +1,6 @@
 """
 山登り法により、良いパーティを探索する
+python -m pokeai.ai_v4.hill_climbing party_file
 """
 
 import copy
@@ -100,9 +101,10 @@ def main():
 
     trial_results = []
     for trial_index in range(args.trials):
+        logger.info(f"Trial {trial_index}")
         trial_results.append(trial(args, evaluation_parties))
 
-    with open("climb.pickle", "wb") as f:
+    with open(util.get_output_filename("trial_results.pickle"), "wb") as f:
         pickle.dump(trial_results, f)
 
 
