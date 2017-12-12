@@ -239,6 +239,15 @@ class Poke(object):
             s += ";{}".format(self.move_handler.move_entry.move_id.name)
         return s
 
+    def render(self, static_only=True):
+        """
+        ポケモンのパラメータを表示する
+        :param static_only: 対戦中に変動しないパラメータのみ表示
+        :return:
+        """
+        assert static_only  # not implemented
+        print(f"{self.static_param.dexno};HP={self.hp};Moves={self.static_param.move_ids}")
+
 
 class PokeNVCondition(Enum):
     """

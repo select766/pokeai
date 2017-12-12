@@ -24,3 +24,14 @@ class Party(object):
             if not poke.is_faint:
                 return False
         return True
+
+    def render(self, static_only=True):
+        """
+        パーティ構成を表示する
+        :param static_only:
+        :return:
+        """
+        assert static_only
+        print("Party")
+        for poke in self.pokes:
+            poke.render(static_only=static_only)
