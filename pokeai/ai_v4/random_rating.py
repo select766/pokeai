@@ -125,6 +125,37 @@ def play_party_pair(party_pair: List[Party], env_rule: pokeai_env.EnvRule, n_pla
     return scores
 
 
+def evaluate_parties(parties: List[Party], env_rule: pokeai_env.EnvRule, n_play: int,
+                     show_progress=False) -> np.ndarray:
+    """
+    パーティをランダム対戦により評価する。
+    総当たりで対戦し、各パーティの勝率を得る。
+    :param parties:
+    :param env_rule:
+    :param n_play:
+    :return:
+    """
+    n_parties = len(parties)
+    party_scores = np.zeros((n_parties,), dtype=np.float32)
+    n_pairs = n_parties * (n_parties - 1) // 2
+    pbar = None
+    if show_progress:
+        pbar = tqdm(total=n_pairs)
+    for i in range(n_parties):
+        for j in range(i + 1, n_parties):
+            pair_scores = play_party_pair([parties[i], parties[j]], env_rule, n_play)
+            party_scores[i] += pair_scores[0]
+            party_scores[j] += pair_scores[1]
+            if show_progress:
+                pbar.update(1)
+    if show_progress:
+        pbar.close()
+
+    # 対戦数で割って勝率に変換
+    win_rate = party_scores / ((n_parties - 1) * n_play)
+    return win_rate
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out")
@@ -134,18 +165,9 @@ def main():
     n_parties = args.n_parties  # type: int
     party_size = 3
     parties = generate_random_parties(party_size, n_parties)
-    party_scores = np.zeros((n_parties,), dtype=np.float32)
     env_rule = pokeai_env.EnvRule(party_size, faint_change_random=True)
-    n_pairs = n_parties * (n_parties - 1) // 2
-    pbar = tqdm(total=n_pairs)
-    for i in range(n_parties):
-        for j in range(i + 1, n_parties):
-            pair_scores = play_party_pair([parties[i], parties[j]], env_rule, args.n_play)
-            party_scores[i] += pair_scores[0]
-            party_scores[j] += pair_scores[1]
-            pbar.update(1)
-    pbar.close()
-    result = {"parties": parties, "scores": party_scores}
+    party_win_rates = evaluate_parties(parties, env_rule, args.n_play, show_progress=True)
+    result = {"parties": parties, "win_rates": party_win_rates}
     with open(args.out, "wb") as f:
         pickle.dump(result, f)
 
