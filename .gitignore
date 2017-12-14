@@ -2,3 +2,4 @@
 /log
 /run
 .ipynb_checkpoints
+*.egg-info
