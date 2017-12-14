@@ -32,7 +32,15 @@ def generate_neighbor_parties(source_party: Party, args) -> List[Party]:
     # ポケモンを変更したパーティの生成
     for i in range(args.neighbors_poke):
         party = copy.deepcopy(source_party)
-        party.pokes[random.randrange(len(party.pokes))] = party_generation_helper.get_random_poke()
+        # すでにパーティ中にいるポケモンと同種は除外する
+        existing_dexnos = [poke.static_param.dexno for poke in party.pokes]
+        while True:
+            new_poke = party_generation_helper.get_random_poke()
+            if new_poke.static_param.dexno in existing_dexnos:
+                continue
+            change_pos = random.randrange(len(party.pokes))
+            party.pokes[change_pos] = new_poke
+            break
         gen_parties.append(party)
 
     # 技を変更したパーティの生成
