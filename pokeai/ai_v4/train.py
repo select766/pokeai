@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-# run as "python -m ai_v4.train [options]"
+# run as "python -m pokeai.ai_v4.train [options]"
 
 import sys
 import os
@@ -9,24 +9,24 @@ import argparse
 import time
 import numpy as np
 import chainer
-import chainer.functions as F
-import chainer.links as L
 import chainerrl
 import gym
 import gym.spaces
 from pokeai.sim import MoveID, Dexno, PokeType, PokeStaticParam, Poke, Party
 from . import util
 from . import pokeai_env
+from .agents import RandomAgent
 
 logger = util.get_logger(__name__)
 
 
-def generate_run_id():
+def generate_run_id(run_id=None):
     """
     学習試行にIDを与え、またデータを保存するディレクトリを作成する。
     :return: (run_id, save_dir)
     """
-    run_id = time.strftime("%Y%m%d%H%M%S")
+    if run_id is None:
+        run_id = time.strftime("%Y%m%d%H%M%S")
     project_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     save_dir = os.path.join(project_root_dir, "run", run_id)
     os.makedirs(save_dir)
@@ -71,52 +71,42 @@ def construct_agent(run_config, env: pokeai_env.PokeaiEnv):
     return agent
 
 
-def show_party(party, print_func):
-    for i, poke in enumerate(party.pokes):
-        st = poke.static_param
-        s = ""
-        if i == party.fighting_poke_idx:
-            s += "*"
-        else:
-            s += " "
-        s += st.dexno.name + " "
-        for move_id in st.move_ids:
-            s += move_id.name + " "
-        s += "HP {}/{} ".format(poke.hp, st.max_hp)
-        print_func(s)
-
-
-def show_parties(parties, print_func):
-    for player in [0, 1]:
-        print_func("Player {}".format(player))
-        show_party(parties[player], print_func)
-
-
-def load_party_generator(path):
+def load_party_generator(path, run_config, phase_eval):
     import importlib.machinery
     module = importlib.machinery.SourceFileLoader("party_generator", path).load_module()
-    return getattr(module, "generate_parties")
+    if hasattr(module, "generate_parties"):
+        # function形式
+        return getattr(module, "generate_parties")
+    elif hasattr(module, "PartyGenerator"):
+        # class形式
+        return getattr(module, "PartyGenerator")(
+            **run_config["party_generator"]["eval" if phase_eval else "train"]["kwargs"])
 
 
 def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("run_config")
     parser.add_argument("party_generator")
+    parser.add_argument("--run_id")
     parser.add_argument("--eval", help="specify directory of model.npz")
 
     args = parser.parse_args()
 
     run_config = util.yaml_load_file(args.run_config)
-    generate_parties_func = load_party_generator(args.party_generator)
+    generate_parties_func_train = load_party_generator(args.party_generator, run_config, phase_eval=False)
+    generate_parties_func_eval = load_party_generator(args.party_generator, run_config, phase_eval=True)
 
+    save_dir = None
     if not args.eval:
-        run_id, save_dir = generate_run_id()
+        run_id, save_dir = generate_run_id(args.run_id)
+        util.yaml_dump_file(run_config, os.path.join(save_dir, "run_config.yaml"))
 
     env_config = run_config["env"]
-    env = pokeai_env.PokeaiEnv(env_rule=pokeai_env.EnvRule(**env_config["env_rule"]),
+    env_rule = pokeai_env.EnvRule(**env_config["env_rule"])
+    env = pokeai_env.PokeaiEnv(env_rule=env_rule,
                                reward_config=pokeai_env.RewardConfig(**env_config["reward_config"]),
                                initial_seed=env_config["initial_seed"],
-                               party_generator=generate_parties_func,
+                               party_generator=generate_parties_func_train,
                                observers=[pokeai_env.ObserverPossibleAction(),
                                           pokeai_env.ObserverFightingPoke(from_enemy=False,
                                                                           nv_condition=True,
@@ -127,7 +117,26 @@ def train():
                                                                           v_condition=False,
                                                                           rank=False)
                                           ],
-                               enemy_agent=None)
+                               enemy_agent=RandomAgent(env_rule.party_size, pokeai_env.N_MOVES, 0.1))
+    eval_env = pokeai_env.PokeaiEnv(env_rule=env_rule,
+                                    # 勝率に変換したいので、勝敗以外の報酬なし
+                                    reward_config=pokeai_env.RewardConfig(reward_win=1.0,
+                                                                          reward_invalid=0.0,
+                                                                          reward_damage_friend=0.0,
+                                                                          reward_damage_enemy=0.0),
+                                    initial_seed=env_config["initial_seed"],
+                                    party_generator=generate_parties_func_eval,
+                                    observers=[pokeai_env.ObserverPossibleAction(),
+                                               pokeai_env.ObserverFightingPoke(from_enemy=False,
+                                                                               nv_condition=True,
+                                                                               v_condition=False,
+                                                                               rank=False),
+                                               pokeai_env.ObserverFightingPoke(from_enemy=True,
+                                                                               nv_condition=True,
+                                                                               v_condition=False,
+                                                                               rank=False)
+                                               ],
+                                    enemy_agent=RandomAgent(env_rule.party_size, pokeai_env.N_MOVES, 0.1))
 
     agent = construct_agent(run_config, env)
 
@@ -139,7 +148,7 @@ def train():
             done = False
             R = 0
             t = 0
-            while not done and t < 200:
+            while not done:
                 # env.render()
                 action = agent.act(obs)
                 obs, r, done, _ = env.step(action)
@@ -155,6 +164,7 @@ def train():
             agent,
             env,
             outdir=os.path.join(save_dir, "agent"),
+            eval_env=eval_env,
             **run_config["train"]["kwargs"]
         )
 

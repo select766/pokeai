@@ -4,7 +4,7 @@ import time
 import logging
 import yaml
 
-output_dir_name_prefix = time.strftime("%Y%m%d%H%M%S")
+output_dir_name_prefix = f"{os.path.splitext(os.path.basename(sys.argv[0]))[0]}_{time.strftime('%Y%m%d%H%M%S')}"
 output_dir_path = None
 output_dir_generated = False
 

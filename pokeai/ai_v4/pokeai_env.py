@@ -20,17 +20,24 @@ class RewardConfig:
     報酬の設定
     """
     reward_win: float
+    reward_draw: float
+    reward_invalid: float
     reward_damage_friend: float
     reward_damage_enemy: float
 
-    def __init__(self, reward_win=1.0, reward_damage_friend=0.0, reward_damage_enemy=0.0):
+    def __init__(self, reward_win=1.0, reward_draw=0.0, reward_invalid=-10.0, reward_damage_friend=0.0,
+                 reward_damage_enemy=0.0):
         """
         報酬の設定
         :param reward_win: 勝利時にもらえる報酬。敗北時は-reward_winの報酬。
+        :param reward_draw: 引き分け時（一定ターン数以上経過時）にもらえる報酬。
+        :param reward_invalid: その局面で選べない行動を選んだ場合の報酬。通常負の値を指定する。
         :param reward_damage_friend: 味方ポケモンのダメージに対する報酬。(-reward_damage_friend * ダメージ / 1024)の報酬。
         :param reward_damage_enemy: 敵ポケモンのダメージに対する報酬。(reward_damage_enemy * ダメージ / 1024)の報酬。
         """
         self.reward_win = reward_win
+        self.reward_draw = reward_draw
+        self.reward_invalid = reward_invalid
         self.reward_damage_friend = reward_damage_friend
         self.reward_damage_enemy = reward_damage_enemy
 
@@ -388,8 +395,7 @@ class PokeaiEnv(gym.Env):
             self.last_hp_eval_score = current_hp_eval
         if not action_valid:
             logger.debug("invalid action given")
-            reward += -0.1  # 間接的にまずい行動であることを学習させる
-            return self.make_observation(), -10.0, True, {}
+            return self.make_observation(), self.reward_config.reward_invalid, True, {}
         done = False
         if next_phase is sim.FieldPhase.GameEnd:
             done = True
@@ -401,7 +407,7 @@ class PokeaiEnv(gym.Env):
             done = True
             self.result_draw = True
             self.game_end = True
-            reward = 0.0  # 引き分けとする
+            reward = self.reward_config.reward_draw  # 引き分けとする
 
         return self.make_observation(), reward, done, {}
 
