@@ -6,6 +6,7 @@ python -m pokeai.ai_v4.hill_climbing config_file
 import os
 import sys
 import copy
+import tempfile
 from typing import List
 import pickle
 import argparse
@@ -19,6 +20,7 @@ from . import pokeai_env
 from . import party_generation_helper
 from . import util
 from . import random_rating
+from . import find_train_hyper_param
 
 logger = util.get_logger(__name__)
 
@@ -90,8 +92,8 @@ class PartyGroupEvaluatorRandom:
 
 
 class PartyGroupEvaluatorRL:
-    def __init__(self):
-        pass
+    def __init__(self, base_run_config_path):
+        self.base_run_config = util.yaml_load_file(base_run_config_path)
 
     def evaluate_parties_groups(self, parties_target: List[Party], parties_baseline: List[Party],
                                 env_rule: pokeai_env.EnvRule,
@@ -105,7 +107,30 @@ class PartyGroupEvaluatorRL:
         :param show_progress:
         :return:
         """
-        pass
+        fd, parties_target_path = tempfile.mkstemp(".pickle")
+        with os.fdopen(fd, "wb") as f:
+            pickle.dump(parties_target, f)
+        scores = []
+        infos = []
+        pbar = None
+        if show_progress:
+            pbar = tqdm(total=len(parties_target))
+        for party_idx, party_target in enumerate(parties_target):
+            run_config = copy.deepcopy(self.base_run_config)
+            for phase in ["train", "eval"]:
+                run_config["party_generator"][phase]["kwargs"]["friend_parties_path"] = parties_target_path
+                run_config["party_generator"][phase]["kwargs"]["friend_party_idx"] = party_idx
+            run_id = find_train_hyper_param.generate_unique_run_id()
+            train_result = find_train_hyper_param.run_train(run_config, run_id, show_progress=False)
+            final_score = train_result[run_config["train"]["kwargs"]["steps"]]["mean"]
+            scores.append(final_score)
+            infos.append({"train_result": train_result, "run_id": run_id})
+            if show_progress:
+                pbar.update()
+        if show_progress:
+            pbar.close()
+        os.remove(parties_target_path)
+        return {"scores": scores, "info": {"train_info": infos}}
 
 
 party_group_evaluators = {"PartyGroupEvaluatorRandom": PartyGroupEvaluatorRandom,

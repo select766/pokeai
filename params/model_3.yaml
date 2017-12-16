@@ -1,0 +1,48 @@
+env:
+  env_rule:
+    party_size: 3
+    faint_change_random: true
+  reward_config:
+    reward_damage_friend: 1.0
+    reward_damage_enemy: 1.0
+  initial_seed: 1
+
+model:
+  class: FCStateQFunctionWithDiscreteAction
+  kwargs:
+    n_hidden_layers: 1
+    n_hidden_channels: 64
+agent:
+  class: DQN
+  kwargs:
+    replay_start_size: 500
+    gamma: 0.90
+    minibatch_size: 256
+    target_update_interval: 140
+  explorer:
+    class: ConstantEpsilonGreedy
+    kwargs:
+      epsilon: 0.05
+  replay_buffer_capacity: 1000000
+
+train:
+  optimizer:
+    class: Adam
+    kwargs:
+      alpha: 0.002
+  kwargs:
+    steps: 50000
+    eval_n_runs: 100
+    max_episode_len: 64
+    eval_interval: 10000
+
+party_generator:
+  train:
+    kwargs:  &pg_train_kwargs
+      friend_parties_path: data\parties\random_friend_pool_100.pickle
+      enemy_parties_path: data\parties\random_train_enemy_pool_1000.pickle
+      friend_party_idx: 0
+  eval:
+    kwargs:
+      <<: *pg_train_kwargs
+      enemy_parties_path: data\parties\random_pool_100.pickle

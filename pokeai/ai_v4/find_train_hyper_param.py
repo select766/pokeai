@@ -67,20 +67,28 @@ def read_log(train_log_path):
     return step_scores
 
 
-def run_train(run_config):
+def generate_unique_run_id():
+    return f"random_run_{time.strftime('%Y%m%d%H%M%S')}_{os.getpid()}"  # 並列実行で衝突しないように
+
+
+def run_train(run_config, run_id, show_progress=True):
     """
     学習を走らせて結果を回収する。
     :param run_config:
     :return:
     """
-    run_id = f"random_run_{time.strftime('%Y%m%d%H%M%S')}_{os.getpid()}"  # 並列実行で衝突しないように
     logger.info(f"Running training {run_id}")
     fd, run_config_path = tempfile.mkstemp(suffix=".yaml")
     logger.info(f"Temp run config file: {run_config_path}")
     os.close(fd)
     util.yaml_dump_file(run_config, run_config_path)
+    call_kwargs = {}
+    if not show_progress:
+        call_kwargs["stdout"] = subprocess.DEVNULL
+        call_kwargs["stderr"] = subprocess.DEVNULL
     subprocess.check_call(
-        ["python", "-m", "pokeai.ai_v4.train", run_config_path, "params/party_loader.py", "--run_id", run_id])
+        ["python", "-m", "pokeai.ai_v4.train", run_config_path, "params/party_loader.py", "--run_id", run_id],
+        **call_kwargs)
     os.remove(run_config_path)
     train_result = read_log(os.path.join("run", run_id, "agent", "scores.txt"))
     return train_result
@@ -103,7 +111,7 @@ def main():
             run_config_iter = copy.deepcopy(run_config)
             run_config_iter["party_generator"]["train"]["friend_party_idx"] = party_idx
             run_config_iter["party_generator"]["eval"]["friend_party_idx"] = party_idx
-            train_result = run_train(run_config_iter)
+            train_result = run_train(run_config_iter, generate_unique_run_id())
             train_results.append(train_result)
         util.yaml_dump_file({"config": config, "train_results": train_results},
                             os.path.join(args.out_dir, f"{time.strftime('%Y%m%d%H%M%S')}_{os.getpid()}.yaml"))
