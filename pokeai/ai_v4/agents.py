@@ -41,3 +41,6 @@ class RandomAgent:
             else:
                 assert can_change
                 return np.random.choice(np.flatnonzero(change_vec)) + n_moves
+
+    def stop_episode(self):
+        pass

@@ -137,22 +137,25 @@ party_group_evaluators = {"PartyGroupEvaluatorRandom": PartyGroupEvaluatorRandom
                           "PartyGroupEvaluatorRL": PartyGroupEvaluatorRL}
 
 
-def trial(config, evaluation_parties):
+def trial(config, evaluation_parties, initial_parties=None):
     hill_climbing_config = config["hill_climbing"]
-    # 初期パーティ生成
+    # 初期パーティ生成 (通常は1個だが、複数生成して最善のものを選択することも可能)
     env_rule = pokeai_env.EnvRule(**config["env"]["env_rule"])
-    current_party = party_generation_helper.get_random_party(env_rule.party_size)
+    if initial_parties is None:
+        initial_parties = [party_generation_helper.get_random_party(env_rule.party_size) for i in
+                           range(hill_climbing_config.get("initial_party_size", 1))]
     party_group_evaluator = party_group_evaluators[config["party_group_evaluator"]["class"]](
         **config["party_group_evaluator"]["kwargs"])
     logger.info("Measuring initial score")
-    eval_result = party_group_evaluator.evaluate_parties_groups([current_party], evaluation_parties, env_rule, 1,
+    eval_result = party_group_evaluator.evaluate_parties_groups(initial_parties, evaluation_parties, env_rule, 1,
                                                                 show_progress=True)
-
-    best_score = eval_result["scores"][0]
+    best_initial_party_idx = int(np.argmax(eval_result["scores"]))
+    best_score = eval_result["scores"][best_initial_party_idx]
+    current_party = initial_parties[best_initial_party_idx]
     logger.info(f"Initial score: {best_score}")
 
     trial_result = {"initial_party": current_party, "initial_score": best_score, "iterations": [],
-                    "initial_eval_info": eval_result["info"]}
+                    "initial_eval_info": eval_result["info"], "initial_parties": initial_parties}
 
     for iteration in range(hill_climbing_config["iterations"]):
         logger.info(f"Iteration {iteration}")
@@ -178,9 +181,42 @@ def trial(config, evaluation_parties):
     return trial_result
 
 
+def load_party_from_hill_climbing(path):
+    """
+    以前のhill climbingの実行結果における最強のパーティを読み込む。
+    :param path:
+    :return:
+    """
+    with open(path, "rb") as f:
+        last_hc_result = pickle.load(f)
+    parties = []
+    run_ids = []
+    for last_trial_result in last_hc_result:
+        run_id = None
+        if len(last_trial_result["iterations"]) > 0:
+            final_iter = last_trial_result["iterations"][-1]
+            scores = final_iter["neighbor_scores"]
+            best_party_idx = int(np.argmax(scores))
+            best_party = final_iter["neighbor_parties"][best_party_idx]
+            eval_info = final_iter["neighbor_eval_info"]
+            if "train_info" in eval_info:
+                run_id = eval_info["train_info"][best_party_idx]["run_id"]
+        else:
+            best_party = last_trial_result["initial_party"]
+            eval_info = last_trial_result["initial_eval_info"]
+            if "train_info" in eval_info:
+                assert len(eval_info["train_info"]) == 1
+                run_id = eval_info["train_info"][0]["run_id"]
+
+        parties.append(best_party)
+        run_ids.append(run_id)
+    return parties, run_ids
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config")
+    parser.add_argument("--initial_party", help="use previous hill climbing best party as initial party")
     parser.add_argument("--trials", type=int, default=1)
     args = parser.parse_args()
 
@@ -189,9 +225,15 @@ def main():
         evaluation_parties = pickle.load(f)
 
     trial_results = []
+    initial_parties = None
+    if args.initial_party:
+        initial_parties, _ = load_party_from_hill_climbing(args.initial_party)
+        assert len(initial_parties) >= args.trials
     for trial_index in range(args.trials):
         logger.info(f"Trial {trial_index}")
-        trial_results.append(trial(config, evaluation_parties))
+        trial_results.append(
+            trial(config, evaluation_parties,
+                  [initial_parties[trial_index]] if initial_parties is not None else None))
 
         # 1trialごとにファイルに書くが、書き換え中に落ちても古いファイルが残るようにする
         tmp_path = util.get_output_filename("trial_results.pickle.tmp")

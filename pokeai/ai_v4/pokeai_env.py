@@ -311,8 +311,8 @@ class PokeaiEnv(gym.Env):
         else:
             return sim.FieldActionFaintChange(action - (N_MOVES + self.env_rule.party_size))
 
-    def _sample_enemy_action(self):
-        if self.enemy_agent is not None:
+    def _sample_enemy_action(self, force_random=False):
+        if self.enemy_agent is not None and not force_random:
             # 敵モデルで最善の行動をとる
             enemy_action = self.enemy_agent.act(self.make_observation(from_enemy=True))
         else:
@@ -364,10 +364,11 @@ class PokeaiEnv(gym.Env):
         while True:
             next_phase = self.field.step()
             if next_phase is sim.FieldPhase.FaintChange:
+                # self.env_rule.faint_change_random is Trueなら敵味方ともランダムに交代する
                 # 敵側のみが交代であれば、自動で選択してすすめる
                 if not self.field.parties[self.friend_player].get_fighting_poke().is_faint:
                     assert self.field.parties[self.enemy_player].get_fighting_poke().is_faint
-                    enemy_fa = self._sample_enemy_action()
+                    enemy_fa = self._sample_enemy_action(force_random=self.env_rule.faint_change_random)
                     fa_list = [None, None]
                     fa_list[self.enemy_player] = enemy_fa
                     self.field.set_actions_faint_change(fa_list)
@@ -376,7 +377,7 @@ class PokeaiEnv(gym.Env):
                         # ランダムに交代
                         fa_list = [None, None]
                         if self.field.parties[self.enemy_player].get_fighting_poke().is_faint:
-                            enemy_fa = self._sample_enemy_action()
+                            enemy_fa = self._sample_enemy_action(force_random=self.env_rule.faint_change_random)
                             fa_list[self.enemy_player] = enemy_fa
                         fa_list[self.friend_player] = self._action_to_field_action(self.friend_player,
                                                                                    self.random_action_func())
