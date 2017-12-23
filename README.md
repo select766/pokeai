@@ -8,7 +8,7 @@ PokéAI(ポケエーアイ)は、ポケモンバトルの戦略を人工知能�
 コードは今後大規模に変更される予定なので、パッチ等は受け付けておりません。
 
 本はこちらです。
-- 準備編(2017-12-24)
+- [準備編(2017-12-24)](https://github.com/select766/pokeai/releases/download/book-201712/PokeAI-201712.pdf)
 
 PokéAI project is to make artificial intelligence devise strategy of Pokémon battle.
 Hill climbing method is used for party generation and deep reinforcement learning method is used for action selection in battle.
