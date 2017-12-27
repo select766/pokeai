@@ -4,7 +4,8 @@ import time
 import logging
 import yaml
 
-output_dir_name_prefix = f"{os.path.splitext(os.path.basename(sys.argv[0]))[0]}_{time.strftime('%Y%m%d%H%M%S')}_{os.getpid()}"
+output_dir_name_prefix = os.path.join(f"{os.path.splitext(os.path.basename(sys.argv[0]))[0]}",
+                                      f"{time.strftime('%Y%m%d%H%M%S')}_{os.getpid()}")
 output_dir_path = None
 output_dir_generated = False
 
@@ -27,8 +28,7 @@ def get_output_dir():
     """
     global output_dir_generated, output_dir_path
     if not output_dir_generated:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        output_dir_path = os.path.join(project_root, "data", output_dir_name_prefix)
+        output_dir_path = os.path.join("run", output_dir_name_prefix)
         os.makedirs(output_dir_path)
         output_dir_generated = True
         sys.stderr.write(f"Output directory: {output_dir_path}\n")

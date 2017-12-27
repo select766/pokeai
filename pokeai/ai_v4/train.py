@@ -20,19 +20,6 @@ from .agents import RandomAgent
 logger = util.get_logger(__name__)
 
 
-def generate_run_id(run_id=None):
-    """
-    学習試行にIDを与え、またデータを保存するディレクトリを作成する。
-    :return: (run_id, save_dir)
-    """
-    if run_id is None:
-        run_id = time.strftime("%Y%m%d%H%M%S")
-    project_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    save_dir = os.path.join(project_root_dir, "run", run_id)
-    os.makedirs(save_dir)
-    return run_id, save_dir
-
-
 def construct_model(model_config, obs_size, n_actions):
     assert model_config["class"] == "FCStateQFunctionWithDiscreteAction"
     from chainerrl.q_functions import FCStateQFunctionWithDiscreteAction
@@ -87,7 +74,6 @@ def train():
     parser = argparse.ArgumentParser()
     parser.add_argument("run_config")
     parser.add_argument("party_generator")
-    parser.add_argument("--run_id")
     parser.add_argument("--eval", help="specify directory of model.npz")
 
     args = parser.parse_args()
@@ -98,7 +84,7 @@ def train():
 
     save_dir = None
     if not args.eval:
-        run_id, save_dir = generate_run_id(args.run_id)
+        save_dir = util.get_output_dir()
         util.yaml_dump_file(run_config, os.path.join(save_dir, "run_config.yaml"))
 
     env_config = run_config["env"]
