@@ -181,7 +181,7 @@ def trial(config, evaluation_parties, initial_parties=None):
     return trial_result
 
 
-def load_party_from_hill_climbing(path):
+def load_party_from_hill_climbing(path, get_score=False):
     """
     以前のhill climbingの実行結果における最強のパーティを読み込む。
     :param path:
@@ -191,6 +191,7 @@ def load_party_from_hill_climbing(path):
         last_hc_result = pickle.load(f)
     parties = []
     run_ids = []
+    scores = []
     for last_trial_result in last_hc_result:
         run_id = None
         if len(last_trial_result["iterations"]) > 0:
@@ -198,11 +199,13 @@ def load_party_from_hill_climbing(path):
             scores = final_iter["neighbor_scores"]
             best_party_idx = int(np.argmax(scores))
             best_party = final_iter["neighbor_parties"][best_party_idx]
+            scores.append(scores[best_party_idx])
             eval_info = final_iter["neighbor_eval_info"]
             if "train_info" in eval_info:
                 run_id = eval_info["train_info"][best_party_idx]["run_id"]
         else:
             best_party = last_trial_result["initial_party"]
+            scores.append(last_trial_result["initial_score"])
             eval_info = last_trial_result["initial_eval_info"]
             if "train_info" in eval_info:
                 assert len(eval_info["train_info"]) == 1
@@ -210,7 +213,10 @@ def load_party_from_hill_climbing(path):
 
         parties.append(best_party)
         run_ids.append(run_id)
-    return parties, run_ids
+    if get_score:
+        return parties, run_ids, scores
+    else:
+        return parties, run_ids
 
 
 def main():
