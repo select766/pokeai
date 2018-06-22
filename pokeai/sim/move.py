@@ -9,3 +9,4 @@ class Move(Enum):
     AGILITY = auto()  # こうそくいどう
     SPLASH = auto()  # はねる
     VINEWHIP = auto()  # つるのムチ
+    DIG = auto()  # あなをほる

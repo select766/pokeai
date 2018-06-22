@@ -1,7 +1,10 @@
 from typing import List
 
 from pokeai.sim.game_rng import GameRNGReason
+from pokeai.sim.move import Move
 from pokeai.sim.move_handler_context import MoveHandlerContext
+from pokeai.sim.multi_turn_move_info import MultiTurnMoveInfo
+from pokeai.sim.poke import Poke
 from pokeai.sim.poke_type import PokeType
 
 
@@ -14,6 +17,10 @@ def check_hit_attack_default(context: MoveHandlerContext) -> bool:
     # TODO: 発動条件(ランク変化が可能か、状態異常の相手に状態異常技を打っていないか、相手があなをほる状態でないか)
     # TODO: 相性（攻撃技）
     # TODO: 相性（補助技：毒タイプに対するどくどくや地面タイプに対するでんじは）
+
+    if context.defend_poke.v_dig:
+        context.field.put_record_other("あなをほる状態で外れた")
+        return False
 
     # 命中率による判定
     # https://wiki.xn--rckteqa2e.com/wiki/%E5%91%BD%E4%B8%AD
@@ -136,6 +143,46 @@ def launch_move_splash(context: MoveHandlerContext):
     :return:
     """
     context.field.put_record_other("なにもおこらない")
+
+
+def check_hit_dig(context: MoveHandlerContext) -> bool:
+    """
+    あなをほる(連続技)
+    1ターン目: 必ず成功
+    2ターン目: あなをほる状態解除、普通の命中判定
+    :param context:
+    :return:
+    """
+
+    # TODO: どのタイミングでmulti_turn_move_infoを解除するのかよく考えるべき
+    # 外れる場合を考えるとここで解除することになるが、そうするとlaunch_move_digに情報を伝えられない
+    def abort_dig(poke: Poke):
+        poke.v_dig = False
+
+    if context.attack_poke.multi_turn_move_info is None:
+        # 1ターン目
+        context.attack_poke.multi_turn_move_info = MultiTurnMoveInfo(Move.DIG, abort_dig)
+        return True
+    else:
+        # 2ターン目
+        context.attack_poke.multi_turn_move_info = None
+        context.attack_poke.v_dig = False
+        return check_hit_attack_default(context)
+
+
+def launch_move_dig(context: MoveHandlerContext):
+    """
+    あなをほる
+    :param context:
+    :return:
+    """
+    if context.attack_poke.multi_turn_move_info is not None:
+        # 1ターン目
+        context.attack_poke.v_dig = True
+        context.field.put_record_other("ちちゅうにもぐった")
+    else:
+        # 2ターン目
+        launch_move_attack_default(context)
 
 
 def check_side_effect_none(context: MoveHandlerContext) -> bool:

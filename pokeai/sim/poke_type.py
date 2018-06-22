@@ -46,6 +46,7 @@ class PokeType(Enum):
 
     @classmethod
     def get_match_list(cls, move_type: "PokeType", defend_types: List["PokeType"]) -> List[int]:
+        # 2倍→0.5倍と、0.5倍→2倍で結果が異なる場合あり。原作と一致しないかも。
         return [cls.get_match(move_type, t) for t in defend_types]
 
 

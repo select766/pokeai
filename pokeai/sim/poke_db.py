@@ -104,4 +104,10 @@ class PokeDB:
                                   mh.launch_move_splash,
                                   mh.check_side_effect_none,
                                   mh.launch_side_effect_none)
+        if move == Move.DIG:
+            return PokeDBMoveInfo(PokeDBMoveFlag(PokeType.GROUND, 100, 100, 20),
+                                  mh.check_hit_dig,
+                                  mh.launch_move_dig,
+                                  mh.check_side_effect_none,
+                                  mh.launch_side_effect_none)
         raise NotImplementedError

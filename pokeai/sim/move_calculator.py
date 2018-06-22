@@ -67,17 +67,17 @@ class MoveCalculator:
             self.field.put_record_other("行動不能のため失敗")
             if multi_turn_move_info is not None:
                 multi_turn_move_info.abort(self.attack_poke)
-                self.attack_poke.continuous_move_info = None
+                self.attack_poke.multi_turn_move_info = None
             return
 
-        if not self._check_can_move(move_info, ctx):
+        if not self._check_hit(move_info, ctx):
             """
             技が外れた
             """
             self.field.put_record_other("発動条件・技が外れたため失敗")
             if multi_turn_move_info is not None:
                 multi_turn_move_info.abort(self.attack_poke)
-                self.attack_poke.continuous_move_info = None
+                self.attack_poke.multi_turn_move_info = None
             return
 
         self._launch_move(move_info, ctx)

@@ -95,6 +95,10 @@ class Poke:
     rank_evasion: Rank  # 回避
     rank_accuracy: Rank  # 命中
     multi_turn_move_info: TypeVar("pokeai.sim.multi_turn_move_info.MultiTurnMoveInfo")
+    """
+    状態変化(v_*)
+    """
+    _v_dig: bool
 
     def __init__(self, poke_st: PokeStatic):
         self._poke_st = poke_st
@@ -128,6 +132,8 @@ class Poke:
         self.rank_accuracy = Rank(-6, 0)
         self.rank_evasion = Rank(0, 6)
 
+        self._v_dig = False
+
     def on_change(self):
         """
         交代で戻ったときの処理
@@ -141,6 +147,8 @@ class Poke:
         self.rank_evasion.reset()
         # 連続技途中での交代を想定していない（2世代以降の吹き飛ばし等、そういう技はないはず）
         assert self.multi_turn_move_info is None, "Poke.on_change called while continuous_move_info is not None"
+        # 状態変化を解除
+        self._v_dig = False
 
     def on_turn_end(self):
         """
@@ -205,3 +213,15 @@ class Poke:
 
     def __str__(self):
         return f"{self._poke_st.dexno.name} (HP {self.hp}/{self.max_hp})"
+
+    @property
+    def v_dig(self):
+        """
+        あなをほる状態
+        :return:
+        """
+        return self._v_dig
+
+    @v_dig.setter
+    def v_dig(self, v: bool):
+        self._v_dig = v
