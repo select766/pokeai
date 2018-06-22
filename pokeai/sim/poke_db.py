@@ -92,4 +92,10 @@ class PokeDB:
                                   mh.launch_move_attack_default,
                                   mh.check_side_effect_none,
                                   mh.launch_side_effect_none)
+        if move == Move.SPLASH:
+            return PokeDBMoveInfo(PokeDBMoveFlag(PokeType.NORMAL, 0, 0, 40),
+                                  mh.check_hit_splash,
+                                  mh.launch_move_splash,
+                                  mh.check_side_effect_none,
+                                  mh.launch_side_effect_none)
         raise NotImplementedError

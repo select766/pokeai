@@ -120,6 +120,24 @@ def launch_move_attack_default(context: MoveHandlerContext):
     context.defend_poke.hp_incr(-damage)
 
 
+def check_hit_splash(context: MoveHandlerContext) -> bool:
+    """
+    はねる
+    :param context:
+    :return:
+    """
+    return True
+
+
+def launch_move_splash(context: MoveHandlerContext):
+    """
+    はねる
+    :param context:
+    :return:
+    """
+    context.field.put_record_other("なにもおこらない")
+
+
 def check_side_effect_none(context: MoveHandlerContext) -> bool:
     """
     追加効果なし
