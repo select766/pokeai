@@ -2,8 +2,10 @@
 ゲーム中の乱数を生成
 """
 import random
+from collections import defaultdict
 from enum import Enum, auto
 import warnings
+from typing import Dict, Tuple, List
 
 
 class GameRNGReason(Enum):
@@ -47,13 +49,19 @@ class GameRNGRandom(GameRNG):
 class GameRNGFixed(GameRNG):
     """
     テスト用に固定乱数を与える。
+    特定用途の乱数が取得されるときにユーザ指定の値を返す機能を有する。
     """
+
+    const_store: Dict[Tuple[int, GameRNGReason], List[int]]
 
     def __init__(self):
         super().__init__()
+        self.const_store = defaultdict(list)
 
     def _gen(self, player, reason, top) -> int:
-        # TODO: player, reasonを条件として特定の値を与える機能
+        const_list = self.const_store[(player, reason)]
+        if len(const_list) > 0:
+            return const_list.pop()
         if reason == GameRNGReason.HIT:
             # 必ず命中
             return 0
@@ -64,3 +72,24 @@ class GameRNGFixed(GameRNG):
             # 急所に当たらない
             return top
         return 0
+
+    def enqueue_const(self, player: int, reason: GameRNGReason, value: int) -> None:
+        """
+        特定条件で次に呼び出されたときに返す定数を設定する。
+        同条件に対してはキューとしてふるまう。
+        :param player:
+        :param reason:
+        :param value:
+        :return:
+        """
+        self.const_store[(player, reason)].append(value)
+
+    def is_const_empty(self) -> bool:
+        """
+        定数がすべて消費されているかを得る。
+        :return:
+        """
+        for k, v in self.const_store.items():
+            if len(v) > 0:
+                return False
+        return True
