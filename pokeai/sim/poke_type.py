@@ -21,7 +21,7 @@ class PokeType(Enum):
     POISON = 9
     GROUND = 10
     FLYING = 11
-    PHYCHC = 12
+    PSYCHC = 12
     BUG = 13
     ROCK = 14
     GHOST = 15
@@ -42,17 +42,127 @@ class PokeType(Enum):
         :param defend_type:
         :return:
         """
-        # TODO: テーブル用意
-        if move_type == PokeType.FIRE and defend_type == PokeType.GRASS:
-            return 4
-        if move_type == PokeType.GRASS and defend_type == PokeType.FIRE:
-            return 1
-        if move_type == PokeType.GRASS and defend_type == PokeType.GRASS:
-            return 1
-        if move_type == PokeType.GRASS and defend_type == PokeType.POISON:
-            return 1
-        return 2
+        return _type_match_dict[move_type].get(defend_type, 2)
 
     @classmethod
     def get_match_list(cls, move_type: "PokeType", defend_types: List["PokeType"]) -> List[int]:
         return [cls.get_match(move_type, t) for t in defend_types]
+
+
+# https://wiki.ポケモン.com/wiki/%E7%9B%B8%E6%80%A7
+# [技タイプ][受け側タイプ]
+_type_match_dict = {}
+_type_match_dict[PokeType.EMPTY] = {
+}
+_type_match_dict[PokeType.NORMAL] = {
+    PokeType.ROCK: 1,
+    PokeType.GHOST: 0,
+}
+_type_match_dict[PokeType.FIRE] = {
+    PokeType.FIRE: 1,
+    PokeType.WATER: 1,
+    PokeType.GRASS: 4,
+    PokeType.ICE: 4,
+    PokeType.BUG: 4,
+    PokeType.ROCK: 1,
+    PokeType.DRAGON: 1,
+}
+_type_match_dict[PokeType.WATER] = {
+    PokeType.FIRE: 1,
+    PokeType.WATER: 1,
+    PokeType.GRASS: 4,
+    PokeType.GROUND: 4,
+    PokeType.ROCK: 4,
+    PokeType.DRAGON: 1,
+}
+_type_match_dict[PokeType.ELECTR] = {
+    PokeType.WATER: 4,
+    PokeType.ELECTR: 1,
+    PokeType.GRASS: 1,
+    PokeType.GROUND: 0,
+    PokeType.FLYING: 4,
+    PokeType.DRAGON: 1,
+}
+_type_match_dict[PokeType.GRASS] = {
+    PokeType.FIRE: 1,
+    PokeType.WATER: 4,
+    PokeType.GRASS: 1,
+    PokeType.POISON: 1,
+    PokeType.GROUND: 4,
+    PokeType.FLYING: 1,
+    PokeType.BUG: 1,
+    PokeType.ROCK: 4,
+    PokeType.DRAGON: 1,
+}
+_type_match_dict[PokeType.ICE] = {
+    PokeType.WATER: 1,
+    PokeType.GRASS: 4,
+    PokeType.ICE: 1,
+    PokeType.GROUND: 4,
+    PokeType.FLYING: 4,
+    PokeType.DRAGON: 4,
+}
+_type_match_dict[PokeType.FIGHT] = {
+    PokeType.NORMAL: 4,
+    PokeType.ICE: 4,
+    PokeType.POISON: 1,
+    PokeType.FLYING: 1,
+    PokeType.PSYCHC: 1,
+    PokeType.BUG: 1,
+    PokeType.ROCK: 4,
+    PokeType.GHOST: 0,
+}
+_type_match_dict[PokeType.POISON] = {
+    PokeType.GRASS: 4,
+    PokeType.POISON: 1,
+    PokeType.GROUND: 1,
+    PokeType.BUG: 4,
+    PokeType.ROCK: 1,
+    PokeType.GHOST: 1,
+}
+_type_match_dict[PokeType.GROUND] = {
+    PokeType.FIRE: 4,
+    PokeType.ELECTR: 4,
+    PokeType.GRASS: 1,
+    PokeType.POISON: 4,
+    PokeType.FLYING: 0,
+    PokeType.BUG: 1,
+    PokeType.ROCK: 4,
+}
+_type_match_dict[PokeType.FLYING] = {
+    PokeType.ELECTR: 1,
+    PokeType.GRASS: 4,
+    PokeType.FIGHT: 4,
+    PokeType.BUG: 4,
+    PokeType.ROCK: 1,
+}
+_type_match_dict[PokeType.PSYCHC] = {
+    PokeType.FIGHT: 4,
+    PokeType.POISON: 4,
+    PokeType.PSYCHC: 1,
+}
+_type_match_dict[PokeType.BUG] = {
+    PokeType.FIRE: 1,
+    PokeType.GRASS: 4,
+    PokeType.FIGHT: 1,
+    PokeType.POISON: 4,
+    PokeType.FLYING: 1,
+    PokeType.PSYCHC: 4,
+    PokeType.GHOST: 1,
+}
+_type_match_dict[PokeType.ROCK] = {
+    PokeType.FIRE: 4,
+    PokeType.ICE: 4,
+    PokeType.FIGHT: 1,
+    PokeType.GROUND: 1,
+    PokeType.FLYING: 4,
+    PokeType.BUG: 4,
+}
+_type_match_dict[PokeType.GHOST] = {
+    PokeType.NORMAL: 0,
+    PokeType.PSYCHC: 0,
+    PokeType.GHOST: 4,
+}
+_type_match_dict[PokeType.DRAGON] = {
+    PokeType.DRAGON: 4,
+}
