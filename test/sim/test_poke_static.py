@@ -12,9 +12,9 @@ class TestPokeStatic(unittest.TestCase):
         パラメータ計算が正しいか
         :return:
         """
-        pokest = PokeStatic.create(Dexno.BULBASAUR, [Move.BLIZZARD])
+        pokest = PokeStatic.create(Dexno.BULBASAUR, [Move.BITE])
         self.assertEqual(pokest.dexno, Dexno.BULBASAUR)
-        self.assertEqual(pokest.moves, [Move.BLIZZARD])
+        self.assertEqual(pokest.moves, [Move.BITE])
         self.assertEqual(pokest.poke_types, [PokeType.GRASS, PokeType.POISON])
         self.assertEqual(pokest.lv, 50)  # デフォルトレベル50
         self.assertEqual(pokest.max_hp, 152)  # デフォルトでは理想個体（個体値努力値MAX）
@@ -23,9 +23,9 @@ class TestPokeStatic(unittest.TestCase):
         self.assertEqual(pokest.st_c, 117)
         self.assertEqual(pokest.st_s, 97)
 
-        pokest = PokeStatic.create(Dexno.CHARMANDER, [Move.THUNDERBOLT, Move.BLIZZARD], lv=30)
+        pokest = PokeStatic.create(Dexno.CHARMANDER, [Move.FLAMETHROWER, Move.THUNDERWAVE], lv=30)
         self.assertEqual(pokest.dexno, Dexno.CHARMANDER)
-        self.assertEqual(pokest.moves, [Move.THUNDERBOLT, Move.BLIZZARD])
+        self.assertEqual(pokest.moves, [Move.FLAMETHROWER, Move.THUNDERWAVE])
         self.assertEqual(pokest.poke_types, [PokeType.FIRE])
         self.assertEqual(pokest.lv, 30)
         self.assertEqual(pokest.max_hp, 91)

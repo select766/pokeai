@@ -8,7 +8,7 @@ from typing import Tuple, List
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.move import Move
 from pokeai.sim.poke_type import PokeType
-import pokeai.sim.context as context
+import pokeai.sim
 
 
 class PokeStatic:
@@ -49,7 +49,7 @@ class PokeStatic:
         :param dexno:
         :return:
         """
-        db = context.db
+        db = pokeai.sim.context.db
         base_stat = db.get_base_stat(dexno)
         pokest = PokeStatic()
         pokest.dexno = dexno

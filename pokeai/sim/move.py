@@ -3,5 +3,8 @@ from enum import Enum, auto
 
 class Move(Enum):
     EMPTY = auto()
-    BLIZZARD = auto()
-    THUNDERBOLT = auto()
+    BITE = auto()  # かみつく
+    FLAMETHROWER = auto()  # かえんほうしゃ
+    THUNDERWAVE = auto()  # でんじは
+    AGILITY = auto()  # こうそくいどう
+    SPLASH = auto()  # はねる
