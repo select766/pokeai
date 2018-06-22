@@ -45,6 +45,12 @@ class PokeType(Enum):
         # TODO: テーブル用意
         if move_type == PokeType.FIRE and defend_type == PokeType.GRASS:
             return 4
+        if move_type == PokeType.GRASS and defend_type == PokeType.FIRE:
+            return 1
+        if move_type == PokeType.GRASS and defend_type == PokeType.GRASS:
+            return 1
+        if move_type == PokeType.GRASS and defend_type == PokeType.POISON:
+            return 1
         return 2
 
     @classmethod

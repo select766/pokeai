@@ -8,3 +8,4 @@ class Move(Enum):
     THUNDERWAVE = auto()  # でんじは
     AGILITY = auto()  # こうそくいどう
     SPLASH = auto()  # はねる
+    VINEWHIP = auto()  # つるのムチ

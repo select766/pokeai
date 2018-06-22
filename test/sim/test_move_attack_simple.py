@@ -52,3 +52,29 @@ class TestMoveAttackSimple(unittest.TestCase):
         self.assertEqual(field.parties[0].get().hp, 152 - 29 - 53)
         # BULBASAUR -> CHARMANDER: ダメージ30
         self.assertEqual(field.parties[1].get().hp, 146 - 30 - 30)
+
+    def test_type_match(self):
+        """
+        タイプ相性が絡む場合
+        :return:
+        """
+
+        # H:152,A:101,B:101,C:117,S:97
+        poke_atk = PokeStatic.create(Dexno.BULBASAUR, [Move.VINEWHIP])
+        # H:146,A:104,B:95,C:102,S:117
+        poke_def = PokeStatic.create(Dexno.CHARMANDER, [Move.VINEWHIP])
+        field = Field([Party([poke_atk]), Party([poke_def])])
+        rng = GameRNGFixed()
+        field.rng = rng
+        field.rng.set_field(field)
+
+        self.assertEqual(field.parties[0].get().hp, 152)
+        self.assertEqual(field.parties[1].get().hp, 146)
+        field.actions_begin = [FieldAction(FieldActionType.MOVE, move_idx=0),
+                               FieldAction(FieldActionType.MOVE, move_idx=0)]
+        self.assertEqual(field.step(), FieldPhase.BEGIN)
+
+        # CHARMANDER -> BULBASAUR : ダメージ3 特殊技 不一致1/4
+        self.assertEqual(field.parties[0].get().hp, 152 - 3)
+        # BULBASAUR -> CHARMANDER: ダメージ14 一致1/2
+        self.assertEqual(field.parties[1].get().hp, 146 - 14)
