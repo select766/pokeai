@@ -55,15 +55,15 @@ class PokeStatic:
         pokest.dexno = dexno
         pokest.moves = moves.copy()
         pokest.lv = lv
-        pokest.poke_types = base_stat["types"]
+        pokest.poke_types = base_stat.types
 
         # 種族値などからステータス計算
-        pokest.base_s = base_stat["s"]
-        pokest.st_a = PokeStatic._calc_stat_abcs(lv, base_stat["a"])
-        pokest.st_b = PokeStatic._calc_stat_abcs(lv, base_stat["b"])
-        pokest.st_c = PokeStatic._calc_stat_abcs(lv, base_stat["c"])
-        pokest.st_s = PokeStatic._calc_stat_abcs(lv, base_stat["s"])
-        pokest.max_hp = PokeStatic._calc_stat_hp(lv, base_stat["h"])
+        pokest.base_s = base_stat.s
+        pokest.st_a = PokeStatic._calc_stat_abcs(lv, base_stat.a)
+        pokest.st_b = PokeStatic._calc_stat_abcs(lv, base_stat.b)
+        pokest.st_c = PokeStatic._calc_stat_abcs(lv, base_stat.c)
+        pokest.st_s = PokeStatic._calc_stat_abcs(lv, base_stat.s)
+        pokest.max_hp = PokeStatic._calc_stat_hp(lv, base_stat.h)
         return pokest
 
     @staticmethod
