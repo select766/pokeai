@@ -16,5 +16,11 @@ python setup.py develop
 python -m unittest
 ```
 
+# AI機能
+## ランダムなパーティ・方策での強さランキング
+```
+python -m pokeai.agent.all_random_rank
+```
+
 # ライセンス
 コードはMITライセンスとしております。本については、ファイル内のライセンス表記をご参照ください。

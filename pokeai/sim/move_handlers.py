@@ -27,7 +27,7 @@ def check_hit_attack_default(context: MoveHandlerContext) -> bool:
     if context.flag.accuracy > 0:
         # 技の命中率×自分のランク補正(命中率)÷相手のランク補正(回避率)
         hit_ratio_table = {100: 255, 95: 242, 90: 229, 85: 216,
-                           80: 204, 75: 191, 70: 178, 60: 152, 55: 140, 50: 127, 0: 0}
+                           80: 204, 75: 191, 70: 178, 65: 165, 60: 152, 55: 140, 50: 127, 0: 0}
         hit_ratio = hit_ratio_table[context.flag.accuracy]
         hit_ratio = hit_ratio * 2 // (-context.attack_poke.rank_accuracy.value + 2)
         hit_ratio = hit_ratio * 2 // (context.defend_poke.rank_evasion.value + 2)

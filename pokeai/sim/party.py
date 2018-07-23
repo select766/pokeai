@@ -19,3 +19,14 @@ class Party:
         if idx is None:
             idx = self.fighting_idx
         return self.pokes[idx]
+
+    def __str__(self):
+        s = ""
+        for i, poke in enumerate(self.pokes):
+            if i == self.fighting_idx:
+                s += "* "
+            else:
+                s += "  "
+            s += str(poke)
+            s += "\n"
+        return s

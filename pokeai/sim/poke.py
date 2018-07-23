@@ -5,6 +5,8 @@ import warnings
 from typing import List, TypeVar
 
 import pokeai.sim
+from pokeai.sim.move_flag_db import move_flag_db
+from pokeai.sim.poke_param_db import poke_param_db
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.move import Move
 from pokeai.sim.poke_type import PokeType
@@ -212,7 +214,13 @@ class Poke:
         raise ValueError
 
     def __str__(self):
-        return f"{self._poke_st.dexno.name} (HP {self.hp}/{self.max_hp})"
+        poke_param = poke_param_db[self._poke_st.dexno]
+        s = f"{poke_param.names['ja']} (HP {self.hp}/{self.max_hp})\n"
+        s += "  "
+        for mi in self.moves:
+            move_flag = move_flag_db[mi.move]
+            s += f"{move_flag.names['ja']} "
+        return s
 
     @property
     def v_dig(self):
