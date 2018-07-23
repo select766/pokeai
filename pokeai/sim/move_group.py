@@ -9,6 +9,7 @@ from pokeai.sim.move import Move
 
 class MoveGroupName(Enum):
     SIMPLE = auto()
+    SPLASH = auto()
 
 
 move_group = {
@@ -16,5 +17,6 @@ move_group = {
     MoveGroupName.SIMPLE: [Move.CUT, Move.DRILLPECK, Move.EARTHQUAKE, Move.EGGBOMB, Move.GUST, Move.HORNATTACK,
                            Move.HYDROPUMP, Move.MEGAKICK, Move.MEGAPUNCH, Move.PECK, Move.POUND, Move.ROCKTHROW,
                            Move.SCRATCH, Move.SLAM, Move.STRENGTH, Move.SURF, Move.TACKLE, Move.VICEGRIP, Move.VINEWHIP,
-                           Move.WATERFALL, Move.WATERGUN, Move.WINGATTACK, ]
+                           Move.WATERFALL, Move.WATERGUN, Move.WINGATTACK, ],
+    MoveGroupName.SPLASH: [Move.ROAR, Move.SPLASH, Move.TELEPORT, Move.WHIRLWIND],
 }  # type: Dict[MoveGroupName, List[Move]]
