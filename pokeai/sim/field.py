@@ -32,6 +32,7 @@ class Field:
     actions_begin: Optional[List[FieldAction]]
     actions_faint_change: Optional[List[FieldAction]]
     _phase_handlers: Dict[FieldPhase, Callable[[], FieldPhase]]
+    winner: Optional[int]
 
     def __init__(self, parties: List[Party]):
         self.parties = parties
@@ -52,13 +53,14 @@ class Field:
         self.rng.field = self
         self.first_player = None
         self.phase = FieldPhase.BEGIN
+        self.winner = None
 
     def step(self) -> FieldPhase:
         """
         次にプレイヤーが操作可能になるまで進める
         :return:
         """
-        while self._step_one() not in [FieldPhase.BEGIN, FieldPhase.FAINT_CHANGE]:
+        while self._step_one() not in [FieldPhase.BEGIN, FieldPhase.FAINT_CHANGE, FieldPhase.GAME_END]:
             pass
         return self.phase
 
@@ -192,8 +194,10 @@ class Field:
         """
         if self._is_any_faint():
             # 片方が全員ひんしならゲーム終了
-            if self._is_any_faint():
+            if self._is_all_faint():
                 self.put_record_other(f"全ポケモンひんしのため終了")
+                # 勝者を判定する
+                self.winner = self._get_winner()
                 return FieldPhase.GAME_END
             else:
                 self.put_record_other(f"ひんしのため交代が必要")
@@ -217,3 +221,30 @@ class Field:
             if all(map(lambda poke: poke.is_faint(), party.pokes)):
                 return True
         return False
+
+    def _get_winner(self) -> int:
+        """
+        どちらかがすべて倒れた時の勝敗の判定
+        :return: 勝ったプレイヤーの番号。引き分けは存在しない。
+        """
+        # 片方だけすべて倒れているとき、倒れていない側の勝ち
+        party_faint = []
+        for party in self.parties:
+            party_faint.append(all(map(lambda poke: poke.is_faint(), party.pokes)))
+        if party_faint[0]:
+            if party_faint[1]:
+                # 両方倒れている
+                # 先攻の攻撃直後なら、先攻の勝ち(反動で倒れても、攻撃側の勝ち)
+                # 後攻の攻撃直後なら、後攻の勝ち
+                # PCのときに両方倒れることはない
+                # TODO: だいばくはつ直後なら、使ってない側の勝ち
+                if self.phase is FieldPhase.FIRST_MOVE:
+                    return 0
+                elif self.phase is FieldPhase.SECOND_MOVE:
+                    return 1
+                raise NotImplementedError
+            else:
+                return 1
+        else:
+            assert party_faint[1]
+            return 0
