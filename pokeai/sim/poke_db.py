@@ -5,42 +5,11 @@ from typing import List, Callable
 
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.move import Move
+from pokeai.sim.poke_db_move_flag import PokeDBMoveFlag
 from pokeai.sim.poke_param import PokeParam
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim.poke_param_db import poke_param_db
-
-
-class PokeDBBaseStat:
-    h: int
-    a: int
-    b: int
-    c: int
-    s: int
-    poke_types: List[PokeType]
-
-    def __init__(self, h: int, a: int, b: int, c: int, s: int, poke_types: List[PokeType]):
-        self.h = h
-        self.a = a
-        self.b = b
-        self.c = c
-        self.s = s
-        self.poke_types = poke_types
-
-
-class PokeDBMoveFlag:
-    """
-    技のパラメータ
-    """
-    move_type: PokeType
-    power: int
-    accuracy: int  # 命中率、0は必中
-    pp: int
-
-    def __init__(self, move_type: PokeType, power: int, accuracy: int, pp: int):
-        self.move_type = move_type
-        self.power = power
-        self.accuracy = accuracy
-        self.pp = pp
+from pokeai.sim.move_flag_db import move_flag_db
 
 
 class PokeDBMoveInfo:
@@ -76,25 +45,25 @@ class PokeDB:
     def get_move_info(self, move: Move) -> PokeDBMoveInfo:
         import pokeai.sim.move_handlers as mh
         if move == Move.BITE:
-            return PokeDBMoveInfo(PokeDBMoveFlag(PokeType.NORMAL, 60, 100, 20),
+            return PokeDBMoveInfo(move_flag_db[move],
                                   mh.check_hit_attack_default,
                                   mh.launch_move_attack_default,
                                   mh.check_side_effect_none,
                                   mh.launch_side_effect_none)
         if move == Move.VINEWHIP:
-            return PokeDBMoveInfo(PokeDBMoveFlag(PokeType.GRASS, 35, 100, 10),
+            return PokeDBMoveInfo(move_flag_db[move],
                                   mh.check_hit_attack_default,
                                   mh.launch_move_attack_default,
                                   mh.check_side_effect_none,
                                   mh.launch_side_effect_none)
         if move == Move.SPLASH:
-            return PokeDBMoveInfo(PokeDBMoveFlag(PokeType.NORMAL, 0, 0, 40),
+            return PokeDBMoveInfo(move_flag_db[move],
                                   mh.check_hit_splash,
                                   mh.launch_move_splash,
                                   mh.check_side_effect_none,
                                   mh.launch_side_effect_none)
         if move == Move.DIG:
-            return PokeDBMoveInfo(PokeDBMoveFlag(PokeType.GROUND, 100, 100, 20),
+            return PokeDBMoveInfo(move_flag_db[move],
                                   mh.check_hit_dig,
                                   mh.launch_move_dig,
                                   mh.check_side_effect_none,
