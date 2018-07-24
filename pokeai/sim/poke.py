@@ -416,7 +416,7 @@ class Poke:
         はかいこうせんの反動状態などでは交代できない。
         :return:
         """
-        if self._v_dig:
+        if self.multi_turn_move_info is not None:
             return False
         if self._v_hyperbeam:
             return False

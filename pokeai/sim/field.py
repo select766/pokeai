@@ -30,7 +30,7 @@ class Field:
     rng: GameRNG
     first_player: int  # 先攻プレイヤー
     actions_begin: Optional[List[FieldAction]]
-    actions_faint_change: Optional[List[FieldAction]]
+    actions_faint_change: Optional[List[Optional[FieldAction]]]
     _phase_handlers: Dict[FieldPhase, Callable[[], FieldPhase]]
     winner: Optional[int]
 
@@ -45,9 +45,9 @@ class Field:
             FieldPhase.FIRST_PC: self._step_first_pc,
             FieldPhase.SECOND_MOVE: self._step_second_move,
             FieldPhase.SECOND_PC: self._step_second_pc,
-            FieldPhase.FAINT_CHANGE: None,  # TODO
+            FieldPhase.FAINT_CHANGE: self._step_faint_change,
             FieldPhase.END_TURN: self._step_end_turn,
-            FieldPhase.GAME_END: None,  # TODO
+            FieldPhase.GAME_END: self._step_game_end,
         }
         self.rng = GameRNGRandom()
         self.rng.field = self
@@ -161,7 +161,7 @@ class Field:
             calc.run(act.move_idx)
         elif act.action_type is FieldActionType.CHANGE:
             # 交代
-            attack_poke.reset()  # 今のポケモンを控えに戻す
+            attack_poke.on_change()  # 今のポケモンを控えに戻す
             self.parties[attack_player].fighting_idx = act.change_idx
             self.put_record_other(f"Player {attack_player} は {self.parties[attack_player].get()} を繰り出した")
         else:
@@ -179,7 +179,7 @@ class Field:
             attack_player = 1 - attack_player
         defend_player = 1 - attack_player
         attack_poke, defend_poke = self._get_fighting_pokes(attack_player)
-        # TODO 実装
+        # TODO やどりぎ
         if attack_poke.nv_condition is PokeNVCondition.BURN:
             # やけどダメージ
             damage = attack_poke.max_hp // 16
@@ -206,14 +206,79 @@ class Field:
             if die:
                 return
 
+    def _step_faint_change(self) -> FieldPhase:
+        """
+        ひんしになったポケモンの交代を行う
+        :return:
+        """
+        for player, poke in enumerate(self._get_fighting_pokes()):
+            action = self.actions_faint_change[player]
+            if poke.is_faint():
+                assert action.action_type is FieldActionType.FAINT_CHANGE
+                self.parties[player].fighting_idx = action.faint_change_idx
+                self.put_record_other(f"瀕死交代: Player {player} は {self.parties[player].get()} を繰り出した")
+                assert not self.parties[player].get().is_faint()
+            else:
+                assert action is None
+        return FieldPhase.BEGIN
+
+    def _step_game_end(self):
+        raise RuntimeError("step called when GAME_END")
+
     def _get_fighting_pokes(self, attack_player: int = 0) -> Tuple[Poke, Poke]:
         """
         攻撃側、守備側の場に出ているポケモンを取得する。
+        引数なしならplayer0, player1の順。
         :param attack_player:
         :return:
         """
         defend_player = 1 - attack_player
         return self.parties[attack_player].get(), self.parties[defend_player].get()
+
+    def _get_legal_actions(self, player: int) -> List[FieldAction]:
+        """
+        この場で有効な行動を列挙する。
+        :param player:
+        :return:
+        """
+        # 控えの列挙
+        alive_poke_idxs = []
+        party = self.parties[player]
+        for i, poke in enumerate(party.pokes):
+            if i == party.fighting_idx:
+                continue
+            if poke.is_faint():
+                continue
+            alive_poke_idxs.append(i)
+
+        if self.phase is FieldPhase.BEGIN:
+            # 控えの列挙
+            poke = party.get()
+            multi_turn_move_index = None
+            if poke.multi_turn_move_info is not None:
+                # 連続技の最中はそれを選ぶ
+                mt_move = poke.multi_turn_move_info.move
+                for move_index, pms in enumerate(poke.moves):
+                    if mt_move == pms.move:
+                        multi_turn_move_index = move_index
+                        break
+            actions = []
+            if multi_turn_move_index is not None:
+                actions.append(FieldAction(FieldActionType.MOVE, move_idx=multi_turn_move_index))
+            else:
+                for move_index in range(len(poke.moves)):
+                    actions.append(FieldAction(FieldActionType.MOVE, move_idx=move_index))
+
+            if poke.can_change():
+                for alive_poke_idx in alive_poke_idxs:
+                    actions.append(FieldAction(FieldActionType.CHANGE, change_idx=alive_poke_idx))
+        elif self.phase is FieldPhase.FAINT_CHANGE:
+            actions = []
+            for alive_poke_idx in alive_poke_idxs:
+                actions.append(FieldAction(FieldActionType.FAINT_CHANGE, change_idx=alive_poke_idx))
+        else:
+            raise RuntimeError
+        return actions
 
     def _get_next_phase_if_faint(self) -> Optional[FieldPhase]:
         """
