@@ -239,3 +239,33 @@ def init_move_info_db():
            mh.launch_move_confuse,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.SIDE_A_DOWN,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_change_defender_rank("a", -1),
+           mh.gen_launch_side_effect_change_defender_rank("a", -1))
+
+    assign(MoveGroupName.SIDE_B_DOWN,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_change_defender_rank("b", -1),
+           mh.gen_launch_side_effect_change_defender_rank("b", -1))
+
+    assign(MoveGroupName.SIDE_C_DOWN,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_change_defender_rank("c", -1),
+           mh.gen_launch_side_effect_change_defender_rank("c", -1))
+
+    assign(MoveGroupName.SIDE_S_DOWN,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_change_defender_rank("s", -1),
+           mh.gen_launch_side_effect_change_defender_rank("s", -1))
+
+    assign(MoveGroupName.SIDE_CONFUSE,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.check_side_effect_confuse,
+           mh.launch_side_effect_confuse)

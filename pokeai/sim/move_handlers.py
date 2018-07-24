@@ -584,6 +584,67 @@ def gen_launch_move_change_defender_rank(rank_type: str, diff: int):
     return launch_move_change_defender_rank
 
 
+def gen_check_side_effect_change_defender_rank(rank_type: str, diff: int):
+    """
+    防御側のランクを変える追加効果判定
+    初代では33.2%の確率しかない。
+    :param rank_type: どのランクを変更するか。a,b,c,s,accuracy,evasion
+    :param diff: 変化させたい量
+    :return:
+    """
+
+    def check_side_effect_change_defender_rank(context: MoveHandlerContext) -> bool:
+        r = context.field.rng.gen(context.attack_player, GameRNGReason.SIDE_EFFECT, 255)
+        # 85 / 256 = 0.332
+        if r > 84:
+            return False
+        poke = context.defend_poke
+        if rank_type == "a":
+            return poke.rank_a.can_incr(diff)
+        if rank_type == "b":
+            return poke.rank_b.can_incr(diff)
+        if rank_type == "c":
+            return poke.rank_c.can_incr(diff)
+        if rank_type == "s":
+            return poke.rank_s.can_incr(diff)
+        if rank_type == "accuracy":
+            return poke.rank_accuracy.can_incr(diff)
+        if rank_type == "evasion":
+            return poke.rank_evasion.can_incr(diff)
+
+        raise ValueError
+
+    return check_side_effect_change_defender_rank
+
+
+def gen_launch_side_effect_change_defender_rank(rank_type: str, diff: int):
+    """
+    防御側のランクを変える追加効果の発動
+    :param rank_type: どのランクを変更するか。a,b,c,s,accuracy,evasion
+    :param diff: 変化させたい量
+    :return:
+    """
+
+    def launch_side_effect_change_defender_rank(context: MoveHandlerContext) -> bool:
+        poke = context.defend_poke
+        if rank_type == "a":
+            return poke.rank_a.incr(diff)
+        if rank_type == "b":
+            return poke.rank_b.incr(diff)
+        if rank_type == "c":
+            return poke.rank_c.incr(diff)
+        if rank_type == "s":
+            return poke.rank_s.incr(diff)
+        if rank_type == "accuracy":
+            return poke.rank_accuracy.incr(diff)
+        if rank_type == "evasion":
+            return poke.rank_evasion.incr(diff)
+
+        raise ValueError
+
+    return launch_side_effect_change_defender_rank
+
+
 def check_hit_confuse(context: MoveHandlerContext) -> bool:
     if not _check_hit_by_avoidance(context):
         return False
@@ -593,6 +654,26 @@ def check_hit_confuse(context: MoveHandlerContext) -> bool:
 
 
 def launch_move_confuse(context: MoveHandlerContext):
+    # 1~7ターン混乱する: 行動順ごとに1デクリメントし、0になったときに解除。解除ターンは必ず攻撃できる。
+    confuse_turn = context.field.rng.gen(context.attack_player, GameRNGReason.CONFUSE_TURN, 6) + 1
+    context.defend_poke.v_confuse_remaining_turn = confuse_turn
+
+
+def check_side_effect_confuse(context: MoveHandlerContext) -> bool:
+    """
+    10%で相手を混乱させる追加効果
+    :param context:
+    :return:
+    """
+    r = context.field.rng.gen(context.attack_player, GameRNGReason.SIDE_EFFECT, 99)
+    if r > 9:
+        return False
+    if context.defend_poke.v_confuse:
+        return False
+    return True
+
+
+def launch_side_effect_confuse(context: MoveHandlerContext):
     # 1~7ターン混乱する: 行動順ごとに1デクリメントし、0になったときに解除。解除ターンは必ず攻撃できる。
     confuse_turn = context.field.rng.gen(context.attack_player, GameRNGReason.CONFUSE_TURN, 6) + 1
     context.defend_poke.v_confuse_remaining_turn = confuse_turn
