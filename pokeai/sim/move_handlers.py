@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from pokeai.sim.game_rng import GameRNGReason
 from pokeai.sim.move import Move
@@ -71,9 +71,10 @@ def calc_damage_core(power: int, attack_level: int, attack: int, defense: int,
     return damage
 
 
-def calc_damage(context: MoveHandlerContext) -> int:
+def calc_damage(context: MoveHandlerContext) -> Tuple[int, bool]:
     """
     通常攻撃技のダメージ計算を行う。
+    ダメージ量と、相手が瀕死になるかどうか
     """
     power = context.flag.power  # 威力
     attack_level = context.attack_poke.lv  # 攻撃側レベル
@@ -109,10 +110,12 @@ def calc_damage(context: MoveHandlerContext) -> int:
                               attack=attack, defense=defense,
                               critical=critical, same_type=same_type,
                               type_matches_x2=type_matches_x2, rnd=damage_rnd)
-    if damage > context.defend_poke.hp:
+    make_faint = False
+    if damage >= context.defend_poke.hp:
         # ダメージは受け側のHP以下
         damage = context.defend_poke.hp
-    return damage
+        make_faint = True
+    return damage, make_faint
 
 
 def launch_move_attack_default(context: MoveHandlerContext):
@@ -122,7 +125,7 @@ def launch_move_attack_default(context: MoveHandlerContext):
     :return:
     """
     # 威力・相性に従ってダメージ計算し、受け手のHPから減算
-    damage = calc_damage(context)
+    damage, make_faint = calc_damage(context)
     context.field.put_record_other(f"ダメージ: {damage}")
     context.defend_poke.hp_incr(-damage)
 
@@ -183,6 +186,22 @@ def launch_move_dig(context: MoveHandlerContext):
     else:
         # 2ターン目
         launch_move_attack_default(context)
+
+
+def launch_move_hyperbeam(context: MoveHandlerContext):
+    """
+    はかいこうせん
+    :param context:
+    :return:
+    """
+    # 威力・相性に従ってダメージ計算し、受け手のHPから減算
+    damage, make_faint = calc_damage(context)
+    context.field.put_record_other(f"ダメージ: {damage}")
+    context.defend_poke.hp_incr(-damage)
+    if not make_faint:
+        # 倒していない場合、反動状態になる
+        context.field.put_record_other(f"はかいこうせんの反動状態付与")
+        context.attack_poke.v_hyperbeam = True
 
 
 def check_side_effect_none(context: MoveHandlerContext) -> bool:

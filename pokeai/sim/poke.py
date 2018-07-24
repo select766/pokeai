@@ -101,6 +101,7 @@ class Poke:
     状態変化(v_*)
     """
     _v_dig: bool
+    _v_hyperbeam: bool
 
     def __init__(self, poke_st: PokeStatic):
         self._poke_st = poke_st
@@ -135,6 +136,7 @@ class Poke:
         self.rank_evasion = Rank(0, 6)
 
         self._v_dig = False
+        self._v_hyperbeam = False
 
     def on_change(self):
         """
@@ -151,6 +153,7 @@ class Poke:
         assert self.multi_turn_move_info is None, "Poke.on_change called while continuous_move_info is not None"
         # 状態変化を解除
         self._v_dig = False
+        self._v_hyperbeam = False
 
     def on_turn_end(self):
         """
@@ -233,3 +236,27 @@ class Poke:
     @v_dig.setter
     def v_dig(self, v: bool):
         self._v_dig = v
+
+    @property
+    def v_hyperbeam(self):
+        """
+        はかいこうせんの反動状態
+        :return:
+        """
+        return self._v_hyperbeam
+
+    @v_hyperbeam.setter
+    def v_hyperbeam(self, v: bool):
+        self._v_hyperbeam = v
+
+    def can_change(self) -> bool:
+        """
+        自発的な交代が可能な状態かどうか判定する。
+        はかいこうせんの反動状態などでは交代できない。
+        :return:
+        """
+        if self._v_dig:
+            return False
+        if self._v_hyperbeam:
+            return False
+        return True

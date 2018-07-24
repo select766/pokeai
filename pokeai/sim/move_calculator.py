@@ -95,7 +95,10 @@ class MoveCalculator:
         # TODO: 反動
         # TODO: ねむり・こおり・まひ
         # TODO: こんらん
-
+        if ctx.attack_poke.v_hyperbeam:
+            self.field.put_record_other("反動でうごけない")
+            ctx.attack_poke.v_hyperbeam = False
+            return False
         return True
 
     def _check_hit(self, move_info: PokeDBMoveInfo, ctx: MoveHandlerContext) -> bool:

@@ -34,6 +34,12 @@ def init_move_info_db():
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
 
+    assign(MoveGroupName.HYPERBEAM,
+           mh.check_hit_attack_default,
+           mh.launch_move_hyperbeam,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
     move_info_db[Move.DIG] = PokeDBMoveInfo(move_flag_db[Move.DIG],
                                             mh.check_hit_dig,
                                             mh.launch_move_dig,
