@@ -101,7 +101,11 @@ def calc_damage(context: MoveHandlerContext) -> Tuple[int, bool]:
 
     # 急所判定
     critical_ratio = context.attack_poke.base_s // 2
-    # TODO: はっぱカッター急所率
+    if context.move in [Move.CRABHAMMER, Move.KARATECHOP, Move.RAZORLEAF, Move.SLASH]:
+        # 急所に当たりやすい技
+        critical_ratio *= 8
+    if critical_ratio > 255:
+        critical_ratio = 255
     critical = context.field.rng.gen(context.attack_player, GameRNGReason.CRITICAL, 255) + 1 < critical_ratio
     if critical:
         context.field.put_record_other("きゅうしょにあたった")

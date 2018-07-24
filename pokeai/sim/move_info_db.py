@@ -148,3 +148,10 @@ def init_move_info_db():
            mh.launch_move_make_paralysis,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    # 急所判定の変更はダメージ計算部分に内蔵
+    assign(MoveGroupName.CRITICAL,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
