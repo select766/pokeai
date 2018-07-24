@@ -14,6 +14,7 @@ class GameRNGReason(Enum):
     DAMAGE = auto()  # ダメージのランダム変動
     CRITICAL = auto()  # 急所
     SIDE_EFFECT = auto()  # 追加効果
+    MOVE_PARALYSIS = auto()  # まひ状態での行動
 
 
 class GameRNG:
@@ -74,6 +75,9 @@ class GameRNGFixed(GameRNG):
             return top
         if reason == GameRNGReason.SIDE_EFFECT:
             # 追加効果発生
+            return 0
+        if reason == GameRNGReason.MOVE_PARALYSIS:
+            # まひで行動不能
             return 0
         return 0
 

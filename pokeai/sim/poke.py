@@ -227,7 +227,10 @@ class Poke:
         :return:
         """
         # TODO: 補正
-        return self.st_s
+        val = self.st_s
+        if self.nv_condition is PokeNVCondition.PARALYSIS:
+            val //= 4
+        return val
 
     def move_index(self, move: Move) -> int:
         """

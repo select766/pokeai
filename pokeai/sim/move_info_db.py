@@ -75,3 +75,21 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_freeze(10),
            mh.launch_side_effect_freeze)
+
+    assign(MoveGroupName.PARALYSIS_10,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_paralysis(10),
+           mh.launch_side_effect_paralysis)
+
+    assign(MoveGroupName.PARALYSIS_30,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_paralysis(30),
+           mh.launch_side_effect_paralysis)
+
+    assign(MoveGroupName.BODYSLAM,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_paralysis(30, bodyslam=True),
+           mh.launch_side_effect_paralysis)

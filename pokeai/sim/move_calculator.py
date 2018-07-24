@@ -2,6 +2,7 @@ from typing import TypeVar
 
 from pokeai.sim import context
 import pokeai.sim
+from pokeai.sim.game_rng import GameRNGReason
 from pokeai.sim.move_handler_context import MoveHandlerContext
 from pokeai.sim.poke import Poke, PokeNVCondition
 from pokeai.sim.poke_db import PokeDBMoveInfo
@@ -106,7 +107,12 @@ class MoveCalculator:
         if nv is PokeNVCondition.FREEZE:
             self.field.put_record_other("こおりでうごけない")
             return False
-
+        elif nv is PokeNVCondition.PARALYSIS:
+            # 1/4で行動不能。
+            r = ctx.field.rng.gen(ctx.attack_player, GameRNGReason.MOVE_PARALYSIS, 3)
+            if r == 0:
+                self.field.put_record_other("まひでうごけない")
+                return False
         return True
 
     def _check_hit(self, move_info: PokeDBMoveInfo, ctx: MoveHandlerContext) -> bool:

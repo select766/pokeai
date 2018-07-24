@@ -17,6 +17,9 @@ class MoveGroupName(Enum):
     DIG = auto()
     BLIZZARD = auto()
     FREEZE_10 = auto()
+    PARALYSIS_10 = auto()
+    PARALYSIS_30 = auto()
+    BODYSLAM = auto()
 
 
 move_group = {
@@ -34,4 +37,7 @@ move_group = {
     MoveGroupName.DIG: [Move.DIG, Move.FLY],
     MoveGroupName.BLIZZARD: [Move.BLIZZARD],
     MoveGroupName.FREEZE_10: [Move.ICEBEAM, Move.ICEPUNCH],
+    MoveGroupName.PARALYSIS_10: [Move.THUNDER, Move.THUNDERBOLT, Move.THUNDERPUNCH, Move.THUNDERSHOCK],
+    MoveGroupName.PARALYSIS_30: [Move.LICK],
+    MoveGroupName.BODYSLAM: [Move.BODYSLAM],
 }  # type: Dict[MoveGroupName, List[Move]]

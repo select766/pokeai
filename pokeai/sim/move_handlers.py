@@ -276,3 +276,36 @@ def launch_side_effect_freeze(context: MoveHandlerContext):
     context.field.put_record_other(f"追加効果: こおり")
     context.defend_poke.update_nv_condition(PokeNVCondition.FREEZE)
     return
+
+
+def gen_check_side_effect_paralysis(side_effect_ratio: int, bodyslam: bool = False) -> Callable[
+    [MoveHandlerContext], bool]:
+    """
+    追加効果でまひさせる技のハンドラ生成
+    :param side_effect_ratio: 追加効果確率
+    :param bodyslam: のしかかりのときTrue。ノーマルタイプがまひしなくなる。
+    :return:
+    """
+
+    def check_side_effect_ratio(context: MoveHandlerContext):
+        if bodyslam and PokeType.NORMAL in context.defend_poke.poke_types:
+            # ノーマルタイプはのしかかりでまひしない
+            return False
+        if context.defend_poke.nv_condition is not PokeNVCondition.EMPTY:
+            # 状態異常なら変化しない
+            return False
+        r = context.field.rng.gen(context.attack_player, GameRNGReason.SIDE_EFFECT, 99)
+        return r < side_effect_ratio
+
+    return check_side_effect_ratio
+
+
+def launch_side_effect_paralysis(context: MoveHandlerContext):
+    """
+    まひ
+    :param context:
+    :return:
+    """
+    context.field.put_record_other(f"追加効果: まひ")
+    context.defend_poke.update_nv_condition(PokeNVCondition.PARALYSIS)
+    return
