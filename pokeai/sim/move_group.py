@@ -43,15 +43,16 @@ class MoveGroupName(Enum):
     B_DOWN = auto()
     B_DOWN2 = auto()
     S_DOWN = auto()
+    CONFUSE = auto()
 
 
 move_group = {
     # 通常攻撃技
-    MoveGroupName.SIMPLE: [Move.CUT, Move.DRILLPECK, Move.EARTHQUAKE, Move.EGGBOMB, Move.GUST, Move.HORNATTACK,
-                           Move.HYDROPUMP, Move.MEGAKICK, Move.MEGAPUNCH, Move.PAYDAY, Move.PECK, Move.POUND,
-                           Move.ROCKSLIDE, Move.ROCKTHROW, Move.SCRATCH, Move.SLAM, Move.STRENGTH, Move.SURF,
-                           Move.TACKLE, Move.TRIATTACK, Move.VICEGRIP, Move.VINEWHIP, Move.WATERFALL, Move.WATERGUN,
-                           Move.WINGATTACK, ],
+    MoveGroupName.SIMPLE: [Move.CUT, Move.DIZZYPUNCH, Move.DRILLPECK, Move.EARTHQUAKE, Move.EGGBOMB, Move.GUST,
+                           Move.HORNATTACK, Move.HYDROPUMP, Move.MEGAKICK, Move.MEGAPUNCH, Move.PAYDAY, Move.PECK,
+                           Move.POUND, Move.ROCKSLIDE, Move.ROCKTHROW, Move.SCRATCH, Move.SLAM, Move.STRENGTH,
+                           Move.SURF, Move.TACKLE, Move.TRIATTACK, Move.VICEGRIP, Move.VINEWHIP, Move.WATERFALL,
+                           Move.WATERGUN, Move.WINGATTACK, ],
     MoveGroupName.SWIFT: [Move.SWIFT],
     MoveGroupName.SPLASH: [Move.ROAR, Move.SPLASH, Move.TELEPORT, Move.WHIRLWIND],
     MoveGroupName.HYPERBEAM: [Move.HYPERBEAM],
@@ -86,4 +87,5 @@ move_group = {
     MoveGroupName.B_DOWN: [Move.LEER, Move.TAILWHIP],
     MoveGroupName.B_DOWN2: [Move.SCREECH],
     MoveGroupName.S_DOWN: [Move.STRINGSHOT],
+    MoveGroupName.CONFUSE: [Move.CONFUSERAY, Move.SUPERSONIC],
 }  # type: Dict[MoveGroupName, List[Move]]

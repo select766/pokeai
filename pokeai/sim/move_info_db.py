@@ -233,3 +233,9 @@ def init_move_info_db():
            mh.gen_launch_move_change_defender_rank("s", -1),
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.CONFUSE,
+           mh.check_hit_confuse,
+           mh.launch_move_confuse,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

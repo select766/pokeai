@@ -133,6 +133,7 @@ class Poke:
     _v_dig: bool
     _v_hyperbeam: bool
     _v_flinch: bool  # ひるみ
+    _v_confuse_remaining_turn: int  # こんらん残りターン
     _v_badly_poison: bool
     _v_badly_poison_turn: int
 
@@ -176,6 +177,7 @@ class Poke:
         self._sleep_remaining_turn = 0
         self._v_badly_poison = False
         self._v_badly_poison_turn = 0
+        self._v_confuse_remaining_turn = 0
 
     def on_change(self):
         """
@@ -196,6 +198,7 @@ class Poke:
         self._v_flinch = False
         self._v_badly_poison = False
         self._v_badly_poison_turn = 0
+        self._v_confuse_remaining_turn = 0
 
     def on_turn_end(self):
         """
@@ -256,7 +259,6 @@ class Poke:
         補正済みすばやさ
         :return:
         """
-        # TODO: 補正
         val = self.st_s
         val = self.rank_s.scale_abcs(val)
         if self.nv_condition is PokeNVCondition.PARALYSIS:
@@ -390,6 +392,23 @@ class Poke:
     @v_flinch.setter
     def v_flinch(self, v: bool):
         self._v_flinch = v
+
+    @property
+    def v_confuse(self) -> bool:
+        """
+        混乱状態かどうか取得する。
+        _v_confuse_remaining_turnから計算される。
+        :return:
+        """
+        return self._v_confuse_remaining_turn > 0
+
+    @property
+    def v_confuse_remaining_turn(self):
+        return self._v_confuse_remaining_turn
+
+    @v_confuse_remaining_turn.setter
+    def v_confuse_remaining_turn(self, value: int):
+        self._v_confuse_remaining_turn = value
 
     def can_change(self) -> bool:
         """

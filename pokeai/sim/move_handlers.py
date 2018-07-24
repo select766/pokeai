@@ -582,3 +582,17 @@ def gen_launch_move_change_defender_rank(rank_type: str, diff: int):
         raise ValueError
 
     return launch_move_change_defender_rank
+
+
+def check_hit_confuse(context: MoveHandlerContext) -> bool:
+    if not _check_hit_by_avoidance(context):
+        return False
+    if context.defend_poke.v_confuse:
+        return False
+    return True
+
+
+def launch_move_confuse(context: MoveHandlerContext):
+    # 1~7ターン混乱する: 行動順ごとに1デクリメントし、0になったときに解除。解除ターンは必ず攻撃できる。
+    confuse_turn = context.field.rng.gen(context.attack_player, GameRNGReason.CONFUSE_TURN, 6) + 1
+    context.defend_poke.v_confuse_remaining_turn = confuse_turn

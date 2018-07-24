@@ -4,6 +4,7 @@ from pokeai.sim import context
 import pokeai.sim
 from pokeai.sim.game_rng import GameRNGReason
 from pokeai.sim.move_handler_context import MoveHandlerContext
+from pokeai.sim.move_handlers import calc_damage_core
 from pokeai.sim.poke import Poke, PokeNVCondition
 from pokeai.sim.poke_db import PokeDBMoveInfo
 
@@ -93,17 +94,16 @@ class MoveCalculator:
         :return:
         """
         # 現状、選んだ技により成功失敗が変わることはない（第2世代のねごと等）
-        # TODO: ねむり・こおり・まひ
-        # TODO: こんらん
-        if ctx.attack_poke.v_hyperbeam:
+        poke = ctx.attack_poke
+        if poke.v_hyperbeam:
             self.field.put_record_other("反動でうごけない")
-            ctx.attack_poke.v_hyperbeam = False
+            poke.v_hyperbeam = False
             return False
-        if ctx.attack_poke.v_flinch:
+        if poke.v_flinch:
             self.field.put_record_other("ひるみでうごけない")
             # ここでは解除せず、ターン終了で解除
             return False
-        nv = ctx.attack_poke.nv_condition
+        nv = poke.nv_condition
         if nv is PokeNVCondition.FREEZE:
             self.field.put_record_other("こおりでうごけない")
             return False
@@ -114,16 +114,49 @@ class MoveCalculator:
                 self.field.put_record_other("まひでうごけない")
                 return False
         elif nv is PokeNVCondition.SLEEP:
-            rem_turn = ctx.attack_poke.sleep_remaining_turn - 1
+            rem_turn = poke.sleep_remaining_turn - 1
             assert rem_turn >= 0
-            ctx.attack_poke.sleep_remaining_turn = rem_turn
+            poke.sleep_remaining_turn = rem_turn
             if rem_turn == 0:
                 self.field.put_record_other("目を覚ました、このターンは行動不能")
-                ctx.attack_poke.update_nv_condition(PokeNVCondition.EMPTY)
+                poke.update_nv_condition(PokeNVCondition.EMPTY)
             else:
                 self.field.put_record_other("眠っていて動けない")
             return False
+        if poke.v_confuse:
+            poke.v_confuse_remaining_turn -= 1
+            if poke.v_confuse:
+                # 混乱が続いている
+                self.field.put_record_other("混乱している")
+                r = ctx.field.rng.gen(ctx.attack_player, GameRNGReason.MOVE_CONFUSE, 1)
+                if r == 0:
+                    # 自滅
+                    self._confuse_damage(ctx)
+                    return False
+            else:
+                self.field.put_record_other("混乱が解けた")
+
         return True
+
+    def _confuse_damage(self, ctx: MoveHandlerContext):
+        """
+        混乱の自滅ダメージを与える
+        :param ctx:
+        :return:
+        """
+        attack_level = ctx.attack_poke.lv  # 攻撃側レベル
+        attack = ctx.attack_poke.eff_a(False)
+        defense = ctx.attack_poke.eff_b(False)  # 自分の防御を使う
+        damage_rnd = ctx.field.rng.gen(ctx.attack_player, GameRNGReason.DAMAGE, 38)
+        damage = calc_damage_core(power=40,
+                                  attack_level=attack_level,
+                                  attack=attack, defense=defense,
+                                  critical=False, same_type=False,
+                                  type_matches_x2=[2], rnd=damage_rnd)
+        if damage >= ctx.attack_poke.hp:
+            damage = ctx.attack_poke.hp
+        self.field.put_record_other(f"混乱ダメージ {damage}")
+        ctx.attack_poke.hp_incr(-damage)
 
     def _check_hit(self, move_info: PokeDBMoveInfo, ctx: MoveHandlerContext) -> bool:
         """
