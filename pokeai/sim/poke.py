@@ -81,6 +81,17 @@ class Rank:
         elif diff < 0:
             return self.value > self.min
 
+    def scale_abcs(self, raw_value: int) -> int:
+        """
+        A,B,C,Sの値をランクでスケーリングする。
+        :param raw_value: 補正前の値。
+        :return:
+        """
+        if self.value >= 0:
+            return raw_value * (self.value + 2) // 2
+        else:
+            return raw_value * 2 // (2 - self.value)
+
 
 class Poke:
     """
@@ -210,8 +221,10 @@ class Poke:
         補正済みこうげき
         :return:
         """
-        # TODO: 補正
         val = self.st_a
+        if critical:
+            return val
+        val = self.rank_a.scale_abcs(val)
         if self.nv_condition is PokeNVCondition.BURN:
             val = val // 2 - 1
         return val
@@ -221,16 +234,22 @@ class Poke:
         補正済みぼうぎょ
         :return:
         """
-        # TODO: 補正
-        return self.st_b
+        val = self.st_b
+        if critical:
+            return val
+        val = self.rank_b.scale_abcs(val)
+        return val
 
     def eff_c(self, critical: bool = False) -> int:
         """
         補正済みとくしゅ
         :return:
         """
-        # TODO: 補正
-        return self.st_c
+        val = self.st_c
+        if critical:
+            return val
+        val = self.rank_c.scale_abcs(val)
+        return val
 
     def eff_s(self) -> int:
         """
@@ -239,6 +258,7 @@ class Poke:
         """
         # TODO: 補正
         val = self.st_s
+        val = self.rank_s.scale_abcs(val)
         if self.nv_condition is PokeNVCondition.PARALYSIS:
             val //= 4
         return val

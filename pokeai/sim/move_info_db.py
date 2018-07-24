@@ -161,3 +161,45 @@ def init_move_info_db():
            mh.gen_launch_move_change_attacker_rank("evasion", 1),
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.A_UP,
+           mh.gen_check_hit_change_attacker_rank("a", 1),
+           mh.gen_launch_move_change_attacker_rank("a", 1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.A_UP2,
+           mh.gen_check_hit_change_attacker_rank("a", 2),
+           mh.gen_launch_move_change_attacker_rank("a", 2),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.B_UP,
+           mh.gen_check_hit_change_attacker_rank("b", 1),
+           mh.gen_launch_move_change_attacker_rank("b", 1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.B_UP2,
+           mh.gen_check_hit_change_attacker_rank("b", 2),
+           mh.gen_launch_move_change_attacker_rank("b", 2),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.C_UP,
+           mh.gen_check_hit_change_attacker_rank("c", 1),
+           mh.gen_launch_move_change_attacker_rank("c", 1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.C_UP2,
+           mh.gen_check_hit_change_attacker_rank("c", 2),
+           mh.gen_launch_move_change_attacker_rank("c", 2),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.S_UP2,
+           mh.gen_check_hit_change_attacker_rank("s", 2),
+           mh.gen_launch_move_change_attacker_rank("s", 2),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

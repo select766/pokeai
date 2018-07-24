@@ -71,7 +71,7 @@ _type_match_dict[PokeType.FIRE] = {
 _type_match_dict[PokeType.WATER] = {
     PokeType.FIRE: 1,
     PokeType.WATER: 1,
-    PokeType.GRASS: 4,
+    PokeType.GRASS: 1,
     PokeType.GROUND: 4,
     PokeType.ROCK: 4,
     PokeType.DRAGON: 1,

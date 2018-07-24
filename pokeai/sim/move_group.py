@@ -31,6 +31,13 @@ class MoveGroupName(Enum):
     THUNDERWAVE = auto()
     CRITICAL = auto()
     EVASION_UP = auto()
+    A_UP = auto()
+    A_UP2 = auto()
+    B_UP = auto()
+    B_UP2 = auto()
+    C_UP = auto()
+    C_UP2 = auto()
+    S_UP2 = auto()
 
 
 move_group = {
@@ -62,4 +69,11 @@ move_group = {
     MoveGroupName.THUNDERWAVE: [Move.THUNDERWAVE],
     MoveGroupName.CRITICAL: [Move.CRABHAMMER, Move.KARATECHOP, Move.RAZORLEAF, Move.SLASH],
     MoveGroupName.EVASION_UP: [Move.DOUBLETEAM, Move.MINIMIZE],
+    MoveGroupName.A_UP: [Move.MEDITATE, Move.SHARPEN],
+    MoveGroupName.A_UP2: [Move.SWORDSDANCE],
+    MoveGroupName.B_UP: [Move.DEFENSECURL, Move.HARDEN, Move.WITHDRAW],
+    MoveGroupName.B_UP2: [Move.ACIDARMOR, Move.BARRIER],
+    MoveGroupName.C_UP: [Move.GROWTH],
+    MoveGroupName.C_UP2: [Move.AMNESIA],
+    MoveGroupName.S_UP2: [Move.AGILITY],
 }  # type: Dict[MoveGroupName, List[Move]]
