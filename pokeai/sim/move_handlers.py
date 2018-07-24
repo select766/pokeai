@@ -8,20 +8,12 @@ from pokeai.sim.poke import Poke, PokeNVCondition
 from pokeai.sim.poke_type import PokeType
 
 
-def check_hit_attack_default(context: MoveHandlerContext) -> bool:
+def _check_hit_by_accuracy(context: MoveHandlerContext) -> bool:
     """
-    攻撃技のデフォルト命中判定
+    命中率による判定を行う
     :param context:
     :return:
     """
-    # TODO: 発動条件(ランク変化が可能か、状態異常の相手に状態異常技を打っていないか、相手があなをほる状態でないか)
-    # TODO: 相性（攻撃技）
-    # TODO: 相性（補助技：毒タイプに対するどくどくや地面タイプに対するでんじは）
-
-    if context.defend_poke.v_dig:
-        context.field.put_record_other("あなをほる状態で外れた")
-        return False
-
     # 命中率による判定
     # https://wiki.xn--rckteqa2e.com/wiki/%E5%91%BD%E4%B8%AD
     if context.flag.accuracy > 0:
@@ -39,6 +31,34 @@ def check_hit_attack_default(context: MoveHandlerContext) -> bool:
     else:
         # 必中技
         pass
+    return True
+
+
+def _check_hit_by_avoidance(context: MoveHandlerContext) -> bool:
+    """
+    命中率、あなをほる状態による判定
+    :param context:
+    :return:
+    """
+    if context.defend_poke.v_dig:
+        context.field.put_record_other("あなをほる状態で外れた")
+        return False
+
+    return _check_hit_by_accuracy(context)
+
+
+def check_hit_attack_default(context: MoveHandlerContext) -> bool:
+    """
+    攻撃技のデフォルト命中判定
+    :param context:
+    :return:
+    """
+    # TODO: 発動条件(ランク変化が可能か、状態異常の相手に状態異常技を打っていないか、相手があなをほる状態でないか)
+    # TODO: 相性（攻撃技）
+    # TODO: 相性（補助技：毒タイプに対するどくどくや地面タイプに対するでんじは）
+
+    if not _check_hit_by_avoidance(context):
+        return False
 
     return True
 
@@ -300,15 +320,23 @@ def gen_check_side_effect_paralysis(side_effect_ratio: int, bodyslam: bool = Fal
     return check_side_effect_ratio
 
 
-def launch_side_effect_paralysis(context: MoveHandlerContext):
+def gen_launch_side_effect_nv_condition(nv_condition: PokeNVCondition):
     """
-    まひ
-    :param context:
+    状態異常にさせる追加効果の発動
+    :param nv_condition:
     :return:
     """
-    context.field.put_record_other(f"追加効果: まひ")
-    context.defend_poke.update_nv_condition(PokeNVCondition.PARALYSIS)
-    return
+
+    def launch_side_effect_nv_condition(context: MoveHandlerContext):
+        """
+        :param context:
+        :return:
+        """
+        context.field.put_record_other(f"追加効果: {nv_condition}")
+        context.defend_poke.update_nv_condition(nv_condition)
+        return
+
+    return launch_side_effect_nv_condition
 
 
 def gen_check_side_effect_burn(side_effect_ratio: int) -> Callable[
@@ -332,17 +360,6 @@ def gen_check_side_effect_burn(side_effect_ratio: int) -> Callable[
     return check_side_effect_ratio
 
 
-def launch_side_effect_burn(context: MoveHandlerContext):
-    """
-    やけど
-    :param context:
-    :return:
-    """
-    context.field.put_record_other(f"追加効果: やけど")
-    context.defend_poke.update_nv_condition(PokeNVCondition.BURN)
-    return
-
-
 def gen_check_side_effect_poison(side_effect_ratio: int) -> Callable[
     [MoveHandlerContext], bool]:
     """
@@ -364,15 +381,17 @@ def gen_check_side_effect_poison(side_effect_ratio: int) -> Callable[
     return check_side_effect_ratio
 
 
-def launch_side_effect_poison(context: MoveHandlerContext):
+def _check_hit_make_nv_condition(context: MoveHandlerContext) -> bool:
     """
-    どく
+    相手を状態異常にする技の基本命中判定
     :param context:
     :return:
     """
-    context.field.put_record_other(f"追加効果: どく")
-    context.defend_poke.update_nv_condition(PokeNVCondition.POISON)
-    return
+    if context.defend_poke.nv_condition is not PokeNVCondition.EMPTY:
+        context.field.put_record_other("相手がすでに状態異常なので外れた")
+        return False
+
+    return _check_hit_by_avoidance(context)
 
 
 def check_hit_hypnosis(context: MoveHandlerContext) -> bool:
@@ -381,33 +400,7 @@ def check_hit_hypnosis(context: MoveHandlerContext) -> bool:
     :param context:
     :return:
     """
-    if context.defend_poke.nv_condition is not PokeNVCondition.EMPTY:
-        context.field.put_record_other("相手がすでに状態異常なので外れた")
-        return False
-
-    if context.defend_poke.v_dig:
-        context.field.put_record_other("あなをほる状態で外れた")
-        return False
-
-    # 命中率による判定
-    # https://wiki.xn--rckteqa2e.com/wiki/%E5%91%BD%E4%B8%AD
-    if context.flag.accuracy > 0:
-        # 技の命中率×自分のランク補正(命中率)÷相手のランク補正(回避率)
-        hit_ratio_table = {100: 255, 95: 242, 90: 229, 85: 216,
-                           80: 204, 75: 191, 70: 178, 65: 165, 60: 152, 55: 140, 50: 127, 0: 0}
-        hit_ratio = hit_ratio_table[context.flag.accuracy]
-        hit_ratio = hit_ratio * 2 // (-context.attack_poke.rank_accuracy.value + 2)
-        hit_ratio = hit_ratio * 2 // (context.defend_poke.rank_evasion.value + 2)
-        # 1~255の乱数と比較
-        hit_judge_rnd = context.field.rng.gen(context.attack_player, GameRNGReason.HIT, 254) + 1
-        if hit_ratio <= hit_judge_rnd:
-            context.field.put_record_other("命中率による判定で外れた")
-            return False
-    else:
-        # 必中技
-        pass
-
-    return True
+    return _check_hit_make_nv_condition(context)
 
 
 def launch_move_hypnosis(context: MoveHandlerContext):
@@ -428,37 +421,11 @@ def check_hit_make_poison(context: MoveHandlerContext) -> bool:
     :param context:
     :return:
     """
-    if context.defend_poke.nv_condition is not PokeNVCondition.EMPTY:
-        context.field.put_record_other("相手がすでに状態異常なので外れた")
-        return False
-
     if PokeType.POISON in context.defend_poke.poke_types:
         context.field.put_record_other("毒タイプは毒にならないので外れた")
         return False
 
-    if context.defend_poke.v_dig:
-        context.field.put_record_other("あなをほる状態で外れた")
-        return False
-
-    # 命中率による判定
-    # https://wiki.xn--rckteqa2e.com/wiki/%E5%91%BD%E4%B8%AD
-    if context.flag.accuracy > 0:
-        # 技の命中率×自分のランク補正(命中率)÷相手のランク補正(回避率)
-        hit_ratio_table = {100: 255, 95: 242, 90: 229, 85: 216,
-                           80: 204, 75: 191, 70: 178, 65: 165, 60: 152, 55: 140, 50: 127, 0: 0}
-        hit_ratio = hit_ratio_table[context.flag.accuracy]
-        hit_ratio = hit_ratio * 2 // (-context.attack_poke.rank_accuracy.value + 2)
-        hit_ratio = hit_ratio * 2 // (context.defend_poke.rank_evasion.value + 2)
-        # 1~255の乱数と比較
-        hit_judge_rnd = context.field.rng.gen(context.attack_player, GameRNGReason.HIT, 254) + 1
-        if hit_ratio <= hit_judge_rnd:
-            context.field.put_record_other("命中率による判定で外れた")
-            return False
-    else:
-        # 必中技
-        pass
-
-    return True
+    return _check_hit_make_nv_condition(context)
 
 
 def gen_launch_move_make_poison(badly_poison: bool):

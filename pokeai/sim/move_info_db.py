@@ -1,5 +1,6 @@
 from typing import List, Dict, Callable
 from pokeai.sim.move import Move
+from pokeai.sim.poke import PokeNVCondition
 from pokeai.sim.poke_db_move_info import PokeDBMoveInfo
 from pokeai.sim.move_flag_db import move_flag_db
 from pokeai.sim.move_group import move_group, MoveGroupName
@@ -80,43 +81,43 @@ def init_move_info_db():
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_paralysis(10),
-           mh.launch_side_effect_paralysis)
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.PARALYSIS))
 
     assign(MoveGroupName.PARALYSIS_30,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_paralysis(30),
-           mh.launch_side_effect_paralysis)
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.PARALYSIS))
 
     assign(MoveGroupName.BODYSLAM,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_paralysis(30, bodyslam=True),
-           mh.launch_side_effect_paralysis)
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.PARALYSIS))
 
     assign(MoveGroupName.BURN_10,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_burn(10),
-           mh.launch_side_effect_burn)
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.BURN))
 
     assign(MoveGroupName.BURN_30,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_burn(30),
-           mh.launch_side_effect_burn)
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.BURN))
 
     assign(MoveGroupName.POISON_20,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_poison(20),
-           mh.launch_side_effect_poison)
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.POISON))
 
     assign(MoveGroupName.POISON_40,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_poison(40),
-           mh.launch_side_effect_poison)
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.POISON))
 
     assign(MoveGroupName.HYPNOSIS,
            mh.check_hit_hypnosis,
