@@ -191,6 +191,17 @@ class Field:
             attack_poke.hp_incr(-damage)
             if die:
                 return
+        if attack_poke.nv_condition is PokeNVCondition.POISON:
+            # どくダメージ
+            damage = attack_poke.max_hp // 16
+            die = False
+            if damage >= attack_poke.hp:
+                damage = attack_poke.hp
+                die = True
+            self.put_record_other(f"どくダメージ {damage}")
+            attack_poke.hp_incr(-damage)
+            if die:
+                return
 
     def _get_fighting_pokes(self, attack_player: int = 0) -> Tuple[Poke, Poke]:
         """

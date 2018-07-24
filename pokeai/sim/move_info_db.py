@@ -105,3 +105,15 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_burn(30),
            mh.launch_side_effect_burn)
+
+    assign(MoveGroupName.POISON_20,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_poison(20),
+           mh.launch_side_effect_poison)
+
+    assign(MoveGroupName.POISON_40,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_poison(40),
+           mh.launch_side_effect_poison)
