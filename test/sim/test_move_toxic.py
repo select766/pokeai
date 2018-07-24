@@ -14,10 +14,10 @@ from pokeai.sim.poke_type import PokeType
 
 class TestMoveToxic(unittest.TestCase):
     """
-    どくどく
+    どくどく、どくガス
     """
 
-    def test_basic(self):
+    def test_toxic(self):
         """
         どくどくをかける。
         ターンを経るごとにダメージが増加。
@@ -64,7 +64,59 @@ class TestMoveToxic(unittest.TestCase):
 
         # CHARMANDER -> BULBASAUR: 効果なし
         self.assertEqual(field.parties[0].get().hp, 152)
-        # BULBASAUR -> CHARMANDER: スリップダメージ1/16
+        # BULBASAUR -> CHARMANDER: スリップダメージ2/16
         self.assertEqual(field.parties[1].get().hp, 146 - 9 - 18)
+        self.assertEqual(field.parties[0].get().nv_condition, PokeNVCondition.EMPTY)
+        self.assertEqual(field.parties[1].get().nv_condition, PokeNVCondition.POISON)
+
+    def test_poisongas(self):
+        """
+        どくガスをかける。
+        ターンを経てもダメージは変動せず。
+        毒タイプは効果なし。
+        :return:
+        """
+
+        # H:152,A:101,B:101,C:117,S:97
+        poke_atk = PokeStatic.create(Dexno.BULBASAUR, [Move.POISONGAS])
+        # H:146,A:104,B:95,C:102,S:117
+        poke_def = PokeStatic.create(Dexno.CHARMANDER, [Move.POISONGAS])
+        field = Field([Party([poke_atk]), Party([poke_def])])
+        rng = GameRNGFixed()
+        field.rng = rng
+        field.rng.set_field(field)
+
+        self.assertEqual(field.parties[0].get().hp, 152)
+        self.assertEqual(field.parties[1].get().hp, 146)
+        field.actions_begin = [FieldAction(FieldActionType.MOVE, move_idx=0),
+                               FieldAction(FieldActionType.MOVE, move_idx=0)]
+        self.assertEqual(field.step(), FieldPhase.BEGIN)
+
+        # CHARMANDER -> BULBASAUR: 効果なし
+        self.assertEqual(field.parties[0].get().hp, 152)
+        # BULBASAUR -> CHARMANDER: 毒にする、まだスリップダメージなし
+        self.assertEqual(field.parties[1].get().hp, 146)
+        self.assertEqual(field.parties[0].get().nv_condition, PokeNVCondition.EMPTY)
+        self.assertEqual(field.parties[1].get().nv_condition, PokeNVCondition.POISON)
+
+        field.actions_begin = [FieldAction(FieldActionType.MOVE, move_idx=0),
+                               FieldAction(FieldActionType.MOVE, move_idx=0)]
+        self.assertEqual(field.step(), FieldPhase.BEGIN)
+
+        # CHARMANDER -> BULBASAUR: 効果なし
+        self.assertEqual(field.parties[0].get().hp, 152)
+        # BULBASAUR -> CHARMANDER: スリップダメージ1/16
+        self.assertEqual(field.parties[1].get().hp, 146 - 9)
+        self.assertEqual(field.parties[0].get().nv_condition, PokeNVCondition.EMPTY)
+        self.assertEqual(field.parties[1].get().nv_condition, PokeNVCondition.POISON)
+
+        field.actions_begin = [FieldAction(FieldActionType.MOVE, move_idx=0),
+                               FieldAction(FieldActionType.MOVE, move_idx=0)]
+        self.assertEqual(field.step(), FieldPhase.BEGIN)
+
+        # CHARMANDER -> BULBASAUR: 効果なし
+        self.assertEqual(field.parties[0].get().hp, 152)
+        # BULBASAUR -> CHARMANDER: スリップダメージ1/16
+        self.assertEqual(field.parties[1].get().hp, 146 - 9 - 9)
         self.assertEqual(field.parties[0].get().nv_condition, PokeNVCondition.EMPTY)
         self.assertEqual(field.parties[1].get().nv_condition, PokeNVCondition.POISON)

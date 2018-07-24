@@ -26,6 +26,7 @@ class MoveGroupName(Enum):
     POISON_40 = auto()
     HYPNOSIS = auto()
     TOXIC = auto()
+    POISONGAS = auto()
 
 
 move_group = {
@@ -52,4 +53,5 @@ move_group = {
     MoveGroupName.POISON_40: [Move.SLUDGE, Move.SMOG],
     MoveGroupName.HYPNOSIS: [Move.HYPNOSIS, Move.LOVELYKISS, Move.SING, Move.SLEEPPOWDER, Move.SPORE],
     MoveGroupName.TOXIC: [Move.TOXIC],
+    MoveGroupName.POISONGAS: [Move.POISONGAS, Move.POISONPOWDER],
 }  # type: Dict[MoveGroupName, List[Move]]

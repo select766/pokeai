@@ -125,7 +125,13 @@ def init_move_info_db():
            mh.launch_side_effect_none)
 
     assign(MoveGroupName.TOXIC,
-           mh.check_hit_toxic,
-           mh.launch_move_toxic,
+           mh.check_hit_make_poison,
+           mh.gen_launch_move_make_poison(True),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.POISONGAS,
+           mh.check_hit_make_poison,
+           mh.gen_launch_move_make_poison(False),
            mh.check_side_effect_none,
            mh.launch_side_effect_none)

@@ -422,9 +422,9 @@ def launch_move_hypnosis(context: MoveHandlerContext):
     context.defend_poke.update_nv_condition(PokeNVCondition.SLEEP, sleep_turn=sleep_turn)
 
 
-def check_hit_toxic(context: MoveHandlerContext) -> bool:
+def check_hit_make_poison(context: MoveHandlerContext) -> bool:
     """
-    どくどく命中判定
+    どくにさせる補助技命中判定
     :param context:
     :return:
     """
@@ -461,11 +461,18 @@ def check_hit_toxic(context: MoveHandlerContext) -> bool:
     return True
 
 
-def launch_move_toxic(context: MoveHandlerContext):
+def gen_launch_move_make_poison(badly_poison: bool):
     """
-    どくどく
+    どくガス、どくどく
     :param context:
     :return:
     """
-    context.field.put_record_other(f"相手を猛毒にする")
-    context.defend_poke.update_nv_condition(PokeNVCondition.POISON, badly_poison=True)
+
+    def launch_move_make_poison(context: MoveHandlerContext):
+        if badly_poison:
+            context.field.put_record_other(f"相手を猛毒にする")
+        else:
+            context.field.put_record_other(f"相手を毒にする")
+        context.defend_poke.update_nv_condition(PokeNVCondition.POISON, badly_poison=badly_poison)
+
+    return launch_move_make_poison
