@@ -117,3 +117,9 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_poison(40),
            mh.launch_side_effect_poison)
+
+    assign(MoveGroupName.HYPNOSIS,
+           mh.check_hit_hypnosis,
+           mh.launch_move_hypnosis,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

@@ -113,6 +113,16 @@ class MoveCalculator:
             if r == 0:
                 self.field.put_record_other("まひでうごけない")
                 return False
+        elif nv is PokeNVCondition.SLEEP:
+            rem_turn = ctx.attack_poke.sleep_remaining_turn - 1
+            assert rem_turn >= 0
+            ctx.attack_poke.sleep_remaining_turn = rem_turn
+            if rem_turn == 0:
+                self.field.put_record_other("目を覚ました、このターンは行動不能")
+                ctx.attack_poke.update_nv_condition(PokeNVCondition.EMPTY)
+            else:
+                self.field.put_record_other("眠っていて動けない")
+            return False
         return True
 
     def _check_hit(self, move_info: PokeDBMoveInfo, ctx: MoveHandlerContext) -> bool:

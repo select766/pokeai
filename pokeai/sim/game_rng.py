@@ -15,6 +15,7 @@ class GameRNGReason(Enum):
     CRITICAL = auto()  # 急所
     SIDE_EFFECT = auto()  # 追加効果
     MOVE_PARALYSIS = auto()  # まひ状態での行動
+    SLEEP_TURN = auto()  # ねむるターン数
 
 
 class GameRNG:
@@ -78,6 +79,9 @@ class GameRNGFixed(GameRNG):
             return 0
         if reason == GameRNGReason.MOVE_PARALYSIS:
             # まひで行動不能
+            return 0
+        if reason == GameRNGReason.SLEEP_TURN:
+            # 眠るターン数=最小
             return 0
         return 0
 

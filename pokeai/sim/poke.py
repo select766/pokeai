@@ -2,7 +2,7 @@
 ポケモンの動的な状態
 """
 import warnings
-from typing import List, TypeVar
+from typing import List, TypeVar, Optional
 from enum import Enum
 
 import pokeai.sim
@@ -115,6 +115,7 @@ class Poke:
     状態異常
     """
     _nv_condition: PokeNVCondition
+    _sleep_remaining_turn: int
     """
     状態変化(v_*)
     """
@@ -159,6 +160,7 @@ class Poke:
         self._v_dig = False
         self._v_hyperbeam = False
         self._v_flinch = False
+        self._sleep_remaining_turn = 0
 
     def on_change(self):
         """
@@ -263,17 +265,36 @@ class Poke:
         """
         return self._nv_condition
 
-    def update_nv_condition(self, cond: PokeNVCondition):
+    def update_nv_condition(self, cond: PokeNVCondition, *, sleep_turn: Optional[int] = None,
+                            force_sleep: bool = False):
         """
         状態異常の変化。各種フラグが連動して変化する。
         :param cond:
+        :param force_sleep: 「ねむる」で状態異常にかかわらずねむる場合
         :return:
         """
-        if self._nv_condition != PokeNVCondition.EMPTY and cond != PokeNVCondition.EMPTY:
+        if not force_sleep and (self._nv_condition != PokeNVCondition.EMPTY and cond != PokeNVCondition.EMPTY):
             # 状態異常の時の他の状態異常になろうとしているのは間違い
             raise ValueError
-        # TODO: 眠りターン数等も書き換え
+        if cond is PokeNVCondition.SLEEP:
+            assert sleep_turn is not None
+            self._sleep_remaining_turn = sleep_turn
+        else:
+            self._sleep_remaining_turn = 0
         self._nv_condition = cond
+
+    @property
+    def sleep_remaining_turn(self):
+        """
+        ねむり状態残りターン
+        :return:
+        """
+        return self._sleep_remaining_turn
+
+    @sleep_remaining_turn.setter
+    def sleep_remaining_turn(self, t: int):
+        assert t >= 0
+        self._sleep_remaining_turn = t
 
     @property
     def v_dig(self):
