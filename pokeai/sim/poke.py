@@ -3,6 +3,7 @@
 """
 import warnings
 from typing import List, TypeVar
+from enum import Enum
 
 import pokeai.sim
 from pokeai.sim.move_flag_db import move_flag_db
@@ -10,6 +11,19 @@ from pokeai.sim.poke_param_db import poke_param_db
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.move import Move
 from pokeai.sim.poke_type import PokeType
+
+
+class PokeNVCondition(Enum):
+    """
+    交代しても変化しない状態異常
+    NV=Non Volatile
+    """
+    EMPTY = 1
+    POISON = 2
+    PARALYSIS = 3
+    BURN = 4
+    SLEEP = 5
+    FREEZE = 6
 
 
 class PokeMoveStatus:
@@ -98,6 +112,10 @@ class Poke:
     rank_accuracy: Rank  # 命中
     multi_turn_move_info: TypeVar("pokeai.sim.multi_turn_move_info.MultiTurnMoveInfo")
     """
+    状態異常
+    """
+    _nv_condition: PokeNVCondition
+    """
     状態変化(v_*)
     """
     _v_dig: bool
@@ -135,6 +153,8 @@ class Poke:
         self.rank_s = Rank()
         self.rank_accuracy = Rank(-6, 0)
         self.rank_evasion = Rank(0, 6)
+
+        self._nv_condition = PokeNVCondition.EMPTY
 
         self._v_dig = False
         self._v_hyperbeam = False
@@ -228,6 +248,26 @@ class Poke:
             move_flag = move_flag_db[mi.move]
             s += f"{move_flag.names['ja']} "
         return s
+
+    @property
+    def nv_condition(self):
+        """
+        状態異常
+        :return:
+        """
+        return self._nv_condition
+
+    def update_nv_condition(self, cond: PokeNVCondition):
+        """
+        状態異常の変化。各種フラグが連動して変化する。
+        :param cond:
+        :return:
+        """
+        if self._nv_condition != PokeNVCondition.EMPTY and cond != PokeNVCondition.EMPTY:
+            # 状態異常の時の他の状態異常になろうとしているのは間違い
+            raise ValueError
+        # TODO: 眠りターン数等も書き換え
+        self._nv_condition = cond
 
     @property
     def v_dig(self):

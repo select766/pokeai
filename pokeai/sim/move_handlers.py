@@ -4,7 +4,7 @@ from pokeai.sim.game_rng import GameRNGReason
 from pokeai.sim.move import Move
 from pokeai.sim.move_handler_context import MoveHandlerContext
 from pokeai.sim.multi_turn_move_info import MultiTurnMoveInfo
-from pokeai.sim.poke import Poke
+from pokeai.sim.poke import Poke, PokeNVCondition
 from pokeai.sim.poke_type import PokeType
 
 
@@ -244,4 +244,35 @@ def launch_side_effect_flinch(context: MoveHandlerContext):
     """
     context.field.put_record_other(f"追加効果: ひるみ")
     context.defend_poke.v_flinch = True
+    return
+
+
+def gen_check_side_effect_freeze(side_effect_ratio: int) -> Callable[[MoveHandlerContext], bool]:
+    """
+    追加効果で凍らせる技のハンドラ生成
+    :param side_effect_ratio: 追加効果確率
+    :return:
+    """
+
+    def check_side_effect_ratio(context: MoveHandlerContext):
+        if PokeType.ICE in context.defend_poke.poke_types:
+            # こおりタイプは凍らない
+            return False
+        if context.defend_poke.nv_condition is not PokeNVCondition.EMPTY:
+            # 状態異常なら変化しない
+            return False
+        r = context.field.rng.gen(context.attack_player, GameRNGReason.SIDE_EFFECT, 99)
+        return r < side_effect_ratio
+
+    return check_side_effect_ratio
+
+
+def launch_side_effect_freeze(context: MoveHandlerContext):
+    """
+    こおり
+    :param context:
+    :return:
+    """
+    context.field.put_record_other(f"追加効果: こおり")
+    context.defend_poke.update_nv_condition(PokeNVCondition.FREEZE)
     return

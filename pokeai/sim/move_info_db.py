@@ -57,3 +57,15 @@ def init_move_info_db():
            mh.launch_move_dig,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.BLIZZARD,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_freeze(30),
+           mh.launch_side_effect_freeze)
+
+    assign(MoveGroupName.FREEZE_10,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_freeze(10),
+           mh.launch_side_effect_freeze)

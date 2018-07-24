@@ -3,7 +3,7 @@ from typing import TypeVar
 from pokeai.sim import context
 import pokeai.sim
 from pokeai.sim.move_handler_context import MoveHandlerContext
-from pokeai.sim.poke import Poke
+from pokeai.sim.poke import Poke, PokeNVCondition
 from pokeai.sim.poke_db import PokeDBMoveInfo
 
 
@@ -102,6 +102,11 @@ class MoveCalculator:
             self.field.put_record_other("ひるみでうごけない")
             # ここでは解除せず、ターン終了で解除
             return False
+        nv = ctx.attack_poke.nv_condition
+        if nv is PokeNVCondition.FREEZE:
+            self.field.put_record_other("こおりでうごけない")
+            return False
+
         return True
 
     def _check_hit(self, move_info: PokeDBMoveInfo, ctx: MoveHandlerContext) -> bool:
