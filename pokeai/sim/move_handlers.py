@@ -53,10 +53,6 @@ def check_hit_attack_default(context: MoveHandlerContext) -> bool:
     :param context:
     :return:
     """
-    # TODO: 発動条件(ランク変化が可能か、状態異常の相手に状態異常技を打っていないか、相手があなをほる状態でないか)
-    # TODO: 相性（攻撃技）
-    # TODO: 相性（補助技：毒タイプに対するどくどくや地面タイプに対するでんじは）
-
     if not _check_hit_by_avoidance(context):
         return False
 
@@ -528,3 +524,61 @@ def gen_launch_move_change_attacker_rank(rank_type: str, diff: int):
         raise ValueError
 
     return launch_move_change_attacker_rank
+
+
+def gen_check_hit_change_defender_rank(rank_type: str, diff: int):
+    """
+    防御側のランクを変える補助技の命中判定
+    :param rank_type: どのランクを変更するか。a,b,c,s,accuracy,evasion
+    :param diff: 変化させたい量
+    :return:
+    """
+
+    def check_hit_change_defender_rank(context: MoveHandlerContext) -> bool:
+        if not _check_hit_by_avoidance(context):
+            return False
+        poke = context.defend_poke
+        if rank_type == "a":
+            return poke.rank_a.can_incr(diff)
+        if rank_type == "b":
+            return poke.rank_b.can_incr(diff)
+        if rank_type == "c":
+            return poke.rank_c.can_incr(diff)
+        if rank_type == "s":
+            return poke.rank_s.can_incr(diff)
+        if rank_type == "accuracy":
+            return poke.rank_accuracy.can_incr(diff)
+        if rank_type == "evasion":
+            return poke.rank_evasion.can_incr(diff)
+
+        raise ValueError
+
+    return check_hit_change_defender_rank
+
+
+def gen_launch_move_change_defender_rank(rank_type: str, diff: int):
+    """
+    攻撃側のランクを変える補助技の発動
+    :param rank_type: どのランクを変更するか。a,b,c,s,accuracy,evasion
+    :param diff: 変化させたい量
+    :return:
+    """
+
+    def launch_move_change_defender_rank(context: MoveHandlerContext) -> bool:
+        poke = context.defend_poke
+        if rank_type == "a":
+            return poke.rank_a.incr(diff)
+        if rank_type == "b":
+            return poke.rank_b.incr(diff)
+        if rank_type == "c":
+            return poke.rank_c.incr(diff)
+        if rank_type == "s":
+            return poke.rank_s.incr(diff)
+        if rank_type == "accuracy":
+            return poke.rank_accuracy.incr(diff)
+        if rank_type == "evasion":
+            return poke.rank_evasion.incr(diff)
+
+        raise ValueError
+
+    return launch_move_change_defender_rank

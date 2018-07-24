@@ -38,6 +38,11 @@ class MoveGroupName(Enum):
     C_UP = auto()
     C_UP2 = auto()
     S_UP2 = auto()
+    ACCURACY_DOWN = auto()
+    A_DOWN = auto()
+    B_DOWN = auto()
+    B_DOWN2 = auto()
+    S_DOWN = auto()
 
 
 move_group = {
@@ -76,4 +81,9 @@ move_group = {
     MoveGroupName.C_UP: [Move.GROWTH],
     MoveGroupName.C_UP2: [Move.AMNESIA],
     MoveGroupName.S_UP2: [Move.AGILITY],
+    MoveGroupName.ACCURACY_DOWN: [Move.FLASH, Move.KINESIS, Move.SANDATTACK, Move.SMOKESCREEN],
+    MoveGroupName.A_DOWN: [Move.GROWL],
+    MoveGroupName.B_DOWN: [Move.LEER, Move.TAILWHIP],
+    MoveGroupName.B_DOWN2: [Move.SCREECH],
+    MoveGroupName.S_DOWN: [Move.STRINGSHOT],
 }  # type: Dict[MoveGroupName, List[Move]]

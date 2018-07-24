@@ -203,3 +203,33 @@ def init_move_info_db():
            mh.gen_launch_move_change_attacker_rank("s", 2),
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.ACCURACY_DOWN,
+           mh.gen_check_hit_change_defender_rank("accuracy", -1),
+           mh.gen_launch_move_change_defender_rank("accuracy", -1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.A_DOWN,
+           mh.gen_check_hit_change_defender_rank("a", -1),
+           mh.gen_launch_move_change_defender_rank("a", -1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.B_DOWN,
+           mh.gen_check_hit_change_defender_rank("b", -1),
+           mh.gen_launch_move_change_defender_rank("b", -1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.B_DOWN2,
+           mh.gen_check_hit_change_defender_rank("b", -2),
+           mh.gen_launch_move_change_defender_rank("b", -2),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.S_DOWN,
+           mh.gen_check_hit_change_defender_rank("s", -1),
+           mh.gen_launch_move_change_defender_rank("s", -1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
