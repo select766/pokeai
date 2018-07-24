@@ -40,12 +40,6 @@ def init_move_info_db():
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
 
-    move_info_db[Move.DIG] = PokeDBMoveInfo(move_flag_db[Move.DIG],
-                                            mh.check_hit_dig,
-                                            mh.launch_move_dig,
-                                            mh.check_side_effect_none,
-                                            mh.launch_side_effect_none)
-
     assign(MoveGroupName.FLINCH_10,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
@@ -57,3 +51,9 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_ratio(30),
            mh.launch_side_effect_flinch)
+
+    assign(MoveGroupName.DIG,
+           mh.check_hit_dig,
+           mh.launch_move_dig,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

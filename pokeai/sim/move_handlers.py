@@ -164,7 +164,7 @@ def check_hit_dig(context: MoveHandlerContext) -> bool:
 
     if context.attack_poke.multi_turn_move_info is None:
         # 1ターン目
-        context.attack_poke.multi_turn_move_info = MultiTurnMoveInfo(Move.DIG, abort_dig)
+        context.attack_poke.multi_turn_move_info = MultiTurnMoveInfo(context.move, abort_dig)
         return True
     else:
         # 2ターン目
