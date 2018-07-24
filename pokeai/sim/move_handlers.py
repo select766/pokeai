@@ -443,3 +443,28 @@ def gen_launch_move_make_poison(badly_poison: bool):
         context.defend_poke.update_nv_condition(PokeNVCondition.POISON, badly_poison=badly_poison)
 
     return launch_move_make_poison
+
+
+def gen_check_hit_make_paralysis(thunderwave: bool):
+    def check_hit_make_paralysis(context: MoveHandlerContext) -> bool:
+        """
+        まひにさせる補助技命中判定
+        :param context:
+        :return:
+        """
+        if thunderwave and PokeType.GROUND in context.defend_poke.poke_types:
+            context.field.put_record_other("でんじはで地面タイプに外れた")
+            return False
+
+        return _check_hit_make_nv_condition(context)
+
+    return check_hit_make_paralysis
+
+
+def launch_move_make_paralysis(context: MoveHandlerContext):
+    """
+    まひにする
+    :param context:
+    :return:
+    """
+    context.defend_poke.update_nv_condition(PokeNVCondition.PARALYSIS)

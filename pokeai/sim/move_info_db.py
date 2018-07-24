@@ -136,3 +136,15 @@ def init_move_info_db():
            mh.gen_launch_move_make_poison(False),
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.GLARE,
+           mh.gen_check_hit_make_paralysis(False),
+           mh.launch_move_make_paralysis,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.THUNDERWAVE,
+           mh.gen_check_hit_make_paralysis(True),
+           mh.launch_move_make_paralysis,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
