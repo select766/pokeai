@@ -47,12 +47,28 @@ def _check_hit_by_avoidance(context: MoveHandlerContext) -> bool:
     return _check_hit_by_accuracy(context)
 
 
-def check_hit_attack_default(context: MoveHandlerContext) -> bool:
+def _check_hit_by_type_match(context: MoveHandlerContext) -> bool:
     """
-    攻撃技のデフォルト命中判定
+    タイプ相性で無効でないことを判定
     :param context:
     :return:
     """
+
+    move_type = context.flag.move_type
+    type_matches_x2 = PokeType.get_match_list(move_type, context.defend_poke.poke_types)
+    type_matches_prod = type_matches_x2[0] * (type_matches_x2[1] if len(type_matches_x2) == 2 else 2)
+    return type_matches_prod != 0
+
+
+def check_hit_attack_default(context: MoveHandlerContext) -> bool:
+    """
+    攻撃技のデフォルト命中判定
+    相性、命中率、あなをほる状態による判定
+    :param context:
+    :return:
+    """
+    if not _check_hit_by_type_match(context):
+        return False
     if not _check_hit_by_avoidance(context):
         return False
 
@@ -115,6 +131,7 @@ def calc_damage(context: MoveHandlerContext) -> Tuple[int, bool]:
     elif type_matches_prod == 0:
         context.field.put_record_other("こうかはないようだ")
         # 命中判定時点で本来外れているので、ダメージ計算はしないはず
+        raise RuntimeError
     elif type_matches_prod < 4:
         context.field.put_record_other("こうかはいまひとつのようだ")
 
