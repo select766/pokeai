@@ -6,7 +6,7 @@ from pokeai.sim.field_record import FieldRecord, FieldRecordReason
 from pokeai.sim.game_rng import GameRNG, GameRNGRandom, GameRNGReason
 from pokeai.sim.move_calculator import MoveCalculator
 from pokeai.sim.party import Party
-from pokeai.sim.poke import Poke
+from pokeai.sim.poke import Poke, PokeNVCondition
 
 
 class FieldPhase(Enum):
@@ -180,6 +180,17 @@ class Field:
         defend_player = 1 - attack_player
         attack_poke, defend_poke = self._get_fighting_pokes(attack_player)
         # TODO 実装
+        if attack_poke.nv_condition is PokeNVCondition.BURN:
+            # やけどダメージ
+            damage = attack_poke.max_hp // 16
+            die = False
+            if damage >= attack_poke.hp:
+                damage = attack_poke.hp
+                die = True
+            self.put_record_other(f"やけどダメージ {damage}")
+            attack_poke.hp_incr(-damage)
+            if die:
+                return
 
     def _get_fighting_pokes(self, attack_player: int = 0) -> Tuple[Poke, Poke]:
         """

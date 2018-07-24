@@ -309,3 +309,36 @@ def launch_side_effect_paralysis(context: MoveHandlerContext):
     context.field.put_record_other(f"追加効果: まひ")
     context.defend_poke.update_nv_condition(PokeNVCondition.PARALYSIS)
     return
+
+
+def gen_check_side_effect_burn(side_effect_ratio: int) -> Callable[
+    [MoveHandlerContext], bool]:
+    """
+    追加効果でやけどさせる技のハンドラ生成
+    :param side_effect_ratio: 追加効果確率
+    :param bodyslam: のしかかりのときTrue。ノーマルタイプがまひしなくなる。
+    :return:
+    """
+
+    def check_side_effect_ratio(context: MoveHandlerContext):
+        if PokeType.FIRE in context.defend_poke.poke_types:
+            # ほのおタイプはやけどしない
+            return False
+        if context.defend_poke.nv_condition is not PokeNVCondition.EMPTY:
+            # 状態異常なら変化しない
+            return False
+        r = context.field.rng.gen(context.attack_player, GameRNGReason.SIDE_EFFECT, 99)
+        return r < side_effect_ratio
+
+    return check_side_effect_ratio
+
+
+def launch_side_effect_burn(context: MoveHandlerContext):
+    """
+    やけど
+    :param context:
+    :return:
+    """
+    context.field.put_record_other(f"追加効果: やけど")
+    context.defend_poke.update_nv_condition(PokeNVCondition.BURN)
+    return

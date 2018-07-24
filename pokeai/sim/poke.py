@@ -203,7 +203,10 @@ class Poke:
         :return:
         """
         # TODO: 補正
-        return self.st_a
+        val = self.st_a
+        if self.nv_condition is PokeNVCondition.BURN:
+            val = val // 2 - 1
+        return val
 
     def eff_b(self, critical: bool = False) -> int:
         """

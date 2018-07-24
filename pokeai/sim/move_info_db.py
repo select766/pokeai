@@ -93,3 +93,15 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.gen_check_side_effect_paralysis(30, bodyslam=True),
            mh.launch_side_effect_paralysis)
+
+    assign(MoveGroupName.BURN_10,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_burn(10),
+           mh.launch_side_effect_burn)
+
+    assign(MoveGroupName.BURN_30,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_burn(30),
+           mh.launch_side_effect_burn)
