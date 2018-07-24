@@ -30,6 +30,7 @@ class MoveGroupName(Enum):
     GLARE = auto()
     THUNDERWAVE = auto()
     CRITICAL = auto()
+    EVASION_UP = auto()
 
 
 move_group = {
@@ -60,4 +61,5 @@ move_group = {
     MoveGroupName.GLARE: [Move.GLARE, Move.STUNSPORE],
     MoveGroupName.THUNDERWAVE: [Move.THUNDERWAVE],
     MoveGroupName.CRITICAL: [Move.CRABHAMMER, Move.KARATECHOP, Move.RAZORLEAF, Move.SLASH],
+    MoveGroupName.EVASION_UP: [Move.DOUBLETEAM, Move.MINIMIZE],
 }  # type: Dict[MoveGroupName, List[Move]]

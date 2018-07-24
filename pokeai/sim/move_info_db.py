@@ -155,3 +155,9 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.EVASION_UP,
+           mh.gen_check_hit_change_attacker_rank("evasion", 1),
+           mh.gen_launch_move_change_attacker_rank("evasion", 1),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

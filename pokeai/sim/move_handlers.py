@@ -472,3 +472,59 @@ def launch_move_make_paralysis(context: MoveHandlerContext):
     :return:
     """
     context.defend_poke.update_nv_condition(PokeNVCondition.PARALYSIS)
+
+
+def gen_check_hit_change_attacker_rank(rank_type: str, diff: int):
+    """
+    攻撃側のランクを変える補助技の命中判定
+    :param rank_type: どのランクを変更するか。a,b,c,s,accuracy,evasion
+    :param diff: 変化させたい量
+    :return:
+    """
+
+    def check_hit_change_attacker_rank(context: MoveHandlerContext) -> bool:
+        poke = context.attack_poke
+        if rank_type == "a":
+            return poke.rank_a.can_incr(diff)
+        if rank_type == "b":
+            return poke.rank_b.can_incr(diff)
+        if rank_type == "c":
+            return poke.rank_c.can_incr(diff)
+        if rank_type == "s":
+            return poke.rank_s.can_incr(diff)
+        if rank_type == "accuracy":
+            return poke.rank_accuracy.can_incr(diff)
+        if rank_type == "evasion":
+            return poke.rank_evasion.can_incr(diff)
+
+        raise ValueError
+
+    return check_hit_change_attacker_rank
+
+
+def gen_launch_move_change_attacker_rank(rank_type: str, diff: int):
+    """
+    攻撃側のランクを変える補助技の発動
+    :param rank_type: どのランクを変更するか。a,b,c,s,accuracy,evasion
+    :param diff: 変化させたい量
+    :return:
+    """
+
+    def launch_move_change_attacker_rank(context: MoveHandlerContext) -> bool:
+        poke = context.attack_poke
+        if rank_type == "a":
+            return poke.rank_a.incr(diff)
+        if rank_type == "b":
+            return poke.rank_b.incr(diff)
+        if rank_type == "c":
+            return poke.rank_c.incr(diff)
+        if rank_type == "s":
+            return poke.rank_s.incr(diff)
+        if rank_type == "accuracy":
+            return poke.rank_accuracy.incr(diff)
+        if rank_type == "evasion":
+            return poke.rank_evasion.incr(diff)
+
+        raise ValueError
+
+    return launch_move_change_attacker_rank
