@@ -235,7 +235,7 @@ class Field:
         defend_player = 1 - attack_player
         return self.parties[attack_player].get(), self.parties[defend_player].get()
 
-    def _get_legal_actions(self, player: int) -> List[FieldAction]:
+    def get_legal_actions(self, player: int) -> List[FieldAction]:
         """
         この場で有効な行動を列挙する。
         :param player:
@@ -274,8 +274,11 @@ class Field:
                     actions.append(FieldAction(FieldActionType.CHANGE, change_idx=alive_poke_idx))
         elif self.phase is FieldPhase.FAINT_CHANGE:
             actions = []
-            for alive_poke_idx in alive_poke_idxs:
-                actions.append(FieldAction(FieldActionType.FAINT_CHANGE, change_idx=alive_poke_idx))
+            poke = party.get()
+            if poke.is_faint():
+                for alive_poke_idx in alive_poke_idxs:
+                    actions.append(FieldAction(FieldActionType.FAINT_CHANGE, faint_change_idx=alive_poke_idx))
+            # ひんしでない側はアクションなし
         else:
             raise RuntimeError
         return actions
