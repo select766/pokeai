@@ -194,6 +194,9 @@ class Field:
         if attack_poke.nv_condition is PokeNVCondition.POISON:
             # どくダメージ
             damage = attack_poke.max_hp // 16
+            if attack_poke.badly_poison:
+                attack_poke.badly_poison_turn += 1
+                damage *= attack_poke.badly_poison_turn
             die = False
             if damage >= attack_poke.hp:
                 damage = attack_poke.hp

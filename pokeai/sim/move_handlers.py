@@ -420,3 +420,52 @@ def launch_move_hypnosis(context: MoveHandlerContext):
     # 2~8ターン眠る: 行動順がこの回数回ってきたタイミングで目覚めるが、目覚めたターンは行動なし
     sleep_turn = context.field.rng.gen(context.attack_player, GameRNGReason.SLEEP_TURN, 6) + 2
     context.defend_poke.update_nv_condition(PokeNVCondition.SLEEP, sleep_turn=sleep_turn)
+
+
+def check_hit_toxic(context: MoveHandlerContext) -> bool:
+    """
+    どくどく命中判定
+    :param context:
+    :return:
+    """
+    if context.defend_poke.nv_condition is not PokeNVCondition.EMPTY:
+        context.field.put_record_other("相手がすでに状態異常なので外れた")
+        return False
+
+    if PokeType.POISON in context.defend_poke.poke_types:
+        context.field.put_record_other("毒タイプは毒にならないので外れた")
+        return False
+
+    if context.defend_poke.v_dig:
+        context.field.put_record_other("あなをほる状態で外れた")
+        return False
+
+    # 命中率による判定
+    # https://wiki.xn--rckteqa2e.com/wiki/%E5%91%BD%E4%B8%AD
+    if context.flag.accuracy > 0:
+        # 技の命中率×自分のランク補正(命中率)÷相手のランク補正(回避率)
+        hit_ratio_table = {100: 255, 95: 242, 90: 229, 85: 216,
+                           80: 204, 75: 191, 70: 178, 65: 165, 60: 152, 55: 140, 50: 127, 0: 0}
+        hit_ratio = hit_ratio_table[context.flag.accuracy]
+        hit_ratio = hit_ratio * 2 // (-context.attack_poke.rank_accuracy.value + 2)
+        hit_ratio = hit_ratio * 2 // (context.defend_poke.rank_evasion.value + 2)
+        # 1~255の乱数と比較
+        hit_judge_rnd = context.field.rng.gen(context.attack_player, GameRNGReason.HIT, 254) + 1
+        if hit_ratio <= hit_judge_rnd:
+            context.field.put_record_other("命中率による判定で外れた")
+            return False
+    else:
+        # 必中技
+        pass
+
+    return True
+
+
+def launch_move_toxic(context: MoveHandlerContext):
+    """
+    どくどく
+    :param context:
+    :return:
+    """
+    context.field.put_record_other(f"相手を猛毒にする")
+    context.defend_poke.update_nv_condition(PokeNVCondition.POISON, badly_poison=True)

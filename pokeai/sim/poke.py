@@ -122,6 +122,8 @@ class Poke:
     _v_dig: bool
     _v_hyperbeam: bool
     _v_flinch: bool  # ひるみ
+    _v_badly_poison: bool
+    _v_badly_poison_turn: int
 
     def __init__(self, poke_st: PokeStatic):
         self._poke_st = poke_st
@@ -161,6 +163,8 @@ class Poke:
         self._v_hyperbeam = False
         self._v_flinch = False
         self._sleep_remaining_turn = 0
+        self._v_badly_poison = False
+        self._v_badly_poison_turn = 0
 
     def on_change(self):
         """
@@ -179,6 +183,8 @@ class Poke:
         self._v_dig = False
         self._v_hyperbeam = False
         self._v_flinch = False
+        self._v_badly_poison = False
+        self._v_badly_poison_turn = 0
 
     def on_turn_end(self):
         """
@@ -266,11 +272,12 @@ class Poke:
         return self._nv_condition
 
     def update_nv_condition(self, cond: PokeNVCondition, *, sleep_turn: Optional[int] = None,
-                            force_sleep: bool = False):
+                            force_sleep: bool = False, badly_poison: bool = False):
         """
         状態異常の変化。各種フラグが連動して変化する。
         :param cond:
         :param force_sleep: 「ねむる」で状態異常にかかわらずねむる場合
+        :param badly_poison: 猛毒状態にする
         :return:
         """
         if not force_sleep and (self._nv_condition != PokeNVCondition.EMPTY and cond != PokeNVCondition.EMPTY):
@@ -281,6 +288,12 @@ class Poke:
             self._sleep_remaining_turn = sleep_turn
         else:
             self._sleep_remaining_turn = 0
+        if cond is PokeNVCondition.POISON and badly_poison:
+            self.badly_poison = True
+            self.badly_poison_turn = 0
+        else:
+            self.badly_poison = False
+            self.badly_poison_turn = 0
         self._nv_condition = cond
 
     @property
@@ -295,6 +308,31 @@ class Poke:
     def sleep_remaining_turn(self, t: int):
         assert t >= 0
         self._sleep_remaining_turn = t
+
+    @property
+    def badly_poison(self):
+        """
+        猛毒フラグ
+        :return:
+        """
+        return self._v_badly_poison
+
+    @badly_poison.setter
+    def badly_poison(self, v: bool):
+        self._v_badly_poison = v
+
+    @property
+    def badly_poison_turn(self):
+        """
+        もうどく経過ターン
+        :return:
+        """
+        return self._v_badly_poison_turn
+
+    @badly_poison_turn.setter
+    def badly_poison_turn(self, t: int):
+        assert t >= 0
+        self._v_badly_poison_turn = t
 
     @property
     def v_dig(self):

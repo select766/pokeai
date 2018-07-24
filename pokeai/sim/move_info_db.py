@@ -123,3 +123,9 @@ def init_move_info_db():
            mh.launch_move_hypnosis,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.TOXIC,
+           mh.check_hit_toxic,
+           mh.launch_move_toxic,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
