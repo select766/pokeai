@@ -13,6 +13,7 @@ class GameRNGReason(Enum):
     HIT = auto()  # 命中率
     DAMAGE = auto()  # ダメージのランダム変動
     CRITICAL = auto()  # 急所
+    SIDE_EFFECT = auto()  # 追加効果
 
 
 class GameRNG:
@@ -71,6 +72,9 @@ class GameRNGFixed(GameRNG):
         if reason == GameRNGReason.CRITICAL:
             # 急所に当たらない
             return top
+        if reason == GameRNGReason.SIDE_EFFECT:
+            # 追加効果発生
+            return 0
         return 0
 
     def enqueue_const(self, player: int, reason: GameRNGReason, value: int) -> None:

@@ -92,12 +92,15 @@ class MoveCalculator:
         :return:
         """
         # 現状、選んだ技により成功失敗が変わることはない（第2世代のねごと等）
-        # TODO: 反動
         # TODO: ねむり・こおり・まひ
         # TODO: こんらん
         if ctx.attack_poke.v_hyperbeam:
             self.field.put_record_other("反動でうごけない")
             ctx.attack_poke.v_hyperbeam = False
+            return False
+        if ctx.attack_poke.v_flinch:
+            self.field.put_record_other("ひるみでうごけない")
+            # ここでは解除せず、ターン終了で解除
             return False
         return True
 
@@ -123,7 +126,7 @@ class MoveCalculator:
         :param move:
         :return:
         """
-        return False
+        return move_info.check_side_effect(ctx)
 
     def _launch_side_effect(self, move_info: PokeDBMoveInfo, ctx: MoveHandlerContext):
         """
@@ -131,4 +134,4 @@ class MoveCalculator:
         :param move:
         :return:
         """
-        pass
+        move_info.launch_side_effect(ctx)

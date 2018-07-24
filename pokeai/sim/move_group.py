@@ -11,13 +11,18 @@ class MoveGroupName(Enum):
     SIMPLE = auto()
     SPLASH = auto()
     HYPERBEAM = auto()
+    FLINCH_10 = auto()
+    FLINCH_30 = auto()
+
 
 move_group = {
     # 通常攻撃技
     MoveGroupName.SIMPLE: [Move.CUT, Move.DRILLPECK, Move.EARTHQUAKE, Move.EGGBOMB, Move.GUST, Move.HORNATTACK,
                            Move.HYDROPUMP, Move.MEGAKICK, Move.MEGAPUNCH, Move.PAYDAY, Move.PECK, Move.POUND,
-                           Move.ROCKTHROW, Move.SCRATCH, Move.SLAM, Move.STRENGTH, Move.SURF, Move.TACKLE,
-                           Move.VICEGRIP, Move.VINEWHIP, Move.WATERFALL, Move.WATERGUN, Move.WINGATTACK, ],
+                           Move.ROCKSLIDE, Move.ROCKTHROW, Move.SCRATCH, Move.SLAM, Move.STRENGTH, Move.SURF,
+                           Move.TACKLE, Move.VICEGRIP, Move.VINEWHIP, Move.WATERFALL, Move.WATERGUN, Move.WINGATTACK, ],
     MoveGroupName.SPLASH: [Move.ROAR, Move.SPLASH, Move.TELEPORT, Move.WHIRLWIND],
     MoveGroupName.HYPERBEAM: [Move.HYPERBEAM],
+    MoveGroupName.FLINCH_10: [Move.BONECLUB, Move.HYPERFANG],
+    MoveGroupName.FLINCH_30: [Move.BITE, Move.HEADBUTT, Move.LOWKICK, Move.ROLLINGKICK, Move.STOMP],
 }  # type: Dict[MoveGroupName, List[Move]]

@@ -131,6 +131,10 @@ class Field:
         return self._get_next_phase_if_faint() or FieldPhase.END_TURN
 
     def _step_end_turn(self) -> FieldPhase:
+        for poke in self._get_fighting_pokes(0):
+            # ここで倒れることは初代ではないので、順番は関係ない
+            # ひるみ等解除
+            poke.on_turn_end()
         self.actions_begin = None
         self.actions_faint_change = None
         self.turn_number += 1

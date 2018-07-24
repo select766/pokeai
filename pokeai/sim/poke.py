@@ -102,6 +102,7 @@ class Poke:
     """
     _v_dig: bool
     _v_hyperbeam: bool
+    _v_flinch: bool  # ひるみ
 
     def __init__(self, poke_st: PokeStatic):
         self._poke_st = poke_st
@@ -137,6 +138,7 @@ class Poke:
 
         self._v_dig = False
         self._v_hyperbeam = False
+        self._v_flinch = False
 
     def on_change(self):
         """
@@ -154,12 +156,14 @@ class Poke:
         # 状態変化を解除
         self._v_dig = False
         self._v_hyperbeam = False
+        self._v_flinch = False
 
     def on_turn_end(self):
         """
         ターン終了時の処理
         :return:
         """
+        self._v_flinch = False
 
     def is_faint(self):
         return self.hp == 0
@@ -248,6 +252,19 @@ class Poke:
     @v_hyperbeam.setter
     def v_hyperbeam(self, v: bool):
         self._v_hyperbeam = v
+
+    @property
+    def v_flinch(self):
+        """
+        ひるみ状態
+        ターン終了で解除される
+        :return:
+        """
+        return self._v_flinch
+
+    @v_flinch.setter
+    def v_flinch(self, v: bool):
+        self._v_flinch = v
 
     def can_change(self) -> bool:
         """

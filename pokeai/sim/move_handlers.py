@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
 from pokeai.sim.game_rng import GameRNGReason
 from pokeai.sim.move import Move
@@ -213,10 +213,35 @@ def check_side_effect_none(context: MoveHandlerContext) -> bool:
     return False
 
 
+def gen_check_side_effect_ratio(side_effect_ratio: int) -> Callable[[MoveHandlerContext], bool]:
+    """
+    特定確率で必ず追加効果がある技のハンドラ生成
+    :param side_effect_ratio: 追加効果確率
+    :return:
+    """
+
+    def check_side_effect_ratio(context: MoveHandlerContext):
+        r = context.field.rng.gen(context.attack_player, GameRNGReason.SIDE_EFFECT, 99)
+        return r < side_effect_ratio
+
+    return check_side_effect_ratio
+
+
 def launch_side_effect_none(context: MoveHandlerContext):
     """
     追加効果なし
     :param context:
     :return:
     """
+    return
+
+
+def launch_side_effect_flinch(context: MoveHandlerContext):
+    """
+    ひるみ
+    :param context:
+    :return:
+    """
+    context.field.put_record_other(f"追加効果: ひるみ")
+    context.defend_poke.v_flinch = True
     return
