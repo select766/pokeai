@@ -206,6 +206,23 @@ class Field:
             attack_poke.hp_incr(-damage)
             if die:
                 return
+        if attack_poke.v_leechseed:
+            # やどりぎダメージ=毒ダメージと同じ
+            damage = attack_poke.max_hp // 16
+            if attack_poke.badly_poison:
+                # どくどくならダメージが増える
+                damage *= attack_poke.badly_poison_turn
+            die = False
+            if damage >= attack_poke.hp:
+                damage = attack_poke.hp
+                die = True
+            self.put_record_other(f"やどりぎダメージ {damage}")
+            attack_poke.hp_incr(-damage)
+            max_recover = defend_poke.max_hp - defend_poke.hp
+            recover = min(max_recover, damage)
+            defend_poke.hp_incr(recover)
+            if die:
+                return
 
     def _step_faint_change(self) -> FieldPhase:
         """

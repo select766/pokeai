@@ -442,6 +442,20 @@ def gen_check_side_effect_poison(side_effect_ratio: int) -> Callable[
     return check_side_effect_ratio
 
 
+def check_hit_leechseed(context: MoveHandlerContext) -> bool:
+    """
+    やどりぎのタネ命中判定
+    :param context:
+    :return:
+    """
+    # 草タイプ、およびすでにやどりぎ状態の相手には効かない
+    if PokeType.GRASS in context.defend_poke.poke_types:
+        return False
+    if context.defend_poke.v_leechseed:
+        return False
+    return _check_hit_by_avoidance(context)
+
+
 def _check_hit_make_nv_condition(context: MoveHandlerContext) -> bool:
     """
     相手を状態異常にする技の基本命中判定
@@ -738,3 +752,12 @@ def launch_side_effect_confuse(context: MoveHandlerContext):
     # 1~7ターン混乱する: 行動順ごとに1デクリメントし、0になったときに解除。解除ターンは必ず攻撃できる。
     confuse_turn = context.field.rng.gen(context.attack_player, GameRNGReason.CONFUSE_TURN, 6) + 1
     context.defend_poke.v_confuse_remaining_turn = confuse_turn
+
+
+def launch_move_leechseed(context: MoveHandlerContext):
+    """
+    やどりぎ状態にする
+    :param context:
+    :return:
+    """
+    context.defend_poke.v_leechseed = True

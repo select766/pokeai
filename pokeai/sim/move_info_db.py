@@ -293,3 +293,9 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.LEECHSEED,
+           mh.check_hit_leechseed,
+           mh.launch_move_leechseed,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

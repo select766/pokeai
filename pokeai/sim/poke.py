@@ -136,6 +136,7 @@ class Poke:
     _v_confuse_remaining_turn: int  # こんらん残りターン
     _v_badly_poison: bool
     _v_badly_poison_turn: int
+    _v_leechseed: bool
     """
     最終発動技(当たるかにかかわらないが、眠りなどで発動しないときは更新されない)
     勝敗判定でのだいばくはつ利用判定に使用
@@ -183,6 +184,7 @@ class Poke:
         self._v_badly_poison = False
         self._v_badly_poison_turn = 0
         self._v_confuse_remaining_turn = 0
+        self._v_leechseed = False
 
         self.last_move = None
 
@@ -206,6 +208,7 @@ class Poke:
         self._v_badly_poison = False
         self._v_badly_poison_turn = 0
         self._v_confuse_remaining_turn = 0
+        self._v_leechseed = False
         self.last_move = None
 
     def on_turn_end(self):
@@ -417,6 +420,18 @@ class Poke:
     @v_confuse_remaining_turn.setter
     def v_confuse_remaining_turn(self, value: int):
         self._v_confuse_remaining_turn = value
+
+    @property
+    def v_leechseed(self):
+        """
+        やどりぎ状態
+        :return:
+        """
+        return self._v_leechseed
+
+    @v_leechseed.setter
+    def v_leechseed(self, v: bool):
+        self._v_leechseed = v
 
     def can_change(self) -> bool:
         """
