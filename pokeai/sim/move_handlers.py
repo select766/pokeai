@@ -75,6 +75,20 @@ def check_hit_attack_default(context: MoveHandlerContext) -> bool:
     return True
 
 
+def check_hit_nightshade_psywave(context: MoveHandlerContext) -> bool:
+    """
+    ナイトヘッド・サイコウェーブ命中判定
+    相性無視
+    命中率、あなをほる状態による判定
+    :param context:
+    :return:
+    """
+    if not _check_hit_by_avoidance(context):
+        return False
+
+    return True
+
+
 def calc_damage_core(power: int, attack_level: int, attack: int, defense: int,
                      critical: bool, same_type: bool, type_matches_x2: List[int],
                      rnd: int):
@@ -242,6 +256,33 @@ def gen_launch_move_const(damage: int):
         context.defend_poke.hp_incr(-cur_damage)
 
     return launch_move_const
+
+
+def launch_move_nightshade(context: MoveHandlerContext):
+    """
+    レベルと同じ数の固定ダメージ
+    :param context:
+    :return:
+    """
+    cur_damage = context.attack_poke.lv
+    if cur_damage >= context.defend_poke.hp:
+        cur_damage = context.defend_poke.hp
+    context.field.put_record_other(f"固定ダメージ: {cur_damage}")
+    context.defend_poke.hp_incr(-cur_damage)
+
+
+def launch_move_psywave(context: MoveHandlerContext):
+    """
+    1~レベル*1.5-1のダメージ
+    :param context:
+    :return:
+    """
+    cur_damage = context.field.rng.gen(context.attack_player, GameRNGReason.PSYWAVE,
+                                       context.attack_poke.lv * 3 // 2 - 1)
+    if cur_damage >= context.defend_poke.hp:
+        cur_damage = context.defend_poke.hp
+    context.field.put_record_other(f"レベル比例ダメージ: {cur_damage}")
+    context.defend_poke.hp_incr(-cur_damage)
 
 
 def check_hit_splash(context: MoveHandlerContext) -> bool:

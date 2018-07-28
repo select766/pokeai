@@ -317,3 +317,15 @@ def init_move_info_db():
            mh.launch_move_absorb,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.NIGHTSHADE,
+           mh.check_hit_nightshade_psywave,
+           mh.launch_move_nightshade,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.PSYWAVE,
+           mh.check_hit_nightshade_psywave,
+           mh.launch_move_psywave,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
