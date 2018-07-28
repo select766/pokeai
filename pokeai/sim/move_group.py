@@ -67,6 +67,7 @@ class MoveGroupName(Enum):
     THRASH = auto()
     RAZORWIND = auto()
     SUPERFANG = auto()
+    HIGHJUMPKICK = auto()
 
 
 move_group = {
@@ -134,4 +135,5 @@ move_group = {
     MoveGroupName.THRASH: [Move.PETALDANCE, Move.THRASH],
     MoveGroupName.RAZORWIND: [Move.RAZORWIND, Move.SKULLBASH, Move.SKYATTACK, Move.SOLARBEAM],
     MoveGroupName.SUPERFANG: [Move.SUPERFANG],
+    MoveGroupName.HIGHJUMPKICK: [Move.HIGHJUMPKICK, Move.JUMPKICK],
 }  # type: Dict[MoveGroupName, List[Move]]

@@ -377,3 +377,10 @@ def init_move_info_db():
            mh.launch_move_superfang,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    # TODO: 反動
+    assign(MoveGroupName.HIGHJUMPKICK,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
