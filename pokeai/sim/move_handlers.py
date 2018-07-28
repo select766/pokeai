@@ -6,6 +6,7 @@ from pokeai.sim.move_handler_context import MoveHandlerContext
 from pokeai.sim.multi_turn_move_info import MultiTurnMoveInfo
 from pokeai.sim.poke import Poke, PokeNVCondition
 from pokeai.sim.poke_type import PokeType
+from pokeai.sim.move_group import move_group, MoveGroupName
 
 
 def _check_hit_by_accuracy(context: MoveHandlerContext) -> bool:
@@ -171,6 +172,16 @@ def calc_damage(context: MoveHandlerContext) -> Tuple[int, bool]:
                               critical=critical, same_type=same_type,
                               type_matches_x2=type_matches_x2, rnd=damage_rnd)
     make_faint = False
+
+    if context.move in move_group[MoveGroupName.BARRAGE]:
+        # 連続回数分ダメージを増す形で疑似的に実装
+        barrage_count = [2, 2, 2, 3, 3, 3, 4, 5][context.field.rng.gen(context.attack_player, GameRNGReason.BARRAGE, 7)]
+        damage *= barrage_count
+    elif (context.move in move_group[MoveGroupName.BONEMERANG]) or (
+            context.move in move_group[MoveGroupName.TWINEEDLE]):
+        # 2回攻撃
+        damage *= 2
+
     if damage >= context.defend_poke.hp:
         # ダメージは受け側のHP以下
         damage = context.defend_poke.hp

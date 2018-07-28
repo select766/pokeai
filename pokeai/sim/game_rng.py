@@ -20,6 +20,7 @@ class GameRNGReason(Enum):
     CONFUSE_TURN = auto()  # 混乱ターン数
     PSYWAVE = auto()  # サイコウェーブのダメージ
     THRASH = auto()  # あばれるターン数
+    BARRAGE = auto()  # たまなげ連続回数(0~7で、0,1,2=2回、3,4,5=3回、6=4回、7=5回)
 
 
 class GameRNG:
@@ -98,6 +99,9 @@ class GameRNGFixed(GameRNG):
             return top
         if reason == GameRNGReason.THRASH:
             # あばれるターン数=最小
+            return 0
+        if reason == GameRNGReason.BARRAGE:
+            # たまなげ連続回数=最小
             return 0
         return 0
 

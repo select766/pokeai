@@ -384,3 +384,24 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    # TODO: ちゃんと連続技にする
+    assign(MoveGroupName.BARRAGE,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    # TODO: ちゃんと連続技にする
+    assign(MoveGroupName.BONEMERANG,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    # TODO: ちゃんと連続技にする
+    assign(MoveGroupName.TWINEEDLE,
+           mh.check_hit_attack_default,
+           mh.launch_move_attack_default,
+           mh.gen_check_side_effect_poison(36),  # 20%でどくを2回判定する代わり
+           mh.gen_launch_side_effect_nv_condition(PokeNVCondition.POISON))
