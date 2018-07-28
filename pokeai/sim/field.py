@@ -79,10 +79,16 @@ class Field:
         speeds = []
         for player in [0, 1]:
             act = self.actions_begin[player]
-            speed = self.parties[player].get().eff_s()
+            poke = self.parties[player].get()
+            speed = poke.eff_s()
             if act.action_type is FieldActionType.CHANGE:
                 # 交代は先攻
                 speed += 10000
+            else:
+                move = poke.moves[act.move_idx].move
+                if move in [Move.QUICKATTACK]:
+                    # 優先度+1
+                    speed += 1000
             speeds.append(speed)
 
         speeds_orig = speeds.copy()

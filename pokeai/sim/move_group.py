@@ -10,6 +10,7 @@ from pokeai.sim.move import Move
 class MoveGroupName(Enum):
     SIMPLE = auto()
     SWIFT = auto()
+    QUICKATTACK = auto()
     SPLASH = auto()
     HYPERBEAM = auto()
     FLINCH_10 = auto()
@@ -64,6 +65,7 @@ move_group = {
                            Move.SURF, Move.TACKLE, Move.TRIATTACK, Move.VICEGRIP, Move.VINEWHIP, Move.WATERFALL,
                            Move.WATERGUN, Move.WINGATTACK, ],
     MoveGroupName.SWIFT: [Move.SWIFT],
+    MoveGroupName.QUICKATTACK: [Move.QUICKATTACK],
     MoveGroupName.SPLASH: [Move.ROAR, Move.SPLASH, Move.TELEPORT, Move.WHIRLWIND],
     MoveGroupName.HYPERBEAM: [Move.HYPERBEAM],
     MoveGroupName.FLINCH_10: [Move.BONECLUB, Move.HYPERFANG],
