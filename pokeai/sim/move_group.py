@@ -52,6 +52,7 @@ class MoveGroupName(Enum):
     CONST_20 = auto()
     CONST_40 = auto()
     FISSURE = auto()
+    EXPLOSION = auto()
 
 
 move_group = {
@@ -104,4 +105,5 @@ move_group = {
     MoveGroupName.CONST_20: [Move.SONICBOOM],
     MoveGroupName.CONST_40: [Move.DRAGONRAGE],
     MoveGroupName.FISSURE: [Move.FISSURE, Move.GUILLOTINE, Move.HORNDRILL],
+    MoveGroupName.EXPLOSION: [Move.EXPLOSION, Move.SELFDESTRUCT],
 }  # type: Dict[MoveGroupName, List[Move]]

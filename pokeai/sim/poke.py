@@ -136,6 +136,11 @@ class Poke:
     _v_confuse_remaining_turn: int  # こんらん残りターン
     _v_badly_poison: bool
     _v_badly_poison_turn: int
+    """
+    最終発動技(当たるかにかかわらないが、眠りなどで発動しないときは更新されない)
+    勝敗判定でのだいばくはつ利用判定に使用
+    """
+    last_move: Optional[Move]
 
     def __init__(self, poke_st: PokeStatic):
         self._poke_st = poke_st
@@ -179,6 +184,8 @@ class Poke:
         self._v_badly_poison_turn = 0
         self._v_confuse_remaining_turn = 0
 
+        self.last_move = None
+
     def on_change(self):
         """
         交代で戻ったときの処理
@@ -199,6 +206,7 @@ class Poke:
         self._v_badly_poison = False
         self._v_badly_poison_turn = 0
         self._v_confuse_remaining_turn = 0
+        self.last_move = None
 
     def on_turn_end(self):
         """

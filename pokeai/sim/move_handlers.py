@@ -141,6 +141,8 @@ def calc_damage(context: MoveHandlerContext) -> Tuple[int, bool]:
     else:
         attack = context.attack_poke.eff_c(critical)
         defense = context.defend_poke.eff_c(critical)
+    if context.move in [Move.EXPLOSION, Move.SELFDESTRUCT]:
+        defense = defense // 2  # 自爆技は防御を半分にして計算(TODO: 混乱ダメージも倍になるが未実装)
     damage_rnd = context.field.rng.gen(context.attack_player, GameRNGReason.DAMAGE, 38)
     damage = calc_damage_core(power=power,
                               attack_level=attack_level,
@@ -178,6 +180,17 @@ def check_hit_fissure(context: MoveHandlerContext):
         context.field.put_record_other(f"ぜんぜんきいてない")
         return False
     # そのほかは通常技と同じ
+    return check_hit_attack_default(context)
+
+
+def check_hit_explosion(context: MoveHandlerContext):
+    """
+    自爆技の命中判定
+    命中にかかわらず、攻撃側の体力を0にする
+    :param context:
+    :return:
+    """
+    context.attack_poke.hp_incr(-context.attack_poke.hp)
     return check_hit_attack_default(context)
 
 

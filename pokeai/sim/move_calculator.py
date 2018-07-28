@@ -72,6 +72,8 @@ class MoveCalculator:
                 self.attack_poke.multi_turn_move_info = None
             return
 
+        ctx.attack_poke.last_move = move
+
         if not self._check_hit(move_info, ctx):
             """
             技が外れた

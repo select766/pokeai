@@ -287,3 +287,9 @@ def init_move_info_db():
            mh.gen_launch_move_const(65535),
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.EXPLOSION,
+           mh.check_hit_explosion,
+           mh.launch_move_attack_default,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

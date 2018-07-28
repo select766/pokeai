@@ -4,6 +4,7 @@ from typing import List, Optional, Callable, Dict, Tuple
 from pokeai.sim.field_action import FieldAction, FieldActionType
 from pokeai.sim.field_record import FieldRecord, FieldRecordReason
 from pokeai.sim.game_rng import GameRNG, GameRNGRandom, GameRNGReason
+from pokeai.sim.move import Move
 from pokeai.sim.move_calculator import MoveCalculator
 from pokeai.sim.party import Party
 from pokeai.sim.poke import Poke, PokeNVCondition
@@ -334,12 +335,17 @@ class Field:
                 # 先攻の攻撃直後なら、先攻の勝ち(反動で倒れても、攻撃側の勝ち)
                 # 後攻の攻撃直後なら、後攻の勝ち
                 # PCのときに両方倒れることはない
-                # TODO: だいばくはつ直後なら、使ってない側の勝ち
+                win_player = 0
                 if self.phase is FieldPhase.FIRST_MOVE:
-                    return 0
+                    win_player = self.first_player
                 elif self.phase is FieldPhase.SECOND_MOVE:
-                    return 1
-                raise NotImplementedError
+                    win_player = 1 - self.first_player
+                else:
+                    raise NotImplementedError
+                if self.parties[win_player].get().last_move in [Move.EXPLOSION, Move.SELFDESTRUCT]:
+                    # 最終発動技が自爆技なら使ってない側の勝ち
+                    win_player = 1 - win_player
+                return win_player
             else:
                 return 1
         else:
