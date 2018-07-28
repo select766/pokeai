@@ -371,3 +371,9 @@ def init_move_info_db():
            mh.launch_move_razorwind,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.SUPERFANG,
+           mh.check_hit_nightshade_psywave,
+           mh.launch_move_superfang,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

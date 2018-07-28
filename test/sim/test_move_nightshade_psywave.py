@@ -14,7 +14,7 @@ from pokeai.sim.poke_type import PokeType
 
 class TestMoveNightshadePsywave(unittest.TestCase):
     """
-    ナイトヘッド・サイコウェーブ
+    ナイトヘッド・サイコウェーブ・いかりのまえば
     レベル依存の固定ダメージ技
     """
 
@@ -26,7 +26,7 @@ class TestMoveNightshadePsywave(unittest.TestCase):
 
         # H:267,A:162,B:117,C:117,S:82
         # カビゴン
-        poke_atk = PokeStatic.create(Dexno.SNORLAX, [Move.PSYWAVE])
+        poke_atk = PokeStatic.create(Dexno.SNORLAX, [Move.PSYWAVE, Move.SUPERFANG])
         # H:172,A:135,B:109,C:137,S:157
         # エレブー
         poke_def = PokeStatic.create(Dexno.ELECTABUZZ, [Move.NIGHTSHADE])
@@ -45,3 +45,12 @@ class TestMoveNightshadePsywave(unittest.TestCase):
         self.assertEqual(field.parties[0].get().hp, 267 - 50)
         # SNORLAX -> ELECTABUZZ: ダメージ50*1.5-1=74
         self.assertEqual(field.parties[1].get().hp, 172 - 74)
+
+        field.actions_begin = [FieldAction(FieldActionType.MOVE, move_idx=1),
+                               FieldAction(FieldActionType.MOVE, move_idx=0)]
+        self.assertEqual(field.step(), FieldPhase.BEGIN)
+
+        # ELECTABUZZ -> SNORLAX: ダメージ50
+        self.assertEqual(field.parties[0].get().hp, 267 - 50 * 2)
+        # SNORLAX -> ELECTABUZZ: ダメージ98//2=49
+        self.assertEqual(field.parties[1].get().hp, 172 - 74 - 49)

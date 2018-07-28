@@ -77,7 +77,7 @@ def check_hit_attack_default(context: MoveHandlerContext) -> bool:
 
 def check_hit_nightshade_psywave(context: MoveHandlerContext) -> bool:
     """
-    ナイトヘッド・サイコウェーブ命中判定
+    ナイトヘッド・サイコウェーブ・いかりのまえば命中判定
     相性無視
     命中率、あなをほる状態による判定
     :param context:
@@ -276,6 +276,18 @@ def launch_move_nightshade(context: MoveHandlerContext):
     if cur_damage >= context.defend_poke.hp:
         cur_damage = context.defend_poke.hp
     context.field.put_record_other(f"固定ダメージ: {cur_damage}")
+    context.defend_poke.hp_incr(-cur_damage)
+
+
+def launch_move_superfang(context: MoveHandlerContext):
+    """
+    あいてのHPの1/2ダメージ
+    相手HPが1の時はダメージ1
+    :param context:
+    :return:
+    """
+    cur_damage = max(context.defend_poke.hp // 2, 1)
+    context.field.put_record_other(f"いかりのまえばダメージ: {cur_damage}")
     context.defend_poke.hp_incr(-cur_damage)
 
 

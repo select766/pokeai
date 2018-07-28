@@ -66,6 +66,7 @@ class MoveGroupName(Enum):
     REFLECT = auto()
     THRASH = auto()
     RAZORWIND = auto()
+    SUPERFANG = auto()
 
 
 move_group = {
@@ -132,4 +133,5 @@ move_group = {
     MoveGroupName.REFLECT: [Move.REFLECT],
     MoveGroupName.THRASH: [Move.PETALDANCE, Move.THRASH],
     MoveGroupName.RAZORWIND: [Move.RAZORWIND, Move.SKULLBASH, Move.SKYATTACK, Move.SOLARBEAM],
+    MoveGroupName.SUPERFANG: [Move.SUPERFANG],
 }  # type: Dict[MoveGroupName, List[Move]]
