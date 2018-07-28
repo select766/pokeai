@@ -335,3 +335,9 @@ def init_move_info_db():
            mh.launch_move_recover,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.DREAMEATER,
+           mh.check_hit_dreameater,
+           mh.launch_move_absorb,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

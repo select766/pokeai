@@ -203,6 +203,7 @@ def launch_move_doubleedge(context: MoveHandlerContext):
 def launch_move_absorb(context: MoveHandlerContext):
     """
     すいとる等吸収技
+    ゆめくいも同様
     :param context:
     :return:
     """
@@ -860,3 +861,16 @@ def launch_move_recover(context: MoveHandlerContext):
     recover = min(max_recover, context.attack_poke.max_hp // 2)
     context.field.put_record_other(f"回復ダメージ: {recover}")
     context.attack_poke.hp_incr(recover)
+
+
+def check_hit_dreameater(context: MoveHandlerContext):
+    """
+    ゆめくい命中判定
+    :param context:
+    :return:
+    """
+    if context.defend_poke.nv_condition is not PokeNVCondition.SLEEP:
+        context.field.put_record_other("相手が眠りでないので外れた")
+        return False
+
+    return check_hit_attack_default(context)
