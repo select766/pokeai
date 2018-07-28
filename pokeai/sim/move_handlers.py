@@ -351,6 +351,41 @@ def launch_move_dig(context: MoveHandlerContext):
         launch_move_attack_default(context)
 
 
+def check_hit_thrash(context: MoveHandlerContext) -> bool:
+    """
+    あばれる(複数ターン技)
+    2~3ターン続く
+    :param context:
+    :return:
+    """
+
+    def abort_thrash(poke: Poke):
+        pass
+
+    hit = check_hit_attack_default(context)
+    if context.attack_poke.multi_turn_move_info is None:
+        if not hit:
+            return False
+        # 1ターン目
+        context.attack_poke.multi_turn_move_info = MultiTurnMoveInfo(context.move, abort_thrash)
+        # 残りターン1 or 2を割り当て
+        context.attack_poke.multi_turn_move_info.remaining_turns = context.field.rng.gen(context.attack_player,
+                                                                                         GameRNGReason.THRASH) + 1
+        return True
+    else:
+        # 2ターン目以降
+        context.attack_poke.multi_turn_move_info.remaining_turns -= 1
+        final_turn = context.attack_poke.multi_turn_move_info.remaining_turns == 0
+        if final_turn or not hit:
+            # 外れたら終了
+            context.attack_poke.multi_turn_move_info = None
+        if final_turn:
+            # 最終ターンは当たるかどうかにかかわらず混乱する
+            confuse_turn = context.field.rng.gen(context.attack_player, GameRNGReason.CONFUSE_TURN, 6) + 1
+            context.attack_poke.v_confuse_remaining_turn = confuse_turn
+        return check_hit_attack_default(context)
+
+
 def launch_move_hyperbeam(context: MoveHandlerContext):
     """
     はかいこうせん

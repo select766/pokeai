@@ -64,6 +64,7 @@ class MoveGroupName(Enum):
     REST = auto()
     LIGHTSCREEN = auto()
     REFLECT = auto()
+    THRASH = auto()
 
 
 move_group = {
@@ -128,4 +129,5 @@ move_group = {
     MoveGroupName.REST: [Move.REST],
     MoveGroupName.LIGHTSCREEN: [Move.LIGHTSCREEN],
     MoveGroupName.REFLECT: [Move.REFLECT],
+    MoveGroupName.THRASH: [Move.PETALDANCE, Move.THRASH],
 }  # type: Dict[MoveGroupName, List[Move]]

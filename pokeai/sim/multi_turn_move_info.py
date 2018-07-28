@@ -9,6 +9,7 @@ class MultiTurnMoveInfo:
     複数ターン連続する技の状態
     """
     move: Move
+    remaining_turns: int
     on_abort: Optional[Callable[[Poke], None]]
 
     def __init__(self, move: Move, on_abort: Optional[Callable[[Poke], None]]):

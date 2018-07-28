@@ -359,3 +359,9 @@ def init_move_info_db():
            mh.launch_move_lightscreen,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.THRASH,
+           mh.check_hit_thrash,
+           mh.launch_move_attack_default,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

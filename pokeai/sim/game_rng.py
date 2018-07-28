@@ -19,6 +19,7 @@ class GameRNGReason(Enum):
     SLEEP_TURN = auto()  # ねむるターン数
     CONFUSE_TURN = auto()  # 混乱ターン数
     PSYWAVE = auto()  # サイコウェーブのダメージ
+    THRASH = auto()  # あばれるターン数
 
 
 class GameRNG:
@@ -95,6 +96,9 @@ class GameRNGFixed(GameRNG):
         if reason == GameRNGReason.PSYWAVE:
             # サイコウェーブダメージ=最大
             return top
+        if reason == GameRNGReason.THRASH:
+            # あばれるターン数=最小
+            return 0
         return 0
 
     def enqueue_const(self, player: int, reason: GameRNGReason, value: int) -> None:
