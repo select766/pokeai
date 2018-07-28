@@ -1,15 +1,17 @@
 """
 ランダムパーティ・ランダム方策での強さランキング
-ポケモン複数体を1パーティに入れる。
-覚えられる技制約有効。
+パーティと対戦結果を保存する。
 """
 
 import random
+import argparse
 from typing import Dict, List, Tuple
 import copy
+import pickle
 import numpy as np
-from pokeai.agent.party_generator import PartyGenerator, PartyRule
+from tqdm import tqdm
 
+from pokeai.agent.party_generator import PartyGenerator, PartyRule
 from pokeai.sim import Field
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.field import FieldPhase
@@ -53,29 +55,44 @@ def match(parties: Tuple[Party, Party]) -> int:
     return winner
 
 
-def league(parties: List[Party]) -> List[int]:
-    win_count = [0] * len(parties)
-    for i in range(len(parties)):
-        for j in range(i + 1, len(parties)):
+def league(parties: List[Party], match_count: int) -> List[Tuple[int, int, int]]:
+    """
+    パーティ同士を多数戦わせる
+    :param parties:
+    :param match_count:
+    :return: Tuple[パーティインデックス0、パーティインデックス1、勝敗(0or1or-1=引き分け)
+    """
+    results = []
+    for i in tqdm(range(len(parties))):
+        js = list(range(len(parties)))
+        js.remove(i)
+        random.shuffle(js)
+        for j in js[:match_count]:
             winner = match((parties[i], parties[j]))
-            if winner >= 0:
-                win_count[[i, j][winner]] += 1
-    return win_count
+            results.append((i, j, winner))
+    return results
 
 
-def display_result(parties: List[Party], win_count: List[int]):
-    order = np.argsort(win_count)
-    for p in order:
-        print(f"win: {win_count[p]}")
-        print(parties[p])
+# def display_result(parties: List[Party], win_count: List[int]):
+#     order = np.argsort(win_count)
+#     for p in order:
+#         print(f"win: {win_count[p]}")
+#         print(parties[p])
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dst")
+    parser.add_argument("party", type=int)
+    parser.add_argument("--rule", choices=[r.name for r in PartyRule], default=PartyRule.LV55_1.name)
+    parser.add_argument("--match_count", type=int, default=0, help="1パーティあたりの対戦回数")
+    args = parser.parse_args()
     context.init()
-    partygen = PartyGenerator(PartyRule.LVSUM155_3)
-    parties = [Party(partygen.generate()) for i in range(100)]
-    win_count = league(parties)
-    display_result(parties, win_count)
+    partygen = PartyGenerator(PartyRule[args.rule])
+    parties = [Party(partygen.generate()) for i in range(args.party)]
+    match_results = league(parties, args.match_count or (args.party - 1))
+    with open(args.dst, "wb") as f:
+        pickle.dump({"parties": parties, "match_results": match_results}, f)
 
 
 if __name__ == '__main__':

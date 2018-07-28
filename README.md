@@ -17,9 +17,10 @@ python -m unittest
 ```
 
 # AI機能
-## ランダムなパーティ・方策での強さランキング
+## ランダムなパーティ・方策での対戦
+ランダムなパーティ構成と対戦結果を保存
 ```
-python -m pokeai.agent.all_random_rank
+python -m pokeai.agent.all_random_party_rank OUTPUT_FILE_NAME N_PARTIES
 ```
 
 # ライセンス
