@@ -152,9 +152,16 @@ def calc_damage(context: MoveHandlerContext) -> Tuple[int, bool]:
     if PokeType.is_physical(move_type):
         attack = context.attack_poke.eff_a(critical)
         defense = context.defend_poke.eff_b(critical)
+        if context.defend_poke.v_reflect:
+            # 急所にかかわらず効果あり
+            attack //= 4
+            defense //= 2
     else:
         attack = context.attack_poke.eff_c(critical)
         defense = context.defend_poke.eff_c(critical)
+        if context.defend_poke.v_lightscreen:
+            attack //= 4
+            defense //= 2
     if context.move in [Move.EXPLOSION, Move.SELFDESTRUCT]:
         defense = defense // 2  # 自爆技は防御を半分にして計算(TODO: 混乱ダメージも倍になるが未実装)
     damage_rnd = context.field.rng.gen(context.attack_player, GameRNGReason.DAMAGE, 38)
@@ -901,3 +908,47 @@ def launch_move_rest(context: MoveHandlerContext):
     context.attack_poke.hp_incr(recover)
     sleep_turn = 2  # 1回眠る、1回起きる、その次行動
     context.attack_poke.update_nv_condition(PokeNVCondition.SLEEP, sleep_turn=sleep_turn, force_sleep=True)
+
+
+def check_hit_reflect(context: MoveHandlerContext) -> bool:
+    """
+    リフレクター命中判定
+    リフレクター状態でなければ成功
+    :param context:
+    :return:
+    """
+    if context.attack_poke.v_reflect:
+        context.field.put_record_other("すでにリフレクター状態なので失敗")
+        return False
+    return True
+
+
+def launch_move_reflect(context: MoveHandlerContext):
+    """
+    リフレクター
+    :param context:
+    :return:
+    """
+    context.attack_poke.v_reflect = True
+
+
+def check_hit_lightscreen(context: MoveHandlerContext) -> bool:
+    """
+    ひかりのかべ命中判定
+    ひかりのかべ状態でなければ成功
+    :param context:
+    :return:
+    """
+    if context.attack_poke.v_lightscreen:
+        context.field.put_record_other("すでにひかりのかべ状態なので失敗")
+        return False
+    return True
+
+
+def launch_move_lightscreen(context: MoveHandlerContext):
+    """
+    ひかりのかべ
+    :param context:
+    :return:
+    """
+    context.attack_poke.v_lightscreen = True

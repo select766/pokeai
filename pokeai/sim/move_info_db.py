@@ -347,3 +347,15 @@ def init_move_info_db():
            mh.launch_move_rest,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.REFLECT,
+           mh.check_hit_reflect,
+           mh.launch_move_reflect,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.LIGHTSCREEN,
+           mh.check_hit_lightscreen,
+           mh.launch_move_lightscreen,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

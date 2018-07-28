@@ -137,6 +137,8 @@ class Poke:
     _v_badly_poison: bool
     _v_badly_poison_turn: int
     _v_leechseed: bool
+    _v_reflect: bool
+    _v_lightscreen: bool
     """
     最終発動技(当たるかにかかわらないが、眠りなどで発動しないときは更新されない)
     勝敗判定でのだいばくはつ利用判定に使用
@@ -185,6 +187,8 @@ class Poke:
         self._v_badly_poison_turn = 0
         self._v_confuse_remaining_turn = 0
         self._v_leechseed = False
+        self._v_reflect = False
+        self._v_lightscreen = False
 
         self.last_move = None
 
@@ -209,6 +213,8 @@ class Poke:
         self._v_badly_poison_turn = 0
         self._v_confuse_remaining_turn = 0
         self._v_leechseed = False
+        self._v_reflect = False
+        self._v_lightscreen = False
         self.last_move = None
 
     def on_turn_end(self):
@@ -403,6 +409,30 @@ class Poke:
     @v_flinch.setter
     def v_flinch(self, v: bool):
         self._v_flinch = v
+
+    @property
+    def v_reflect(self):
+        """
+        リフレクター状態
+        :return:
+        """
+        return self._v_reflect
+
+    @v_reflect.setter
+    def v_reflect(self, v: bool):
+        self._v_reflect = v
+
+    @property
+    def v_lightscreen(self):
+        """
+        ひかりのかべ状態
+        :return:
+        """
+        return self._v_lightscreen
+
+    @v_lightscreen.setter
+    def v_lightscreen(self, v: bool):
+        self._v_lightscreen = v
 
     @property
     def v_confuse(self) -> bool:
