@@ -351,6 +351,42 @@ def launch_move_dig(context: MoveHandlerContext):
         launch_move_attack_default(context)
 
 
+def check_hit_razorwind(context: MoveHandlerContext) -> bool:
+    """
+    かまいたち(2ターン技)
+    1ターン目: 必ず成功
+    2ターン目: 普通の命中判定
+    :param context:
+    :return:
+    """
+
+    def abort_razorwind(poke: Poke):
+        pass
+
+    if context.attack_poke.multi_turn_move_info is None:
+        # 1ターン目
+        context.attack_poke.multi_turn_move_info = MultiTurnMoveInfo(context.move, abort_razorwind)
+        return True
+    else:
+        # 2ターン目
+        context.attack_poke.multi_turn_move_info = None
+        return check_hit_attack_default(context)
+
+
+def launch_move_razorwind(context: MoveHandlerContext):
+    """
+    かまいたち
+    :param context:
+    :return:
+    """
+    if context.attack_poke.multi_turn_move_info is not None:
+        # 1ターン目
+        context.field.put_record_other("ためターン")
+    else:
+        # 2ターン目
+        launch_move_attack_default(context)
+
+
 def check_hit_thrash(context: MoveHandlerContext) -> bool:
     """
     あばれる(複数ターン技)

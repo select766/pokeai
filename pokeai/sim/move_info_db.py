@@ -365,3 +365,9 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.RAZORWIND,
+           mh.check_hit_razorwind,
+           mh.launch_move_razorwind,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
