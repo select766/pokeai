@@ -295,7 +295,7 @@ class Poke:
 
     def __str__(self):
         poke_param = poke_param_db[self._poke_st.dexno]
-        s = f"{poke_param.names['ja']} (HP {self.hp}/{self.max_hp})\n"
+        s = f"{poke_param.names['ja']} (LV {self.lv} HP {self.hp}/{self.max_hp})\n"
         s += "  "
         for mi in self.moves:
             move_flag = move_flag_db[mi.move]

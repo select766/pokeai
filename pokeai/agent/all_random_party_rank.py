@@ -8,6 +8,7 @@ import random
 from typing import Dict, List, Tuple
 import copy
 import numpy as np
+from pokeai.agent.party_generator import PartyGenerator, PartyRule
 
 from pokeai.sim import Field
 from pokeai.sim.dexno import Dexno
@@ -21,40 +22,6 @@ from pokeai.sim.party import Party
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
-
-learnable_moves_db = {}  # type: Dict[Dexno, List[Move]]
-
-
-def init_party_generator():
-    # 実装済み技の列挙
-    implemented_moves = set(move_info_db.keys())
-    # ポケモンごとに覚えられる技を列挙
-    for dexno, mlcs in move_learn_db.items():
-        # レベルと技マシンで同じ技を覚える場合があるため、いったんsetにしてからlist
-        moves = list({mlc.move for mlc in mlcs if mlc.move in implemented_moves})
-        learnable_moves_db[dexno] = moves
-
-
-def generate_random_party() -> Party:
-    """
-    ランダムなパーティを生成する。
-    :return:
-    """
-    pokes = []
-    dexnos = []
-    while len(pokes) < 3:
-        dexno = random.choice(list(Dexno))
-        if dexno in dexnos:
-            # 同じポケモンを複数入れない
-            continue
-        learnable_moves = learnable_moves_db[dexno]
-        if len(learnable_moves) == 0:
-            continue
-        moves = random.sample(learnable_moves, min(4, len(learnable_moves)))
-        poke = PokeStatic.create(dexno, moves)
-        dexnos.append(dexno)
-        pokes.append(poke)
-    return Party(pokes)
 
 
 def match(parties: Tuple[Party, Party]) -> int:
@@ -105,8 +72,8 @@ def display_result(parties: List[Party], win_count: List[int]):
 
 def main():
     context.init()
-    init_party_generator()
-    parties = [generate_random_party() for i in range(100)]
+    partygen = PartyGenerator(PartyRule.LVSUM155_3)
+    parties = [Party(partygen.generate()) for i in range(100)]
     win_count = league(parties)
     display_result(parties, win_count)
 

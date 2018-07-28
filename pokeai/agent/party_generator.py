@@ -1,6 +1,8 @@
 """
 ゲームシステム上有効なパーティのランダム生成・置換機構。
 """
+import random
+from enum import Enum, auto
 from typing import List, Dict, Tuple
 import os
 import json
@@ -10,6 +12,8 @@ from pokeai.sim.dexno import Dexno
 from pokeai.sim.move import Move
 from pokeai.sim.move_learn_condition import MoveLearnType
 from pokeai.sim.move_learn_db import move_learn_db
+from pokeai.sim.poke_static import PokeStatic
+from pokeai.sim.move_info_db import move_info_db
 
 
 class PossiblePokeDB:
@@ -96,6 +100,14 @@ class PossiblePokeDB:
             # 入手レベルを101にすることで伝説利用不可とする
             for dexno_int in db["rares"]:
                 self.min_level[Dexno(dexno_int)] = 101
+        self._drop_not_impelemted_moves()
+
+    def _drop_not_impelemted_moves(self):
+        implemented_moves = set(move_info_db.keys())
+        for dexno in list(self.data.keys()):
+            movelist = self.data[dexno]
+            new_movelist = [item for item in movelist if item[0] in implemented_moves]
+            self.data[dexno] = new_movelist
 
     def get_leanable_moves(self, dexno: Dexno, lv: int) -> List[Move]:
         """
@@ -110,9 +122,48 @@ class PossiblePokeDB:
         return [move for move, lv_ in self.data[dexno] if lv >= lv_]
 
 
-class PartyGenerator:
-    def __init__(self, n_member: int, lv_min: int, lv_max: int, lv_sum: int, allow_rare: bool):
-        pass
+class PartyRule(Enum):
+    LV55_1 = auto()
+    LV100_1 = auto()
+    LV30_3 = auto()
+    LV50_3 = auto()
+    LVSUM155_3 = auto()
 
-    def generate(self):
-        pass
+
+class PartyGenerator:
+    db: PossiblePokeDB
+    n_member: int
+    lvs: List[int]
+
+    def __init__(self, rule: PartyRule, allow_rare: bool = False):
+        self.db = PossiblePokeDB(allow_rare=allow_rare)
+        if rule is PartyRule.LV55_1:
+            self.lvs = [55]
+        elif rule is PartyRule.LV100_1:
+            self.lvs = [100]
+        elif rule is PartyRule.LV30_3:
+            self.lvs = [30, 30, 30]
+        elif rule is PartyRule.LV50_3:
+            self.lvs = [50, 50, 50]
+        elif rule is PartyRule.LVSUM155_3:
+            # 本来配分は自由([53,52,50]等もあり)だが当面固定
+            self.lvs = [55, 50, 50]
+        self.n_member = len(self.lvs)
+
+    def generate(self) -> List[PokeStatic]:
+        pokests = []
+        dexnos = set()
+        for lv in self.lvs:
+            while True:
+                dexno = random.choice(list(Dexno))
+                if dexno in dexnos:
+                    continue
+                learnable_moves = self.db.get_leanable_moves(dexno, lv)
+                if len(learnable_moves) == 0:
+                    continue
+                moves = random.sample(learnable_moves, min(4, len(learnable_moves)))
+                pokest = PokeStatic.create(dexno, moves, lv)
+                pokests.append(pokest)
+                break
+        random.shuffle(pokests)  # 先頭をLV55に固定しない
+        return pokests
