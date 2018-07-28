@@ -341,3 +341,9 @@ def init_move_info_db():
            mh.launch_move_absorb,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.REST,
+           mh.check_hit_rest,
+           mh.launch_move_rest,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

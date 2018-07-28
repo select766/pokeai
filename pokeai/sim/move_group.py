@@ -61,6 +61,7 @@ class MoveGroupName(Enum):
     PSYWAVE = auto()
     RECOVER = auto()
     DREAMEATER = auto()
+    REST = auto()
 
 
 move_group = {
@@ -122,4 +123,5 @@ move_group = {
     MoveGroupName.PSYWAVE: [Move.PSYWAVE],
     MoveGroupName.RECOVER: [Move.RECOVER, Move.SOFTBOILED],
     MoveGroupName.DREAMEATER: [Move.DREAMEATER],
+    MoveGroupName.REST: [Move.REST],
 }  # type: Dict[MoveGroupName, List[Move]]

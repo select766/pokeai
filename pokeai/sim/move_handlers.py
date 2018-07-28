@@ -874,3 +874,30 @@ def check_hit_dreameater(context: MoveHandlerContext):
         return False
 
     return check_hit_attack_default(context)
+
+
+def check_hit_rest(context: MoveHandlerContext) -> bool:
+    """
+    ねむるの命中判定
+    HP満タンだと失敗
+    自分が状態異常でもOK
+    :param context:
+    :return:
+    """
+    if context.attack_poke.hp == context.attack_poke.max_hp:
+        context.field.put_record_other("体力満タンなので失敗")
+        return False
+    return True
+
+
+def launch_move_rest(context: MoveHandlerContext):
+    """
+    眠る
+    :param context:
+    :return:
+    """
+    recover = context.attack_poke.max_hp - context.attack_poke.hp
+    context.field.put_record_other(f"回復: {recover}")
+    context.attack_poke.hp_incr(recover)
+    sleep_turn = 2  # 1回眠る、1回起きる、その次行動
+    context.attack_poke.update_nv_condition(PokeNVCondition.SLEEP, sleep_turn=sleep_turn, force_sleep=True)
