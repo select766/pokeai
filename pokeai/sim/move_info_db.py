@@ -329,3 +329,9 @@ def init_move_info_db():
            mh.launch_move_psywave,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.RECOVER,
+           mh.check_hit_recover,
+           mh.launch_move_recover,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)

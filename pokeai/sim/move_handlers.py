@@ -835,3 +835,28 @@ def launch_move_leechseed(context: MoveHandlerContext):
     :return:
     """
     context.defend_poke.v_leechseed = True
+
+
+def check_hit_recover(context: MoveHandlerContext) -> bool:
+    """
+    じこさいせいの命中判定
+    HP満タンだと失敗
+    :param context:
+    :return:
+    """
+    if context.attack_poke.hp == context.attack_poke.max_hp:
+        context.field.put_record_other("体力満タンなので失敗")
+        return False
+    return True
+
+
+def launch_move_recover(context: MoveHandlerContext):
+    """
+    じこさいせい
+    :param context:
+    :return:
+    """
+    max_recover = context.attack_poke.max_hp - context.attack_poke.hp
+    recover = min(max_recover, context.attack_poke.max_hp // 2)
+    context.field.put_record_other(f"回復ダメージ: {recover}")
+    context.attack_poke.hp_incr(recover)
