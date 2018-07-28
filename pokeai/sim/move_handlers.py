@@ -19,7 +19,7 @@ def _check_hit_by_accuracy(context: MoveHandlerContext) -> bool:
     if context.flag.accuracy > 0:
         # 技の命中率×自分のランク補正(命中率)÷相手のランク補正(回避率)
         hit_ratio_table = {100: 255, 95: 242, 90: 229, 85: 216,
-                           80: 204, 75: 191, 70: 178, 65: 165, 60: 152, 55: 140, 50: 127, 0: 0}
+                           80: 204, 75: 191, 70: 178, 65: 165, 60: 152, 55: 140, 50: 127, 30: 76, 0: 0}
         hit_ratio = hit_ratio_table[context.flag.accuracy]
         hit_ratio = hit_ratio * 2 // (-context.attack_poke.rank_accuracy.value + 2)
         hit_ratio = hit_ratio * 2 // (context.defend_poke.rank_evasion.value + 2)
@@ -165,6 +165,37 @@ def launch_move_attack_default(context: MoveHandlerContext):
     damage, make_faint = calc_damage(context)
     context.field.put_record_other(f"ダメージ: {damage}")
     context.defend_poke.hp_incr(-damage)
+
+
+def check_hit_fissure(context: MoveHandlerContext):
+    """
+    一撃必殺の命中判定
+    :param context:
+    :return:
+    """
+    # 素早さが攻撃側<防御側 なら当たらない
+    if context.attack_poke.eff_s() < context.defend_poke.eff_s():
+        context.field.put_record_other(f"ぜんぜんきいてない")
+        return False
+    # そのほかは通常技と同じ
+    return check_hit_attack_default(context)
+
+
+def gen_launch_move_const(damage: int):
+    """
+    固定ダメージ技
+    :param damage: ダメージ量(一撃必殺は65535)
+    :return:
+    """
+
+    def launch_move_const(context: MoveHandlerContext):
+        cur_damage = damage
+        if cur_damage >= context.defend_poke.hp:
+            cur_damage = context.defend_poke.hp
+        context.field.put_record_other(f"固定ダメージ: {cur_damage}")
+        context.defend_poke.hp_incr(-cur_damage)
+
+    return launch_move_const
 
 
 def check_hit_splash(context: MoveHandlerContext) -> bool:

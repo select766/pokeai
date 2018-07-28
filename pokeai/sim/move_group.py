@@ -49,6 +49,9 @@ class MoveGroupName(Enum):
     SIDE_C_DOWN = auto()
     SIDE_S_DOWN = auto()
     SIDE_CONFUSE = auto()
+    CONST_20 = auto()
+    CONST_40 = auto()
+    FISSURE = auto()
 
 
 move_group = {
@@ -98,4 +101,7 @@ move_group = {
     MoveGroupName.SIDE_C_DOWN: [Move.PSYCHIC],
     MoveGroupName.SIDE_S_DOWN: [Move.BUBBLE, Move.BUBBLEBEAM, Move.CONSTRICT],
     MoveGroupName.SIDE_CONFUSE: [Move.CONFUSION, Move.PSYBEAM],
+    MoveGroupName.CONST_20: [Move.SONICBOOM],
+    MoveGroupName.CONST_40: [Move.DRAGONRAGE],
+    MoveGroupName.FISSURE: [Move.FISSURE, Move.GUILLOTINE, Move.HORNDRILL],
 }  # type: Dict[MoveGroupName, List[Move]]

@@ -269,3 +269,21 @@ def init_move_info_db():
            mh.launch_move_attack_default,
            mh.check_side_effect_confuse,
            mh.launch_side_effect_confuse)
+
+    assign(MoveGroupName.CONST_20,
+           mh.check_hit_attack_default,
+           mh.gen_launch_move_const(20),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.CONST_40,
+           mh.check_hit_attack_default,
+           mh.gen_launch_move_const(40),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
+
+    assign(MoveGroupName.FISSURE,
+           mh.check_hit_fissure,
+           mh.gen_launch_move_const(65535),
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
