@@ -186,6 +186,22 @@ def launch_move_doubleedge(context: MoveHandlerContext):
     context.attack_poke.hp_incr(-selfdamage)
 
 
+def launch_move_absorb(context: MoveHandlerContext):
+    """
+    すいとる等吸収技
+    :param context:
+    :return:
+    """
+    # 威力・相性に従ってダメージ計算し、受け手のHPから減算
+    damage, make_faint = calc_damage(context)
+    context.field.put_record_other(f"ダメージ: {damage}")
+    context.defend_poke.hp_incr(-damage)
+    max_recover = context.attack_poke.max_hp - context.attack_poke.hp
+    recover = min(max_recover, damage // 2)
+    context.field.put_record_other(f"吸収ダメージ: {recover}")
+    context.attack_poke.hp_incr(recover)
+
+
 def check_hit_fissure(context: MoveHandlerContext):
     """
     一撃必殺の命中判定

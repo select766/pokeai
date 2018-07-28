@@ -186,7 +186,6 @@ class Field:
             attack_player = 1 - attack_player
         defend_player = 1 - attack_player
         attack_poke, defend_poke = self._get_fighting_pokes(attack_player)
-        # TODO やどりぎ
         if attack_poke.nv_condition is PokeNVCondition.BURN:
             # やけどダメージ
             damage = attack_poke.max_hp // 16

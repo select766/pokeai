@@ -56,6 +56,7 @@ class MoveGroupName(Enum):
     EXPLOSION = auto()
     LEECHSEED = auto()
     DOUBLEEDGE = auto()
+    ABSORB = auto()
 
 
 move_group = {
@@ -112,4 +113,5 @@ move_group = {
     MoveGroupName.EXPLOSION: [Move.EXPLOSION, Move.SELFDESTRUCT],
     MoveGroupName.LEECHSEED: [Move.LEECHSEED],
     MoveGroupName.DOUBLEEDGE: [Move.DOUBLEEDGE, Move.SUBMISSION, Move.TAKEDOWN],
+    MoveGroupName.ABSORB: [Move.ABSORB, Move.LEECHLIFE, Move.MEGADRAIN],
 }  # type: Dict[MoveGroupName, List[Move]]
