@@ -169,6 +169,23 @@ def launch_move_attack_default(context: MoveHandlerContext):
     context.defend_poke.hp_incr(-damage)
 
 
+def launch_move_doubleedge(context: MoveHandlerContext):
+    """
+    すてみタックル等反動技
+    :param context:
+    :return:
+    """
+    # 威力・相性に従ってダメージ計算し、受け手のHPから減算
+    damage, make_faint = calc_damage(context)
+    context.field.put_record_other(f"ダメージ: {damage}")
+    context.defend_poke.hp_incr(-damage)
+    selfdamage = damage // 4
+    if selfdamage >= context.attack_poke.hp:
+        selfdamage = context.attack_poke.hp
+    context.field.put_record_other(f"反動ダメージ: {selfdamage}")
+    context.attack_poke.hp_incr(-selfdamage)
+
+
 def check_hit_fissure(context: MoveHandlerContext):
     """
     一撃必殺の命中判定

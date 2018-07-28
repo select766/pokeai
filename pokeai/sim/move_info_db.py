@@ -305,3 +305,9 @@ def init_move_info_db():
            mh.launch_move_leechseed,
            mh.check_side_effect_none,
            mh.launch_side_effect_none)
+
+    assign(MoveGroupName.DOUBLEEDGE,
+           mh.check_hit_attack_default,
+           mh.launch_move_doubleedge,
+           mh.check_side_effect_none,
+           mh.launch_side_effect_none)
