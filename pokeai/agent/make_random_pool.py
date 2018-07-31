@@ -17,41 +17,11 @@ from pokeai.sim.field import FieldPhase
 from pokeai.sim.field_action import FieldAction, FieldActionType
 from pokeai.sim.game_rng import GameRNGRandom
 from pokeai.sim.move import Move
-from pokeai.sim.move_info_db import move_info_db
-from pokeai.sim.move_learn_db import move_learn_db
 from pokeai.sim.party import Party
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
-
-
-def match(parties: Tuple[Party, Party]) -> int:
-    field = Field([copy.deepcopy(parties[0]), copy.deepcopy(parties[1])])
-    field.rng = GameRNGRandom()
-    field.rng.set_field(field)
-    field.put_record = lambda record: None
-
-    winner = -1
-    next_phase = FieldPhase.BEGIN
-    while True:
-        actions = []
-        for p in range(2):
-            legals = field.get_legal_actions(p)
-            if len(legals) == 0:
-                actions.append(None)
-            else:
-                actions.append(random.choice(legals))
-        if next_phase is FieldPhase.BEGIN:
-            field.actions_begin = actions
-        elif next_phase is FieldPhase.FAINT_CHANGE:
-            field.actions_faint_change = actions
-        next_phase = field.step()
-        if next_phase is FieldPhase.GAME_END:
-            winner = field.winner
-            break
-        if field.turn_number >= 64:
-            break
-    return winner
+from pokeai.agent.common import match_random_policy
 
 
 def rating_battle(parties: List[Party], match_count: int) -> List[float]:
@@ -70,7 +40,7 @@ def rating_battle(parties: List[Party], match_count: int) -> List[float]:
         for j in range(0, len(parties), 2):
             left = ranking[j]
             right = ranking[j + 1]
-            winner = match((parties[left], parties[right]))
+            winner = match_random_policy((parties[left], parties[right]))
             # レートを変動させる
             if winner >= 0:
                 left_winrate = 1.0 / (1.0 + 10.0 ** ((rates[right] - rates[left]) / 400.0))
