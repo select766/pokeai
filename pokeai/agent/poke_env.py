@@ -53,7 +53,7 @@ class PokeEnv(gym.Env):
         self.observation_space = gym.spaces.Box(0.0, 1.0, shape=self._get_observation_shape(), dtype=np.float32)
         self.reward_range = (-1.0, 1.0)
 
-    def reset(self, enemy_party: Optional[Party]=None):
+    def reset(self, enemy_party: Optional[Party] = None):
         """
         敵パーティを選択し、フィールドを初期状態にする。
         :return:
@@ -107,6 +107,8 @@ class PokeEnv(gym.Env):
 
     def _get_observation_shape(self) -> Iterable[int]:
         dims = 0
+        if "enemy_type" in self.feature_types:
+            dims += PokeType.DRAGON.value - PokeType.NORMAL.value + 1
         if "enemy_dexno" in self.feature_types:
             dims += Dexno.MEW.value - Dexno.BULBASAUR.value + 1
         if "hp_ratio" in self.feature_types:
@@ -126,6 +128,8 @@ class PokeEnv(gym.Env):
         pokests = [poke._poke_st for poke in pokes]
 
         feats = []
+        if "enemy_type" in self.feature_types:
+            feats.append(self._obs_type(pokes[1]))
         if "enemy_dexno" in self.feature_types:
             feats.append(self._obs_dexno(pokests[1]))
         if "hp_ratio" in self.feature_types:
@@ -138,6 +142,17 @@ class PokeEnv(gym.Env):
             feats.append(self._obs_rank(pokes[0]))
             feats.append(self._obs_rank(pokes[1]))
         return np.concatenate(feats)
+
+    def _obs_type(self, poke: Poke) -> np.ndarray:
+        """
+        タイプ(所持しているタイプの次元が1)
+        :param poke:
+        :return:
+        """
+        feat = np.zeros(PokeType.DRAGON.value - PokeType.NORMAL.value + 1, dtype=np.float32)
+        for t in poke.poke_types:
+            feat[t.value - PokeType.NORMAL.value] = 1
+        return feat
 
     def _obs_dexno(self, pokest: PokeStatic) -> np.ndarray:
         """

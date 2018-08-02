@@ -79,7 +79,7 @@ def rating_single_party(env: PokeEnv, parties: List[Party], party_rates: np.ndar
 
 
 def eval_agent(agent_dir: str, friend_party: Party, enemy_pool: List[Party], enemy_pool_rates: List[float]):
-    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_dexno hp_ratio nv_condition".split(" "))
+    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_type hp_ratio nv_condition".split(" "))
     obs_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
     q_func = chainerrl.q_functions.FCStateQFunctionWithDiscreteAction(

@@ -35,7 +35,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='')
 
 
 def train(outdir: str, friend_party: Party, enemy_pool: List[Party]):
-    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_dexno hp_ratio nv_condition".split(" "))
+    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_type hp_ratio nv_condition".split(" "))
     obs_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
     q_func = chainerrl.q_functions.FCStateQFunctionWithDiscreteAction(
