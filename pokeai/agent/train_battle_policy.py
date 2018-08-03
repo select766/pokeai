@@ -30,8 +30,10 @@ from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 from pokeai.agent.util import load_pickle, save_pickle
 
-gym.undo_logger_setup()  # Turn off gym's default logger settings
-logging.basicConfig(level=logging.INFO, stream=sys.stdout, format='')
+logging.basicConfig(level=logging.INFO, stream=sys.stderr)
+# suppress message from chainerrl (output on every episode)
+train_agent_logger = logging.getLogger("chainerrl.experiments.train_agent")
+train_agent_logger.setLevel(logging.WARNING)
 
 
 def train(outdir: str, friend_party: Party, enemy_pool: List[Party]):
