@@ -10,6 +10,7 @@ import pickle
 import numpy as np
 import uuid
 from tqdm import tqdm
+from multiprocessing import Pool
 
 from pokeai.agent.party_generator import PartyGenerator, PartyRule
 from pokeai.sim import Field
@@ -89,6 +90,10 @@ def generate_neighbor_party(party: Party, partygen: PartyGenerator) -> Party:
     return Party([pokest])
 
 
+def hill_climbing_mp(args):
+    return hill_climbing(*args)
+
+
 def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, neighbor: int, iter: int,
                   match_count: int,
                   history: Optional[list] = None):
@@ -114,7 +119,7 @@ def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, ne
             history.append((party, party_rate))
     print(party)
     print(f"rate: {party_rate}")
-    return party, party_rate
+    return party, party_rate, history
 
 
 def load_baseline_party_rate(parties_file, rates_file):
@@ -126,6 +131,10 @@ def load_baseline_party_rate(parties_file, rates_file):
         party_bodies.append(party_data["party"])
         rates.append(uuid_rates[party_data["uuid"]])
     return party_bodies, np.array(rates, dtype=np.float)
+
+
+def process_init():
+    context.init()
 
 
 def main():
@@ -144,12 +153,17 @@ def main():
     baseline_parties, baseline_rates = load_baseline_party_rate(args.baseline_party_pool, args.baseline_party_rate)
     partygen = PartyGenerator(PartyRule[args.rule])
     results = []
-    for p in range(args.n_party):
-        print(f"party {p}")
-        history = [] if args.history else None
-        generated_party, rate = hill_climbing(partygen, baseline_parties, baseline_rates, args.neighbor, args.iter,
-                                              args.match_count, history)
-        results.append({"party": generated_party, "uuid": str(uuid.uuid4()), "optimize_rate": rate, "history": history})
+    with Pool(initializer=process_init) as pool:
+        args_list = []
+        for i in range(args.n_party):
+            history = [] if args.history else None
+            args_list.append((partygen, baseline_parties, baseline_rates, args.neighbor, args.iter,
+                              args.match_count, history))
+        for generated_party, rate, history_result in pool.imap_unordered(hill_climbing_mp, args_list):
+            # 1サンプル生成ごとに呼ばれる(全計算が終わるまで待たない)
+            results.append(
+                {"party": generated_party, "uuid": str(uuid.uuid4()), "optimize_rate": rate, "history": history_result})
+            print(f"completed {len(results)} / {args.n_party}")
     save_pickle({"parties": results}, args.dst)
 
 
