@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple, Iterable, Optional
 import copy
 import pickle
 import numpy as np
+import uuid
 from tqdm import tqdm
 
 from pokeai.agent.party_generator import PartyGenerator, PartyRule
@@ -24,6 +25,7 @@ from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 from pokeai.agent.common import match_random_policy
+from pokeai.agent.util import load_pickle, save_pickle
 
 
 def rating_single_party(target_party: Party, parties: List[Party], party_rates: np.ndarray, match_count: int,
@@ -87,12 +89,11 @@ def generate_neighbor_party(party: Party, partygen: PartyGenerator) -> Party:
     return Party([pokest])
 
 
-def hill_climbing(partygen: PartyGenerator, party_pool, neighbor: int, iter: int, match_count: int,
+def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, neighbor: int, iter: int,
+                  match_count: int,
                   history: Optional[list] = None):
     party = Party(partygen.generate())
-    base_parties = party_pool["parties"]
-    base_rates = np.array(party_pool["rates"])
-    party_rate = rating_single_party(party, base_parties, base_rates, match_count, 0.0)
+    party_rate = rating_single_party(party, baseline_parties, baseline_rates, match_count, 0.0)
     if history is not None:
         history.append((party, party_rate))
     for i in range(iter):
@@ -100,7 +101,7 @@ def hill_climbing(partygen: PartyGenerator, party_pool, neighbor: int, iter: int
         neighbor_rates = []
         for n in range(neighbor):
             new_party = generate_neighbor_party(party, partygen)
-            new_rate = rating_single_party(new_party, base_parties, base_rates, match_count, party_rate,
+            new_rate = rating_single_party(new_party, baseline_parties, baseline_rates, match_count, party_rate,
                                            party_rate - 400.0)
             neighbors.append(new_party)
             neighbor_rates.append(new_rate)
@@ -116,11 +117,23 @@ def hill_climbing(partygen: PartyGenerator, party_pool, neighbor: int, iter: int
     return party, party_rate
 
 
+def load_baseline_party_rate(parties_file, rates_file):
+    parties = load_pickle(parties_file)["parties"]
+    uuid_rates = load_pickle(rates_file)["rates"]
+    party_bodies = []
+    rates = []
+    for party_data in parties:
+        party_bodies.append(party_data["party"])
+        rates.append(uuid_rates[party_data["uuid"]])
+    return party_bodies, np.array(rates, dtype=np.float)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("dst")
-    parser.add_argument("party_pool")
-    parser.add_argument("party", type=int)
+    parser.add_argument("baseline_party_pool", help="レーティング測定相手パーティ群")
+    parser.add_argument("baseline_party_rate", help="レーティング測定相手パーティ群のレーティング")
+    parser.add_argument("n_party", type=int)
     parser.add_argument("--rule", choices=[r.name for r in PartyRule], default=PartyRule.LV55_1.name)
     parser.add_argument("--neighbor", type=int, default=10, help="生成する近傍パーティ数")
     parser.add_argument("--iter", type=int, default=100, help="iteration数")
@@ -128,16 +141,16 @@ def main():
     parser.add_argument("--history", action="store_true")
     args = parser.parse_args()
     context.init()
-    with open(args.party_pool, "rb") as f:
-        party_pool = pickle.load(f)
+    baseline_parties, baseline_rates = load_baseline_party_rate(args.baseline_party_pool, args.baseline_party_rate)
     partygen = PartyGenerator(PartyRule[args.rule])
     results = []
-    for p in range(args.party):
+    for p in range(args.n_party):
+        print(f"party {p}")
         history = [] if args.history else None
-        generated_party, rate = hill_climbing(partygen, party_pool, args.neighbor, args.iter, args.match_count, history)
-        results.append({"party": generated_party, "rate": rate, "history": history})
-    with open(args.dst, "wb") as f:
-        pickle.dump(results, f)
+        generated_party, rate = hill_climbing(partygen, baseline_parties, baseline_rates, args.neighbor, args.iter,
+                                              args.match_count, history)
+        results.append({"party": generated_party, "uuid": str(uuid.uuid4()), "optimize_rate": rate, "history": history})
+    save_pickle({"parties": results}, args.dst)
 
 
 if __name__ == '__main__':
