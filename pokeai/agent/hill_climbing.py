@@ -148,12 +148,13 @@ def main():
     parser.add_argument("--iter", type=int, default=100, help="iteration数")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
     parser.add_argument("--history", action="store_true")
+    parser.add_argument("-j", type=int, help="並列処理数")
     args = parser.parse_args()
     context.init()
     baseline_parties, baseline_rates = load_baseline_party_rate(args.baseline_party_pool, args.baseline_party_rate)
     partygen = PartyGenerator(PartyRule[args.rule])
     results = []
-    with Pool(initializer=process_init) as pool:
+    with Pool(processes=args.j, initializer=process_init) as pool:
         args_list = []
         for i in range(args.n_party):
             history = [] if args.history else None
