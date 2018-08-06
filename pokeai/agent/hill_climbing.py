@@ -26,7 +26,7 @@ from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 from pokeai.agent.common import match_random_policy
-from pokeai.agent.util import load_pickle, save_pickle
+from pokeai.agent.util import load_pickle, save_pickle, reset_random
 
 
 def rating_single_party(target_party: Party, parties: List[Party], party_rates: np.ndarray, match_count: int,
@@ -134,6 +134,7 @@ def load_baseline_party_rate(parties_file, rates_file):
 
 
 def process_init():
+    reset_random()
     context.init()
 
 
