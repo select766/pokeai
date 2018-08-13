@@ -82,8 +82,8 @@ def main():
     parser.add_argument("--skip", type=int, default=0)
     args = parser.parse_args()
     context.init()
-    friend_pool = load_pickle(args.friend_pool)["parties"]  # type: List[Party]
-    enemy_pool = load_pickle(args.enemy_pool)["parties"]  # type: List[Party]
+    friend_pool = [p["party"] for p in load_pickle(args.friend_pool)["parties"]]  # type: List[Party]
+    enemy_pool = [p["party"] for p in load_pickle(args.enemy_pool)["parties"]]  # type: List[Party]
     os.makedirs(args.dst)
     count = args.count
     if count < 0:
