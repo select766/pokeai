@@ -164,6 +164,7 @@ class PartyGenerator:
                 moves = random.sample(learnable_moves, min(4, len(learnable_moves)))
                 pokest = PokeStatic.create(dexno, moves, lv)
                 pokests.append(pokest)
+                dexnos.add(dexno)
                 break
         random.shuffle(pokests)  # 先頭をLV55に固定しない
         return pokests
