@@ -29,6 +29,7 @@ from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 from pokeai.agent.common import match_random_policy
 from pokeai.agent.util import load_pickle, save_pickle, reset_random
+from pokeai.agent.rate_random_policy import rating_battle
 
 
 def rating_single_party(target_party: Party, parties: List[Party], party_rates: np.ndarray, match_count: int,
@@ -130,17 +131,19 @@ def hill_climbing_group(partygen: PartyGenerator, baseline_parties, baseline_rat
     for i in range(iter):
         print(f"iteration {i}")
         next_parties = []
-        next_rates = []
         for j in range(len(baseline_parties)):
             party, party_rate = modify_and_find_best(partygen, parties[j], party_rates[j], baseline_parties,
                                                      baseline_rates, neighbor, match_count)
             next_parties.append(party)
-            next_rates.append(party_rate)
             print(f"rate: {party_rates[j]} => {party_rate}")
             print(parties[j])
             print("=>")
             print(party)
-            histories[j].append({"party": party, "party_rate": party_rate})
+        # 新規パーティ同士でレーティング計算する(でないとレーティングがインフレするし、現在パーティに対するメタ戦略が異常に高いレーティングになる)
+        print("rating between new parties")
+        next_rates = rating_battle(next_parties, match_count)
+        for j in range(len(baseline_parties)):
+            histories[j].append({"party": next_parties[j], "party_rate": next_rates[j]})
         parties = next_parties
         party_rates = np.array(next_rates)
 
