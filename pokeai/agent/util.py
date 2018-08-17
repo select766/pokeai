@@ -37,3 +37,14 @@ def reset_random(seed=None):
         seed = secrets.randbelow(2 ** 31)
     random.seed(seed)
     np.random.seed(seed)
+
+
+def load_party_rate(parties_file, rates_file):
+    parties = load_pickle(parties_file)["parties"]
+    uuid_rates = load_pickle(rates_file)["rates"]
+    party_bodies = []
+    rates = []
+    for party_data in parties:
+        party_bodies.append(party_data["party"])
+        rates.append(uuid_rates[party_data["uuid"]])
+    return party_bodies, np.array(rates, dtype=np.float)

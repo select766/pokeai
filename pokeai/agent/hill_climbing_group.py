@@ -28,7 +28,7 @@ from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 from pokeai.agent.common import match_random_policy
-from pokeai.agent.util import load_pickle, save_pickle, reset_random
+from pokeai.agent.util import load_pickle, save_pickle, reset_random, load_party_rate
 from pokeai.agent.rate_random_policy import rating_battle
 
 
@@ -150,15 +150,6 @@ def hill_climbing_group(partygen: PartyGenerator, baseline_parties, baseline_rat
     return parties, party_rates, histories
 
 
-def load_baseline_party_rate(parties_file, rates_file):
-    parties = load_pickle(parties_file)["parties"]
-    uuid_rates = load_pickle(rates_file)["rates"]
-    party_bodies = []
-    rates = []
-    for party_data in parties:
-        party_bodies.append(party_data["party"])
-        rates.append(uuid_rates[party_data["uuid"]])
-    return party_bodies, np.array(rates, dtype=np.float)
 
 
 def process_init():
@@ -179,7 +170,7 @@ def main():
     # parser.add_argument("-j", type=int, help="並列処理数")
     args = parser.parse_args()
     context.init()
-    baseline_parties, baseline_rates = load_baseline_party_rate(args.baseline_party_pool, args.baseline_party_rate)
+    baseline_parties, baseline_rates = load_party_rate(args.baseline_party_pool, args.baseline_party_rate)
     partygen = PartyGenerator(PartyRule[args.rule])
     parties, party_rates, histories = hill_climbing_group(partygen, baseline_parties, baseline_rates, args.neighbor,
                                                           args.iter, args.match_count)
