@@ -208,7 +208,7 @@ def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, ne
         neighbor_rates = []
         for n in range(neighbor):
             new_party = generate_neighbor_party(party, partygen)
-            new_rate = pte.train_and_evaluate(party, party_rate, os.path.join(party_dir, f"{i}_{n}"))
+            new_rate = pte.train_and_evaluate(new_party, party_rate, os.path.join(party_dir, f"{i}_{n}"))
             neighbors.append(new_party)
             neighbor_rates.append(new_rate)
         print(f"{party_uuid} {i} rates: {neighbor_rates}")
