@@ -56,40 +56,6 @@ def rating_single_party(target_party: Party, parties: List[Party], party_rates: 
     return rate
 
 
-def randint_len(seq: list) -> int:
-    top = len(seq)
-    if top <= 0:
-        raise ValueError("Sequence length <= 0")
-    if top == 1:
-        return 0
-    # np.random.randint(0)はエラーとなる
-    return int(np.random.randint(top - 1))
-
-
-def generate_neighbor_party(party: Party, partygen: PartyGenerator) -> Party:
-    assert len(party.pokes) == 1
-    pokest = copy.deepcopy(party.pokes[0].poke_static)
-    moves = pokest.moves
-    learnable_moves = partygen.db.get_leanable_moves(pokest.dexno, pokest.lv)
-    for m in moves:
-        learnable_moves.remove(m)
-    if len(learnable_moves) == 0 and len(moves) == 1:
-        # 技を1つしか覚えないポケモン(LV15未満のコイキング等)
-        # どうしようもない
-        pass
-    elif len(learnable_moves) == 0 or (np.random.random() < 0.1 and len(moves) > 1):
-        # 技を消す
-        moves.pop(randint_len(moves))
-    elif np.random.random() < 0.1 and len(moves) < 4:
-        # 技を足す
-        moves.append(learnable_moves[randint_len(learnable_moves)])
-    else:
-        # 技を変更する
-        new_move = learnable_moves[randint_len(learnable_moves)]
-        moves[randint_len(moves)] = new_move
-    return Party([pokest])
-
-
 def hill_climbing_mp(args):
     return hill_climbing(*args)
 
@@ -97,7 +63,7 @@ def hill_climbing_mp(args):
 def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, neighbor: int, iter: int,
                   match_count: int,
                   history: Optional[list] = None):
-    party = Party(partygen.generate())
+    party = partygen.generate()
     party_rate = rating_single_party(party, baseline_parties, baseline_rates, match_count, 0.0)
     if history is not None:
         history.append((party, party_rate))
@@ -105,7 +71,7 @@ def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, ne
         neighbors = []
         neighbor_rates = []
         for n in range(neighbor):
-            new_party = generate_neighbor_party(party, partygen)
+            new_party = partygen.generate_neighbor_party(party)
             new_rate = rating_single_party(new_party, baseline_parties, baseline_rates, match_count, party_rate,
                                            party_rate - 400.0)
             neighbors.append(new_party)

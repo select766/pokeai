@@ -30,7 +30,7 @@ from pokeai.sim.party import Party
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
-from pokeai.agent.util import load_pickle, save_pickle, reset_random
+from pokeai.agent.util import load_pickle, save_pickle, reset_random, load_party_rate
 
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 # suppress message from chainerrl (output on every episode)
@@ -141,51 +141,6 @@ class PartyTrainEvaluator:
         return float(rate)
 
 
-def load_baseline_party_rate(parties_file, rates_file):
-    parties = load_pickle(parties_file)["parties"]
-    uuid_rates = load_pickle(rates_file)["rates"]
-    party_bodies = []
-    rates = []
-    for party_data in parties:
-        party_bodies.append(party_data["party"])
-        rates.append(uuid_rates[party_data["uuid"]])
-    return party_bodies, np.array(rates, dtype=np.float)
-
-
-def randint_len(seq: list) -> int:
-    top = len(seq)
-    if top <= 0:
-        raise ValueError("Sequence length <= 0")
-    if top == 1:
-        return 0
-    # np.random.randint(0)はエラーとなる
-    return int(np.random.randint(top - 1))
-
-
-def generate_neighbor_party(party: Party, partygen: PartyGenerator) -> Party:
-    assert len(party.pokes) == 1
-    pokest = copy.deepcopy(party.pokes[0].poke_static)
-    moves = pokest.moves
-    learnable_moves = partygen.db.get_leanable_moves(pokest.dexno, pokest.lv)
-    for m in moves:
-        learnable_moves.remove(m)
-    if len(learnable_moves) == 0 and len(moves) == 1:
-        # 技を1つしか覚えないポケモン(LV15未満のコイキング等)
-        # どうしようもない
-        pass
-    elif len(learnable_moves) == 0 or (np.random.random() < 0.1 and len(moves) > 1):
-        # 技を消す
-        moves.pop(randint_len(moves))
-    elif np.random.random() < 0.1 and len(moves) < 4:
-        # 技を足す
-        moves.append(learnable_moves[randint_len(learnable_moves)])
-    else:
-        # 技を変更する
-        new_move = learnable_moves[randint_len(learnable_moves)]
-        moves[randint_len(moves)] = new_move
-    return Party([pokest])
-
-
 def hill_climbing_mp(args):
     return hill_climbing(*args)
 
@@ -197,7 +152,7 @@ def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, ne
     party_uuid = str(uuid.uuid4())
     party_dir = os.path.join(dst_dir, party_uuid)
     os.makedirs(party_dir)
-    party = Party(partygen.generate())
+    party = partygen.generate()
     party_rate = 1500.0
     pte = PartyTrainEvaluator(baseline_parties, baseline_rates, match_count)
     party_rate = pte.train_and_evaluate(party, party_rate, os.path.join(party_dir, "initial"))
@@ -207,7 +162,7 @@ def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, ne
         neighbors = []
         neighbor_rates = []
         for n in range(neighbor):
-            new_party = generate_neighbor_party(party, partygen)
+            new_party = partygen.generate_neighbor_party(party)
             new_rate = pte.train_and_evaluate(new_party, party_rate, os.path.join(party_dir, f"{i}_{n}"))
             neighbors.append(new_party)
             neighbor_rates.append(new_rate)
@@ -243,7 +198,7 @@ def main():
     parser.add_argument("-j", type=int, help="並列処理数")
     args = parser.parse_args()
     context.init()
-    baseline_parties, baseline_rates = load_baseline_party_rate(args.baseline_party_pool, args.baseline_party_rate)
+    baseline_parties, baseline_rates = load_party_rate(args.baseline_party_pool, args.baseline_party_rate)
     partygen = PartyGenerator(PartyRule[args.rule])
     results = []
     os.makedirs(args.dst_dir)

@@ -40,7 +40,7 @@ def main():
                                                PartyRule[args.rule])
     else:
         partygen = PartyGenerator(PartyRule[args.rule])
-    parties = [{"party": Party(partygen.generate()), "uuid": str(uuid.uuid4())} for i in range(args.n_party)]
+    parties = [{"party": partygen.generate(), "uuid": str(uuid.uuid4())} for i in range(args.n_party)]
     save_pickle({"parties": parties}, args.dst)
 
 

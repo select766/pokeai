@@ -12,6 +12,7 @@ import numpy as np
 from pokeai.agent.party_generator import PartyGenerator, PartyRule
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.move import Move
+from pokeai.sim.party import Party
 from pokeai.sim.poke_static import PokeStatic
 
 
@@ -58,7 +59,7 @@ class PartyGeneratorWithMoveValue(PartyGenerator):
         probs = vec_exp / np.sum(vec_exp)
         return list(probs)
 
-    def generate(self) -> List[PokeStatic]:
+    def generate(self) -> Party:
         pokests = []
         dexnos = set()
         for lv in self.lvs:
@@ -81,4 +82,4 @@ class PartyGeneratorWithMoveValue(PartyGenerator):
                 dexnos.add(dexno)
                 break
         random.shuffle(pokests)  # 先頭をLV55に固定しない
-        return pokests
+        return Party(pokests)

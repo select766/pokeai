@@ -31,7 +31,7 @@ from pokeai.sim.party import Party
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
-from pokeai.agent.util import load_pickle, save_pickle, save_yaml
+from pokeai.agent.util import load_pickle, save_pickle, save_yaml, load_party_rate
 
 
 def match_policy(env: PokeEnv, enemy_party: Party, action_sampler: Callable[[np.ndarray], int]) -> int:
@@ -122,18 +122,6 @@ def eval_agent(agent_dir: str, friend_party: Party, enemy_pool: List[Party], ene
     return rates
 
 
-def load_baseline_party_rate(parties_file, rates_file):
-    # TODO hill_climbingとリファクタ
-    parties = load_pickle(parties_file)["parties"]
-    uuid_rates = load_pickle(rates_file)["rates"]
-    party_bodies = []
-    rates = []
-    for party_data in parties:
-        party_bodies.append(party_data["party"])
-        rates.append(uuid_rates[party_data["uuid"]])
-    return party_bodies, np.array(rates, dtype=np.float)
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("agents_pool")
@@ -145,7 +133,7 @@ def main():
     args = parser.parse_args()
     context.init()
     friend_pool = [p["party"] for p in load_pickle(args.friend_pool)["parties"]]  # type: List[Party]
-    test_enemy_pool, test_enemy_pool_rates = load_baseline_party_rate(args.test_enemy_pool, args.test_enemy_pool_rate)
+    test_enemy_pool, test_enemy_pool_rates = load_party_rate(args.test_enemy_pool, args.test_enemy_pool_rate)
     count = args.count
     if count < 0:
         count = len(friend_pool) - args.skip

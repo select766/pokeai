@@ -1,17 +1,21 @@
 """
 ゲームシステム上有効なパーティのランダム生成・置換機構。
 """
+import copy
 import random
 from enum import Enum, auto
 from typing import List, Dict, Tuple
 import os
 import json
 from collections import defaultdict
+import numpy as np
 
+from pokeai.agent.util import randint_len
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.move import Move
 from pokeai.sim.move_learn_condition import MoveLearnType
 from pokeai.sim.move_learn_db import move_learn_db
+from pokeai.sim.party import Party
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.move_info_db import move_info_db
 
@@ -150,7 +154,7 @@ class PartyGenerator:
             self.lvs = [55, 50, 50]
         self.n_member = len(self.lvs)
 
-    def generate(self) -> List[PokeStatic]:
+    def generate(self) -> Party:
         pokests = []
         dexnos = set()
         for lv in self.lvs:
@@ -167,4 +171,32 @@ class PartyGenerator:
                 dexnos.add(dexno)
                 break
         random.shuffle(pokests)  # 先頭をLV55に固定しない
-        return pokests
+        return Party(pokests)
+
+    def generate_neighbor_party(self, party: Party) -> Party:
+        """
+        近傍の(技を1個だけ変更した)パーティを生成する。
+        :param party:
+        :return:
+        """
+        assert len(party.pokes) == 1
+        pokest = copy.deepcopy(party.pokes[0].poke_static)
+        moves = pokest.moves
+        learnable_moves = self.db.get_leanable_moves(pokest.dexno, pokest.lv)
+        for m in moves:
+            learnable_moves.remove(m)
+        if len(learnable_moves) == 0 and len(moves) == 1:
+            # 技を1つしか覚えないポケモン(LV15未満のコイキング等)
+            # どうしようもない
+            pass
+        elif len(learnable_moves) == 0 or (np.random.random() < 0.1 and len(moves) > 1):
+            # 技を消す
+            moves.pop(randint_len(moves))
+        elif np.random.random() < 0.1 and len(moves) < 4:
+            # 技を足す
+            moves.append(learnable_moves[randint_len(learnable_moves)])
+        else:
+            # 技を変更する
+            new_move = learnable_moves[randint_len(learnable_moves)]
+            moves[randint_len(moves)] = new_move
+        return Party([pokest])

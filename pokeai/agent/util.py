@@ -48,3 +48,12 @@ def load_party_rate(parties_file, rates_file):
         party_bodies.append(party_data["party"])
         rates.append(uuid_rates[party_data["uuid"]])
     return party_bodies, np.array(rates, dtype=np.float)
+
+def randint_len(seq: list) -> int:
+    top = len(seq)
+    if top <= 0:
+        raise ValueError("Sequence length <= 0")
+    if top == 1:
+        return 0
+    # np.random.randint(0)はエラーとなる
+    return int(np.random.randint(top - 1))
