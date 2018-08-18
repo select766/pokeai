@@ -71,7 +71,7 @@ def randint_len(seq: list) -> int:
 
 def generate_neighbor_party(party: Party, partygen: PartyGenerator) -> Party:
     assert len(party.pokes) == 1
-    pokest = copy.deepcopy(party.pokes[0]._poke_st)
+    pokest = copy.deepcopy(party.pokes[0].poke_static)
     moves = pokest.moves
     learnable_moves = partygen.db.get_leanable_moves(pokest.dexno, pokest.lv)
     for m in moves:

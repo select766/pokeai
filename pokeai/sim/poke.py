@@ -98,7 +98,7 @@ class Poke:
     ポケモンの動的な状態
     """
 
-    _poke_st: PokeStatic
+    poke_static: PokeStatic
     """
     基本ステータス
     """
@@ -146,13 +146,13 @@ class Poke:
     last_move: Optional[Move]
 
     def __init__(self, poke_st: PokeStatic):
-        self._poke_st = poke_st
+        self.poke_static = poke_st
         self.reset()
 
     def reset(self):
         # 静的パラメータをすべてコピー
         # 「へんしん」「テクスチャー」等でバトル中に書き換わりうる
-        st = self._poke_st
+        st = self.poke_static
         self.max_hp = st.max_hp
         self._hp = st.max_hp
         self.base_s = st.base_s
@@ -168,7 +168,7 @@ class Poke:
             pms.move = move
             pms.pp = 5
             self.moves.append(pms)
-        self.poke_types = self._poke_st.poke_types.copy()
+        self.poke_types = self.poke_static.poke_types.copy()
 
         self.rank_a = Rank()
         self.rank_b = Rank()
@@ -294,7 +294,7 @@ class Poke:
         raise ValueError
 
     def __str__(self):
-        poke_param = poke_param_db[self._poke_st.dexno]
+        poke_param = poke_param_db[self.poke_static.dexno]
         s = f"{poke_param.names['ja']} (LV {self.lv} HP {self.hp}/{self.max_hp})\n"
         s += "  "
         for mi in self.moves:

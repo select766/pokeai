@@ -37,7 +37,7 @@ def get_average_rate(parties: List[Party], rates: np.ndarray):
         key_scores[move] = []
     for party, rate in zip(parties, rates):
         for poke in party.pokes:
-            st = poke._poke_st
+            st = poke.poke_static
             key_scores[st.dexno].append(rate)
             for move in st.moves:
                 key_scores[move].append(rate)
