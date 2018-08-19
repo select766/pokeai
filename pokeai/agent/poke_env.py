@@ -125,7 +125,7 @@ class PokeEnv(gym.Env):
         :return:
         """
         pokes = [self.field.parties[i].get() for i in range(2)]
-        pokests = [poke._poke_st for poke in pokes]
+        pokests = [poke.poke_static for poke in pokes]
 
         feats = []
         if "enemy_type" in self.feature_types:

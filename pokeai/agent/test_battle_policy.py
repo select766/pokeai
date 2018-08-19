@@ -79,12 +79,12 @@ def rating_single_party(env: PokeEnv, parties: List[Party], party_rates: np.ndar
 
 
 def eval_agent(agent_dir: str, friend_party: Party, enemy_pool: List[Party], enemy_pool_rates: List[float]):
-    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_type hp_ratio nv_condition".split(" "))
+    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_type hp_ratio nv_condition rank".split(" "))
     obs_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
     q_func = chainerrl.q_functions.FCStateQFunctionWithDiscreteAction(
         obs_size, n_actions,
-        n_hidden_layers=2, n_hidden_channels=50)
+        n_hidden_layers=2, n_hidden_channels=32)
 
     optimizer = chainer.optimizers.Adam(eps=1e-2)
     optimizer.setup(q_func)
@@ -94,7 +94,7 @@ def eval_agent(agent_dir: str, friend_party: Party, enemy_pool: List[Party], ene
 
     # Use epsilon-greedy for exploration
     explorer = chainerrl.explorers.ConstantEpsilonGreedy(
-        epsilon=0.3, random_action_func=env.action_space.sample)
+        epsilon=0.1, random_action_func=env.action_space.sample)
 
     # DQN uses Experience Replay.
     # Specify a replay buffer and its capacity.

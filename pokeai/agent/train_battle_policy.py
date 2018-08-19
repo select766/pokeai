@@ -37,12 +37,12 @@ train_agent_logger.setLevel(logging.WARNING)
 
 
 def train(outdir: str, friend_party: Party, enemy_pool: List[Party]):
-    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_type hp_ratio nv_condition".split(" "))
+    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_type hp_ratio nv_condition rank".split(" "))
     obs_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
     q_func = chainerrl.q_functions.FCStateQFunctionWithDiscreteAction(
         obs_size, n_actions,
-        n_hidden_layers=2, n_hidden_channels=50)
+        n_hidden_layers=2, n_hidden_channels=32)
 
     optimizer = chainer.optimizers.Adam(eps=1e-2)
     optimizer.setup(q_func)
@@ -52,7 +52,7 @@ def train(outdir: str, friend_party: Party, enemy_pool: List[Party]):
 
     # Use epsilon-greedy for exploration
     explorer = chainerrl.explorers.ConstantEpsilonGreedy(
-        epsilon=0.3, random_action_func=env.action_space.sample)
+        epsilon=0.1, random_action_func=env.action_space.sample)
 
     # DQN uses Experience Replay.
     # Specify a replay buffer and its capacity.
@@ -66,7 +66,7 @@ def train(outdir: str, friend_party: Party, enemy_pool: List[Party]):
 
     chainerrl.experiments.train_agent_with_evaluation(
         agent, env,
-        steps=100000,  # Train the agent for 100000 steps
+        steps=30000,  # Train the agent for 100000 steps
         eval_n_runs=100,  # 10 episodes are sampled for each evaluation
         max_episode_len=200,  # Maximum length of each episodes
         eval_interval=10000,  # Evaluate the agent after every 10000 steps

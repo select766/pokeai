@@ -4,6 +4,7 @@
 """
 import os
 import argparse
+import shutil
 from multiprocessing.pool import Pool
 from typing import Dict, List, Tuple, Callable, Optional
 import copy
@@ -51,7 +52,7 @@ class PartyTrainEvaluator:
         self.enemy_pool = enemy_pool
         self.enemy_pool_rate = enemy_pool_rate
         self.match_count = match_count
-        self.feature_types = "enemy_type hp_ratio nv_condition".split(" ")
+        self.feature_types = "enemy_type hp_ratio nv_condition rank".split(" ")
 
     def train_and_evaluate(self, friend_party: Party, baseline_rate: float, outdir: str) -> float:
         """
@@ -64,7 +65,7 @@ class PartyTrainEvaluator:
         n_actions = env.action_space.n
         q_func = chainerrl.q_functions.FCStateQFunctionWithDiscreteAction(
             obs_size, n_actions,
-            n_hidden_layers=2, n_hidden_channels=50)
+            n_hidden_layers=2, n_hidden_channels=32)
 
         optimizer = chainer.optimizers.Adam(eps=1e-2)
         optimizer.setup(q_func)
@@ -74,7 +75,7 @@ class PartyTrainEvaluator:
 
         # Use epsilon-greedy for exploration
         explorer = chainerrl.explorers.ConstantEpsilonGreedy(
-            epsilon=0.3, random_action_func=env.action_space.sample)
+            epsilon=0.1, random_action_func=env.action_space.sample)
 
         # DQN uses Experience Replay.
         # Specify a replay buffer and its capacity.
@@ -145,37 +146,48 @@ def hill_climbing_mp(args):
     return hill_climbing(*args)
 
 
-def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, neighbor: int, iter: int,
+def hill_climbing(partygen: PartyGenerator, seed_party: Party, baseline_parties, baseline_rates, neighbor: int,
+                  iter: int,
                   match_count: int,
-                  dst_dir: str,
-                  history: Optional[list] = None):
+                  dst_dir: str):
     party_uuid = str(uuid.uuid4())
-    party_dir = os.path.join(dst_dir, party_uuid)
-    os.makedirs(party_dir)
-    party = partygen.generate()
+    party = seed_party
     party_rate = 1500.0
     pte = PartyTrainEvaluator(baseline_parties, baseline_rates, match_count)
-    party_rate = pte.train_and_evaluate(party, party_rate, os.path.join(party_dir, "initial"))
-    if history is not None:
-        history.append((party, party_rate))
+    uuids = set()
+    uuids.add(party_uuid)
+    party_rate = pte.train_and_evaluate(party, party_rate, os.path.join(dst_dir, party_uuid))
+    history = []
+    history.append((party, party_rate, party_uuid))
     for i in range(iter):
         neighbors = []
         neighbor_rates = []
+        neighbor_uuids = []
         for n in range(neighbor):
             new_party = partygen.generate_neighbor_party(party)
-            new_rate = pte.train_and_evaluate(new_party, party_rate, os.path.join(party_dir, f"{i}_{n}"))
+            new_party_uuid = str(uuid.uuid4())
+            uuids.add(new_party_uuid)
+            new_rate = pte.train_and_evaluate(new_party, party_rate, os.path.join(dst_dir, new_party_uuid))
             neighbors.append(new_party)
             neighbor_rates.append(new_rate)
+            neighbor_uuids.append(new_party_uuid)
         print(f"{party_uuid} {i} rates: {neighbor_rates}")
         best_neighbor_idx = int(np.argmax(neighbor_rates))
         if neighbor_rates[best_neighbor_idx] > party_rate:
             print(f"rate up: {party_rate} => {neighbor_rates[best_neighbor_idx]}")
             party_rate = neighbor_rates[best_neighbor_idx]
             party = neighbors[best_neighbor_idx]
-        if history is not None:
-            history.append((party, party_rate))
+            party_uuid = neighbor_uuids[best_neighbor_idx]
+        history.append((party, party_rate, party_uuid))
         print(party)
     print(f"rate: {party_rate}")
+    # 全部の強化学習結果を残すと巨大なので削除する
+    for unused_uuid in uuids:
+        if unused_uuid == party_uuid:
+            continue
+        unused_uuid_dir = os.path.join(dst_dir, unused_uuid)
+        if os.path.exists(unused_uuid_dir):
+            shutil.rmtree(unused_uuid_dir)
     return party, party_rate, party_uuid, history
 
 
@@ -187,14 +199,14 @@ def process_init():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("dst_dir")
+    parser.add_argument("seed_party")
     parser.add_argument("baseline_party_pool", help="レーティング測定相手パーティ群")
     parser.add_argument("baseline_party_rate", help="レーティング測定相手パーティ群のレーティング")
-    parser.add_argument("n_party", type=int)
+    # parser.add_argument("n_party", type=int)
     parser.add_argument("--rule", choices=[r.name for r in PartyRule], default=PartyRule.LV55_1.name)
     parser.add_argument("--neighbor", type=int, default=10, help="生成する近傍パーティ数")
     parser.add_argument("--iter", type=int, default=100, help="iteration数")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
-    parser.add_argument("--history", action="store_true")
     parser.add_argument("-j", type=int, help="並列処理数")
     args = parser.parse_args()
     context.init()
@@ -202,17 +214,17 @@ def main():
     partygen = PartyGenerator(PartyRule[args.rule])
     results = []
     os.makedirs(args.dst_dir)
+    seed_parties = [p["party"] for p in load_pickle(args.seed_party)["parties"]]
     with Pool(processes=args.j, initializer=process_init) as pool:
         args_list = []
-        for i in range(args.n_party):
-            history = [] if args.history else None
-            args_list.append((partygen, baseline_parties, baseline_rates, args.neighbor, args.iter,
-                              args.match_count, args.dst_dir, history))
+        for seed_party in seed_parties:
+            args_list.append((partygen, seed_party, baseline_parties, baseline_rates, args.neighbor, args.iter,
+                              args.match_count, args.dst_dir))
         for generated_party, rate, party_uuid, history_result in pool.imap_unordered(hill_climbing_mp, args_list):
             # 1サンプル生成ごとに呼ばれる(全計算が終わるまで待たない)
             results.append(
                 {"party": generated_party, "uuid": party_uuid, "optimize_rate": rate, "history": history_result})
-            print(f"completed {len(results)} / {args.n_party}")
+            print(f"completed {len(results)} / {len(seed_parties)}")
     save_pickle({"parties": results}, os.path.join(args.dst_dir, "parties.bin"))
 
 
