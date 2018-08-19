@@ -7,7 +7,7 @@ OpenAI Gym互換のポケモンバトル環境
 - パーティのポケモンは1体のみ。交代のサポートなし。
 - 敵パーティの行動はランダム。
 """
-from typing import List, Iterable, Optional
+from typing import List, Iterable, Optional, Callable, Tuple
 import copy
 import random
 import numpy as np
@@ -32,6 +32,7 @@ from pokeai.sim import context
 class PokeEnv(gym.Env):
     """
     OpenAI Gym互換のポケモンバトル環境
+    対戦の両プレイヤーをエージェントにして対戦させる機能も持つ。
     """
     player_party: Party
     enemy_parties: List[Party]
@@ -105,6 +106,46 @@ class PokeEnv(gym.Env):
 
         return self._make_observation(), reward, self.done, {}
 
+    def match_agents(self, parties: List[Party], action_samplers: List[Callable[[np.ndarray], int]],
+                     put_record_func=None) -> int:
+        """
+        エージェント同士を対戦させる。
+        :param parties: 対戦するパーティのリスト。内部でdeepcopyされる。
+        :param action_samplers: observation vectorを受け取りactionを返す関数のリスト
+        :return: 勝ったパーティの番号(0 or 1)。引き分けなら-1。
+        """
+        self.field = Field([copy.deepcopy(p) for p in parties])
+        if put_record_func is None:
+            put_record_func = lambda x: None
+        self.field.put_record = put_record_func
+        while True:
+            # 行動の選択(技0-3のみ)
+            actions_begin = []
+            for player in range(2):
+                obs = self._make_observation(player)
+                move_idx = action_samplers[player](obs)
+                player_possible_actions = self.field.get_legal_actions(player)
+                player_action = player_possible_actions[0]
+                for ppa in player_possible_actions:
+                    if ppa.action_type is FieldActionType.MOVE and ppa.move_idx == move_idx:
+                        player_action = ppa
+                        break
+                actions_begin.append(player_action)
+            self.field.actions_begin = actions_begin
+            phase = self.field.step()
+
+            if phase is FieldPhase.GAME_END:
+                return self.field.winner
+            else:
+                if self.field.turn_number >= PokeEnv.MAX_TURNS:
+                    # 引き分けで打ち切り
+                    return -1
+                if phase is FieldPhase.BEGIN:
+                    pass
+                else:
+                    # 瀕死交代未実装
+                    raise NotImplementedError
+
     def _get_observation_shape(self) -> Iterable[int]:
         dims = 0
         if "enemy_type" in self.feature_types:
@@ -119,12 +160,13 @@ class PokeEnv(gym.Env):
             dims += 6 * 2
         return dims,
 
-    def _make_observation(self) -> np.ndarray:
+    def _make_observation(self, player: int = 0) -> np.ndarray:
         """
         現在の局面を表すベクトルを生成する。値域0~1。
+        player: 観測側プレイヤー。通常は0。
         :return:
         """
-        pokes = [self.field.parties[i].get() for i in range(2)]
+        pokes = [self.field.parties[player].get(), self.field.parties[1 - player].get()]  # 自分、相手
         pokests = [poke.poke_static for poke in pokes]
 
         feats = []
