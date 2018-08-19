@@ -87,6 +87,7 @@ class MoveCalculator:
         self._launch_move(move_info, ctx)
         if self._check_side_effect(move_info, ctx):
             # 補助効果の発動
+            self.field.put_record_other(f"追加効果発生")
             self._launch_side_effect(move_info, ctx)
 
     def _check_can_move(self, move_info: PokeDBMoveInfo, ctx: MoveHandlerContext) -> bool:
