@@ -126,7 +126,9 @@ class PartyTrainEvaluator:
         for i in range(match_count):
             # 対戦相手を決める
             rate_with_random = rate + np.random.normal(scale=200.)
-            nearest_party_idx = int(np.argmin(np.abs(party_rates - rate_with_random)))
+            # 対戦相手にもランダムに値を加算する。さもないと、rateが十分高い場合に最上位の相手としか当たらなくなる。
+            party_rates_with_random = party_rates + np.random.normal(scale=200., size=party_rates.shape)
+            nearest_party_idx = int(np.argmin(np.abs(party_rates_with_random - rate_with_random)))
             winner = self.match_policy(env, parties[nearest_party_idx], action_sampler)
             # レートを変動させる
             if winner >= 0:

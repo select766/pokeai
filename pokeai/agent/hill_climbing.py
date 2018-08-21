@@ -40,7 +40,9 @@ def rating_single_party(target_party: Party, parties: List[Party], party_rates: 
     for i in range(match_count):
         # 対戦相手を決める
         rate_with_random = rate + np.random.normal(scale=200.)
-        nearest_party_idx = int(np.argmin(np.abs(party_rates - rate_with_random)))
+        # 対戦相手にもランダムに値を加算する。さもないと、rateが十分高い場合に最上位の相手としか当たらなくなる。
+        party_rates_with_random = party_rates + np.random.normal(scale=200., size=party_rates.shape)
+        nearest_party_idx = int(np.argmin(np.abs(party_rates_with_random - rate_with_random)))
         winner = match_random_policy((target_party, parties[nearest_party_idx]))
         # レートを変動させる
         if winner >= 0:
