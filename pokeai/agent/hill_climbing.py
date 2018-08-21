@@ -26,7 +26,7 @@ from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 from pokeai.agent.common import match_random_policy
-from pokeai.agent.util import load_pickle, save_pickle, reset_random, load_party_rate
+from pokeai.agent.util import load_pickle, save_pickle, reset_random, load_party_rate, load_yaml
 
 
 def rating_single_party(target_party: Party, parties: List[Party], party_rates: np.ndarray, match_count: int,
@@ -62,10 +62,10 @@ def hill_climbing_mp(args):
     return hill_climbing(*args)
 
 
-def hill_climbing(partygen: PartyGenerator, baseline_parties, baseline_rates, neighbor: int, iter: int,
+def hill_climbing(partygen: PartyGenerator, seed_party, baseline_parties, baseline_rates, neighbor: int, iter: int,
                   match_count: int,
                   history: Optional[list] = None):
-    party = partygen.generate()
+    party = seed_party
     party_rate = rating_single_party(party, baseline_parties, baseline_rates, match_count, 0.0)
     if history is not None:
         history.append((party, party_rate))
@@ -98,10 +98,11 @@ def process_init():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("dst")
+    parser.add_argument("seed_party", help="更新元になるパーティ群")
     parser.add_argument("baseline_party_pool", help="レーティング測定相手パーティ群")
     parser.add_argument("baseline_party_rate", help="レーティング測定相手パーティ群のレーティング")
-    parser.add_argument("n_party", type=int)
     parser.add_argument("--rule", choices=[r.name for r in PartyRule], default=PartyRule.LV55_1.name)
+    parser.add_argument("--rule_params")
     parser.add_argument("--neighbor", type=int, default=10, help="生成する近傍パーティ数")
     parser.add_argument("--iter", type=int, default=100, help="iteration数")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
@@ -110,19 +111,21 @@ def main():
     args = parser.parse_args()
     context.init()
     baseline_parties, baseline_rates = load_party_rate(args.baseline_party_pool, args.baseline_party_rate)
-    partygen = PartyGenerator(PartyRule[args.rule])
+    rule_params = load_yaml(args.rule_params) if args.rule_params else {}
+    partygen = PartyGenerator(PartyRule[args.rule], **rule_params)
+    seed_parties = [p["party"] for p in load_pickle(args.seed_party)["parties"]]
     results = []
     with Pool(processes=args.j, initializer=process_init) as pool:
         args_list = []
-        for i in range(args.n_party):
+        for seed_party in seed_parties:
             history = [] if args.history else None
-            args_list.append((partygen, baseline_parties, baseline_rates, args.neighbor, args.iter,
+            args_list.append((partygen, seed_party, baseline_parties, baseline_rates, args.neighbor, args.iter,
                               args.match_count, history))
         for generated_party, rate, history_result in pool.imap_unordered(hill_climbing_mp, args_list):
             # 1サンプル生成ごとに呼ばれる(全計算が終わるまで待たない)
             results.append(
                 {"party": generated_party, "uuid": str(uuid.uuid4()), "optimize_rate": rate, "history": history_result})
-            print(f"completed {len(results)} / {args.n_party}")
+            print(f"completed {len(results)} / {len(seed_parties)}")
     save_pickle({"parties": results}, args.dst)
 
 

@@ -138,8 +138,12 @@ class PartyGenerator:
     db: PossiblePokeDB
     n_member: int
     lvs: List[int]
+    neighbor_move_remove_rate: float
+    neighbor_move_add_rate: float
 
-    def __init__(self, rule: PartyRule, allow_rare: bool = False):
+    def __init__(self, rule: PartyRule, allow_rare: bool = False,
+                 neighbor_move_remove_rate: float = 0.1,
+                 neighbor_move_add_rate: float = 0.1):
         self.db = PossiblePokeDB(allow_rare=allow_rare)
         if rule is PartyRule.LV55_1:
             self.lvs = [55]
@@ -153,6 +157,9 @@ class PartyGenerator:
             # 本来配分は自由([53,52,50]等もあり)だが当面固定
             self.lvs = [55, 50, 50]
         self.n_member = len(self.lvs)
+
+        self.neighbor_move_remove_rate = neighbor_move_remove_rate
+        self.neighbor_move_add_rate = neighbor_move_add_rate
 
     def generate(self) -> Party:
         pokests = []
@@ -189,10 +196,10 @@ class PartyGenerator:
             # 技を1つしか覚えないポケモン(LV15未満のコイキング等)
             # どうしようもない
             pass
-        elif len(learnable_moves) == 0 or (np.random.random() < 0.1 and len(moves) > 1):
+        elif len(learnable_moves) == 0 or (np.random.random() < self.neighbor_move_remove_rate and len(moves) > 1):
             # 技を消す
             moves.pop(randint_len(moves))
-        elif np.random.random() < 0.1 and len(moves) < 4:
+        elif np.random.random() < self.neighbor_move_add_rate and len(moves) < 4:
             # 技を足す
             moves.append(learnable_moves[randint_len(learnable_moves)])
         else:
