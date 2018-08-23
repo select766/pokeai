@@ -60,11 +60,14 @@ def rating_battle(parties: List[Party], match_count: int) -> List[float]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("dst")
-    parser.add_argument("party_file")
+    parser.add_argument("party_file", nargs="+")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
     args = parser.parse_args()
     context.init()
-    parties = load_pickle(args.party_file)["parties"]
+    parties = []
+    for party_file in args.party_file:
+        file_parties = load_pickle(party_file)["parties"]
+        parties.extend(file_parties)
     party_bodies = [p["party"] for p in parties]
     rates = rating_battle(party_bodies, args.match_count)
     uuid_rates = {p["uuid"]: r for p, r in zip(parties, rates)}
