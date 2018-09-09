@@ -70,7 +70,7 @@ _type_match_dict[PokeType.FIRE] = {
     PokeType.DRAGON: 1,
 }
 _type_match_dict[PokeType.WATER] = {
-    PokeType.FIRE: 1,
+    PokeType.FIRE: 4,
     PokeType.WATER: 1,
     PokeType.GRASS: 1,
     PokeType.GROUND: 4,
