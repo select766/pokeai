@@ -4,6 +4,7 @@
 
 from enum import Enum
 from typing import List
+import os
 
 
 class PokeType(Enum):
@@ -167,3 +168,14 @@ _type_match_dict[PokeType.GHOST] = {
 _type_match_dict[PokeType.DRAGON] = {
     PokeType.DRAGON: 4,
 }
+
+
+# おまけ機能：さかさバトル（タイプ相性反転）
+def _sakasa_type_match():
+    for d in _type_match_dict.values():
+        for k in d.keys():
+            d[k] = [4, 4, 2, 2, 1][d[k]]
+
+
+if os.environ.get("POKEAI_SAKASA", None) == "1":
+    _sakasa_type_match()
