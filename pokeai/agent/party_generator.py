@@ -4,7 +4,7 @@
 import copy
 import random
 from enum import Enum, auto
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Set
 import os
 import json
 from collections import defaultdict
@@ -140,10 +140,12 @@ class PartyGenerator:
     lvs: List[int]
     neighbor_move_remove_rate: float
     neighbor_move_add_rate: float
+    neighbor_poke_change_rate: float
 
     def __init__(self, rule: PartyRule, allow_rare: bool = False,
                  neighbor_move_remove_rate: float = 0.1,
-                 neighbor_move_add_rate: float = 0.1):
+                 neighbor_move_add_rate: float = 0.1,
+                 neighbor_poke_change_rate: float = 0.1):
         self.db = PossiblePokeDB(allow_rare=allow_rare)
         if rule is PartyRule.LV55_1:
             self.lvs = [55]
@@ -160,50 +162,62 @@ class PartyGenerator:
 
         self.neighbor_move_remove_rate = neighbor_move_remove_rate
         self.neighbor_move_add_rate = neighbor_move_add_rate
+        self.neighbor_poke_change_rate = neighbor_poke_change_rate
 
     def generate(self) -> Party:
         pokests = []
         dexnos = set()
         for lv in self.lvs:
-            while True:
-                dexno = random.choice(list(Dexno))
-                if dexno in dexnos:
-                    continue
-                learnable_moves = self.db.get_leanable_moves(dexno, lv)
-                if len(learnable_moves) == 0:
-                    continue
-                moves = random.sample(learnable_moves, min(4, len(learnable_moves)))
-                pokest = PokeStatic.create(dexno, moves, lv)
-                pokests.append(pokest)
-                dexnos.add(dexno)
-                break
+            pokest = self._generate_poke(lv, dexnos)
+            pokests.append(pokest)
+            dexnos.add(pokest.dexno)
         random.shuffle(pokests)  # 先頭をLV55に固定しない
         return Party(pokests)
 
+    def _generate_poke(self, lv: int, exclude_dexnos: Set[Dexno]) -> PokeStatic:
+        while True:
+            dexno = random.choice(list(Dexno))
+            if dexno in exclude_dexnos:
+                continue
+            learnable_moves = self.db.get_leanable_moves(dexno, lv)
+            if len(learnable_moves) == 0:
+                continue
+            moves = random.sample(learnable_moves, min(4, len(learnable_moves)))
+            pokest = PokeStatic.create(dexno, moves, lv)
+            return pokest
+
     def generate_neighbor_party(self, party: Party) -> Party:
         """
-        近傍の(技を1個だけ変更した)パーティを生成する。
+        近傍の(1匹の技を1個だけ変更するか、別のポケモンにする)パーティを生成する。
         :param party:
         :return:
         """
-        assert len(party.pokes) == 1
-        pokest = copy.deepcopy(party.pokes[0].poke_static)
-        moves = pokest.moves
-        learnable_moves = self.db.get_leanable_moves(pokest.dexno, pokest.lv)
-        for m in moves:
-            learnable_moves.remove(m)
-        if len(learnable_moves) == 0 and len(moves) == 1:
-            # 技を1つしか覚えないポケモン(LV15未満のコイキング等)
-            # どうしようもない
-            pass
-        elif len(learnable_moves) == 0 or (np.random.random() < self.neighbor_move_remove_rate and len(moves) > 1):
-            # 技を消す
-            moves.pop(randint_len(moves))
-        elif np.random.random() < self.neighbor_move_add_rate and len(moves) < 4:
-            # 技を足す
-            moves.append(learnable_moves[randint_len(learnable_moves)])
+        pokests = [copy.deepcopy(poke.poke_static) for poke in party.pokes]
+        target_idx = np.random.randint(len(pokests))
+        if np.random.random() < self.neighbor_poke_change_rate:
+            # ポケモンを新しいものに変更
+            exclude_dexnos = {pokest.dexno for pokest in pokests}
+            new_pokest = self._generate_poke(pokests[target_idx].lv, exclude_dexnos)
+            pokests[target_idx] = new_pokest
         else:
-            # 技を変更する
-            new_move = learnable_moves[randint_len(learnable_moves)]
-            moves[randint_len(moves)] = new_move
-        return Party([pokest])
+            # 技を変更
+            pokest = pokests[target_idx]
+            moves = pokest.moves
+            learnable_moves = self.db.get_leanable_moves(pokest.dexno, pokest.lv)
+            for m in moves:
+                learnable_moves.remove(m)
+            if len(learnable_moves) == 0 and len(moves) == 1:
+                # 技を1つしか覚えないポケモン(LV15未満のコイキング等)
+                # どうしようもない
+                pass
+            elif len(learnable_moves) == 0 or (np.random.random() < self.neighbor_move_remove_rate and len(moves) > 1):
+                # 技を消す
+                moves.pop(randint_len(moves))
+            elif np.random.random() < self.neighbor_move_add_rate and len(moves) < 4:
+                # 技を足す
+                moves.append(learnable_moves[randint_len(learnable_moves)])
+            else:
+                # 技を変更する
+                new_move = learnable_moves[randint_len(learnable_moves)]
+                moves[randint_len(moves)] = new_move
+        return Party(pokests)
