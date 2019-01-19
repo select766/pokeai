@@ -36,6 +36,7 @@ class PokeEnv(gym.Env):
     """
     player_party: Party
     enemy_parties: List[Party]
+    enemy_agents: Optional[List[Callable[[np.ndarray], int]]]  # enemy_partiesの各要素に対応するエージェント
     next_party_idxs: List[int]
     field: Field
     done: bool
@@ -45,13 +46,15 @@ class PokeEnv(gym.Env):
     MAX_TURNS = 64
 
     def __init__(self, player_party: Party, enemy_parties: List[Party], feature_types: List[str],
-                 random_change_rate=0.1):
+                 random_change_rate=0.1, enemy_agents: Optional[List[Callable[[np.ndarray], int]]] = None):
         super().__init__()
         self.player_party = player_party
         self.player_party_size = len(player_party.pokes)
         self.enemy_parties = enemy_parties
+        self.enemy_agents = enemy_agents
         self.next_party_idxs = []
         self.field = None
+        self.enemy_agent = None
         self.done = True
         self.feature_types = feature_types
         self.action_space = gym.spaces.Discrete(
@@ -59,17 +62,27 @@ class PokeEnv(gym.Env):
         self.random_change_rate = random_change_rate
         self.observation_space = gym.spaces.Box(0.0, 1.0, shape=self._get_observation_shape(), dtype=np.float32)
         self.reward_range = (-1.0, 1.0)
+        self.legal_count = 0
+        self.illegal_count = 0
 
-    def reset(self, enemy_party: Optional[Party] = None):
+    def reset(self, enemy_party: Optional[Party] = None, enemy_agent: Optional[Callable[[np.ndarray], int]] = None):
         """
         敵パーティを選択し、フィールドを初期状態にする。
         :return:
         """
+        self.enemy_agent = None
         if enemy_party is None:
             if len(self.next_party_idxs) == 0:
                 self.next_party_idxs = list(range(len(self.enemy_parties)))
                 random.shuffle(self.next_party_idxs)
-            enemy_party = self.enemy_parties[self.next_party_idxs.pop()]
+            enemy_party_idx = self.next_party_idxs.pop()
+            enemy_party = self.enemy_parties[enemy_party_idx]
+            if self.enemy_agents is not None:
+                # 敵パーティを動かすエージェント(Noneならランダム行動)
+                self.enemy_agent = self.enemy_agents[enemy_party_idx]
+        else:
+            if enemy_agent is not None:
+                self.enemy_agent = enemy_agent
         self.field = Field([copy.deepcopy(self.player_party), copy.deepcopy(enemy_party)])
         self.field.put_record = lambda x: None
         self.done = False
@@ -83,12 +96,17 @@ class PokeEnv(gym.Env):
         :return:
         """
         assert not self.done, "call reset before step"
-        player_action = self._get_field_action(0, action)
-        enemy_action = self._get_field_action_random(1)
+        player_action, legal = self._get_field_action(0, action)
+        if self.enemy_agent is not None:
+            obs = self._make_observation(1)
+            action_num = self.enemy_agent(obs)
+            enemy_action, _ = self._get_field_action(1, action_num)
+        else:
+            enemy_action = self._get_field_action_random(1)
         self.field.actions_begin = [player_action, enemy_action]
         phase = self.field.step()
 
-        reward = 0.0
+        reward = 0.0 if legal else -0.1  # illegal actionを選ばないようにするためにrewardでフィードバックする
         if phase is FieldPhase.GAME_END:
             self.done = True
             reward = [1.0, -1.0][self.field.winner]
@@ -106,7 +124,7 @@ class PokeEnv(gym.Env):
 
         return self._make_observation(), reward, self.done, {}
 
-    def _get_field_action(self, player: int, action: int) -> FieldAction:
+    def _get_field_action(self, player: int, action: int) -> Tuple[FieldAction, bool]:
         """
         行動番号からFieldActionオブジェクトに変換。
         無効な選択をしたら、有効なものの中で先頭のものが選ばれる
@@ -126,10 +144,13 @@ class PokeEnv(gym.Env):
             else:
                 raise NotImplementedError
             action_map[anum] = ppa
+        legal = True
         if action not in action_map:
+            legal = False
             action = min(action_map.keys())
+            # action = random.choice(list(action_map.keys()))
         player_action = action_map[action]
-        return player_action
+        return player_action, legal
 
     def _get_field_action_random(self, player: int) -> FieldAction:
         """
@@ -197,7 +218,7 @@ class PokeEnv(gym.Env):
                 obs = self._make_observation(player)
                 if action_samplers[player] is not None:
                     action_num = action_samplers[player](obs)
-                    action = self._get_field_action(player, action_num)
+                    action, _ = self._get_field_action(player, action_num)
                 else:
                     action = self._get_field_action_random(player)
                 actions_begin.append(action)
