@@ -52,7 +52,7 @@ class PartyTrainEvaluator:
         self.enemy_pool = enemy_pool
         self.enemy_pool_rate = enemy_pool_rate
         self.match_count = match_count
-        self.feature_types = "enemy_type hp_ratio nv_condition rank".split(" ")
+        self.feature_types = "enemy_type hp_ratio nv_condition rank fighting_idx alive_idx".split(" ")
 
     def train_and_evaluate(self, friend_party: Party, baseline_rate: float, outdir: str) -> float:
         """
@@ -89,7 +89,7 @@ class PartyTrainEvaluator:
 
         chainerrl.experiments.train_agent_with_evaluation(
             agent, env,
-            steps=10000,  # Train the agent for 100000 steps
+            steps=100000,  # Train the agent for 100000 steps
             eval_n_runs=100,  # 10 episodes are sampled for each evaluation
             max_episode_len=200,  # Maximum length of each episodes
             eval_interval=10000,  # Evaluate the agent after every 10000 steps

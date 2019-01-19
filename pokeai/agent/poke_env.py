@@ -40,17 +40,23 @@ class PokeEnv(gym.Env):
     field: Field
     done: bool
     feature_types: List[str]
+    player_party_size: int  # プレイヤーのパーティのポケモン数
+    random_change_rate: float  # ランダムに行動する場合に、交代を選ぶ確率
     MAX_TURNS = 64
 
-    def __init__(self, player_party: Party, enemy_parties: List[Party], feature_types: List[str]):
+    def __init__(self, player_party: Party, enemy_parties: List[Party], feature_types: List[str],
+                 random_change_rate=0.1):
         super().__init__()
         self.player_party = player_party
+        self.player_party_size = len(player_party.pokes)
         self.enemy_parties = enemy_parties
         self.next_party_idxs = []
         self.field = None
         self.done = True
         self.feature_types = feature_types
-        self.action_space = gym.spaces.Discrete(4)  # 技4つ
+        self.action_space = gym.spaces.Discrete(
+            5 * self.player_party_size)  # 技4つ*player_party_size+交代*player_party_size
+        self.random_change_rate = random_change_rate
         self.observation_space = gym.spaces.Box(0.0, 1.0, shape=self._get_observation_shape(), dtype=np.float32)
         self.reward_range = (-1.0, 1.0)
 
@@ -72,21 +78,13 @@ class PokeEnv(gym.Env):
     def step(self, action: int):
         """
         ターンを進める。
-        :param action: 選択する技(0,1,2,3)、技がN個ある場合、N以降を指定した場合は0と同等に扱われる
+        :param action: 選択する技(0,1,2,3)、交代(4,5,...) 交代は代わりに出すポケモンのパーティ上のインデックス+4
+        無効な選択をしたら、有効なものの中で先頭のものが選ばれる
         :return:
         """
         assert not self.done, "call reset before step"
-        assert 0 <= action <= 3
-        player_possible_actions = self.field.get_legal_actions(0)
-        move_idx = action
-        # 指定した技が使えるならそれを選択、そうでなければ先頭の技
-        # 連続技の最中は選択にかかわらず強制的に技が選ばれる
-        player_action = player_possible_actions[0]
-        for ppa in player_possible_actions:
-            if ppa.action_type is FieldActionType.MOVE and ppa.move_idx == move_idx:
-                player_action = ppa
-                break
-        enemy_action = random.choice(self.field.get_legal_actions(1))
+        player_action = self._get_field_action(0, action)
+        enemy_action = self._get_field_action_random(1)
         self.field.actions_begin = [player_action, enemy_action]
         phase = self.field.step()
 
@@ -100,18 +98,92 @@ class PokeEnv(gym.Env):
                 self.done = True
             if phase is FieldPhase.BEGIN:
                 pass
+            elif phase is FieldPhase.FAINT_CHANGE:
+                # 瀕死交代は生きているポケモンの先頭
+                self._faint_change_forward()
             else:
-                # 瀕死交代未実装
                 raise NotImplementedError
 
         return self._make_observation(), reward, self.done, {}
 
-    def match_agents(self, parties: List[Party], action_samplers: List[Callable[[np.ndarray], int]],
+    def _get_field_action(self, player: int, action: int) -> FieldAction:
+        """
+        行動番号からFieldActionオブジェクトに変換。
+        無効な選択をしたら、有効なものの中で先頭のものが選ばれる
+        :param player:
+        :param action: N番目のポケモンについて、選択する技(0+5N,1+5N,2+5N,3+5N)、このポケモンに交代(4+5N)
+        :return:
+        """
+        assert 0 <= action < (5 * self.player_party_size)
+        player_possible_actions = self.field.get_legal_actions(player)
+        fighting_idx = self.field.parties[player].fighting_idx
+        action_map = {}  # 行動の番号からFieldActionへのマップ
+        for ppa in player_possible_actions:
+            if ppa.action_type is FieldActionType.MOVE:
+                anum = ppa.move_idx + fighting_idx * 5
+            elif ppa.action_type is FieldActionType.CHANGE:
+                anum = ppa.change_idx * 5 + 4
+            else:
+                raise NotImplementedError
+            action_map[anum] = ppa
+        if action not in action_map:
+            action = min(action_map.keys())
+        player_action = action_map[action]
+        return player_action
+
+    def _get_field_action_random(self, player: int) -> FieldAction:
+        """
+        有効な行動からランダムにFieldActionオブジェクトを選択。
+        :param player:
+        :return:
+        """
+        player_possible_actions = self.field.get_legal_actions(player)
+        actions_move = []
+        actions_change = []
+        for ppa in player_possible_actions:
+            if ppa.action_type is FieldActionType.MOVE:
+                actions_move.append(ppa)
+            elif ppa.action_type is FieldActionType.CHANGE:
+                actions_change.append(ppa)
+            else:
+                raise NotImplementedError
+        if len(actions_move) > 0:
+            if len(actions_change) > 0:
+                # 技と交代の選択比率からどちらにするかランダムに決める
+                if random.random() < self.random_change_rate:
+                    actions = actions_change
+                else:
+                    # random_change_rateを0に設定すれば確実にこちらが選ばれる
+                    actions = actions_move
+            else:
+                actions = actions_move
+        else:
+            assert len(actions_change) > 0
+            actions = actions_change
+        player_action = random.choice(actions)
+        return player_action
+
+    def _faint_change_forward(self):
+        """
+        phaseがFieldPhase.FAINT_CHANGEのときに、2プレイヤーの瀕死交代先を先頭の瀕死でないポケモンに選んで進める
+        :return:
+        """
+        acts = []
+        for player in range(2):
+            legals = self.field.get_legal_actions(player)
+            if len(legals) > 0:
+                acts.append(legals[0])
+            else:
+                acts.append(None)
+        self.field.actions_faint_change = acts
+        assert self.field.step() == FieldPhase.BEGIN
+
+    def match_agents(self, parties: List[Party], action_samplers: List[Optional[Callable[[np.ndarray], int]]],
                      put_record_func=None) -> int:
         """
         エージェント同士を対戦させる。
         :param parties: 対戦するパーティのリスト。内部でdeepcopyされる。
-        :param action_samplers: observation vectorを受け取りactionを返す関数のリスト
+        :param action_samplers: observation vectorを受け取りactionを返す関数のリスト(要素がNoneならランダムに行動)
         :return: 勝ったパーティの番号(0 or 1)。引き分けなら-1。
         """
         self.field = Field([copy.deepcopy(p) for p in parties])
@@ -119,18 +191,16 @@ class PokeEnv(gym.Env):
             put_record_func = lambda x: None
         self.field.put_record = put_record_func
         while True:
-            # 行動の選択(技0-3のみ)
+            # 行動の選択
             actions_begin = []
             for player in range(2):
                 obs = self._make_observation(player)
-                move_idx = action_samplers[player](obs)
-                player_possible_actions = self.field.get_legal_actions(player)
-                player_action = player_possible_actions[0]
-                for ppa in player_possible_actions:
-                    if ppa.action_type is FieldActionType.MOVE and ppa.move_idx == move_idx:
-                        player_action = ppa
-                        break
-                actions_begin.append(player_action)
+                if action_samplers[player] is not None:
+                    action_num = action_samplers[player](obs)
+                    action = self._get_field_action(player, action_num)
+                else:
+                    action = self._get_field_action_random(player)
+                actions_begin.append(action)
             self.field.actions_begin = actions_begin
             phase = self.field.step()
 
@@ -142,8 +212,10 @@ class PokeEnv(gym.Env):
                     return -1
                 if phase is FieldPhase.BEGIN:
                     pass
+                elif phase is FieldPhase.FAINT_CHANGE:
+                    # 瀕死交代は生きているポケモンの先頭
+                    self._faint_change_forward()
                 else:
-                    # 瀕死交代未実装
                     raise NotImplementedError
 
     def _get_observation_shape(self) -> Iterable[int]:
@@ -158,6 +230,10 @@ class PokeEnv(gym.Env):
             dims += 6 * 2
         if "rank" in self.feature_types:
             dims += 6 * 2
+        if "fighting_idx" in self.feature_types:
+            dims += self.player_party_size
+        if "alive_idx" in self.feature_types:
+            dims += self.player_party_size
         return dims,
 
     def _make_observation(self, player: int = 0) -> np.ndarray:
@@ -166,6 +242,7 @@ class PokeEnv(gym.Env):
         player: 観測側プレイヤー。通常は0。
         :return:
         """
+        parties = [self.field.parties[player], self.field.parties[1 - player]]
         pokes = [self.field.parties[player].get(), self.field.parties[1 - player].get()]  # 自分、相手
         pokests = [poke.poke_static for poke in pokes]
 
@@ -183,6 +260,11 @@ class PokeEnv(gym.Env):
         if "rank" in self.feature_types:
             feats.append(self._obs_rank(pokes[0]))
             feats.append(self._obs_rank(pokes[1]))
+        if "fighting_idx" in self.feature_types:
+            # 相手パーティの情報は与えてないため、相手のindexは使いようがないはず
+            feats.append(self._obs_fighting_idx(parties[0]))
+        if "alive_idx" in self.feature_types:
+            feats.append(self._obs_alive_idx(parties[0]))
         return np.concatenate(feats)
 
     def _obs_type(self, poke: Poke) -> np.ndarray:
@@ -236,4 +318,26 @@ class PokeEnv(gym.Env):
         for i, rank in enumerate(
                 [poke.rank_a, poke.rank_b, poke.rank_c, poke.rank_s, poke.rank_evasion, poke.rank_accuracy]):
             feat[i] = (rank.value + 6) / 12.0
+        return feat
+
+    def _obs_fighting_idx(self, party: Party) -> np.ndarray:
+        """
+        場に出ているポケモンのindex
+        :param party:
+        :return:
+        """
+        feat = np.zeros(self.player_party_size, dtype=np.float32)
+        feat[party.fighting_idx] = 1.0
+        return feat
+
+    def _obs_alive_idx(self, party: Party) -> np.ndarray:
+        """
+        瀕死でないポケモンのindex (場に出ているものを含む)
+        :param party:
+        :return:
+        """
+        feat = np.zeros(self.player_party_size, dtype=np.float32)
+        for i in range(self.player_party_size):
+            if not party.get(i).is_faint():
+                feat[i] = 1.0
         return feat

@@ -5,7 +5,7 @@
 import os
 import random
 import argparse
-from typing import Dict, List, Tuple, Callable
+from typing import Dict, List, Tuple, Callable, Optional
 import copy
 import pickle
 import glob
@@ -31,7 +31,7 @@ from pokeai.agent.common import match_random_policy
 from pokeai.agent.util import load_pickle, save_pickle
 
 
-def rating_battle(env: PokeEnv, parties: List[Party], action_samplers: List[Callable[[np.ndarray], int]],
+def rating_battle(env: PokeEnv, parties: List[Party], action_samplers: List[Optional[Callable[[np.ndarray], int]]],
                   match_count: int) -> Tuple[List[float], list]:
     """
     パーティ同士を多数戦わせ、レーティングを算出する。
@@ -100,10 +100,6 @@ def load_agent(env: PokeEnv, agent_dir):
     return agent.act
 
 
-def generate_random_action_sampler(n_moves: int):
-    return lambda obs: np.random.randint(n_moves)
-
-
 def load_parties_agents(env: PokeEnv, party_file_path: str):
     """
     パーティおよびそのエージェントをロードする。
@@ -123,11 +119,10 @@ def load_parties_agents(env: PokeEnv, party_file_path: str):
             parties.append(party)
             action_samplers.append(action_sampler)
             metadata.append({"uuid": party_uuid, "policy": "rl"})
-        # ランダム行動エージェント
-        # 技の数によりランダムサンプリングが変動
-        n_moves = len(party.pokes[0].moves)
+
+        # 同じパーティで、ランダム行動エージェント版も追加
         parties.append(party)
-        action_samplers.append(generate_random_action_sampler(n_moves))
+        action_samplers.append(None)
         metadata.append({"uuid": party_uuid, "policy": "random"})
     return parties, action_samplers, metadata
 
@@ -140,7 +135,8 @@ def main():
     args = parser.parse_args()
     context.init()
     dummy_party = load_pickle(args.party_file[0])["parties"][0]["party"]
-    env = PokeEnv(dummy_party, [dummy_party], feature_types="enemy_type hp_ratio nv_condition rank".split(" "))
+    env = PokeEnv(dummy_party, [dummy_party],
+                  feature_types="enemy_type hp_ratio nv_condition rank fighting_idx alive_idx".split(" "))
     parties = []
     action_samplers = []
     metadata = []
