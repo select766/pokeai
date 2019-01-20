@@ -22,7 +22,7 @@ import uuid
 import gym
 
 from pokeai.agent.party_generator import PartyGenerator, PartyRule
-from pokeai.agent.poke_env import PokeEnv
+from pokeai.agent.poke_env import PokeEnv, RewardConfig
 from pokeai.sim import Field
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.field import FieldPhase
@@ -102,13 +102,16 @@ class PartyTrainEvaluator:
     enemy_pool_rate: np.ndarray
     match_count: int
     feature_types: List[str]
+    reward_config: RewardConfig
 
-    def __init__(self, enemy_pool: List[Party], enemy_agents, enemy_pool_rate: np.ndarray, match_count: int):
+    def __init__(self, enemy_pool: List[Party], enemy_agents, enemy_pool_rate: np.ndarray, match_count: int,
+                 reward_config: RewardConfig):
         self.enemy_pool = enemy_pool
         self.enemy_agents = enemy_agents
         self.enemy_pool_rate = enemy_pool_rate
         self.match_count = match_count
         self.feature_types = "enemy_type hp_ratio nv_condition rank fighting_idx alive_idx".split(" ")
+        self.reward_config = reward_config
 
     def train_and_evaluate(self, friend_party: Party, baseline_rate: float, outdir: str) -> float:
         """
@@ -116,7 +119,8 @@ class PartyTrainEvaluator:
         :param friend_party:
         :return: 強さ(レーティング)
         """
-        env = PokeEnv(friend_party, self.enemy_pool, feature_types=self.feature_types, enemy_agents=self.enemy_agents)
+        env = PokeEnv(friend_party, self.enemy_pool, feature_types=self.feature_types, enemy_agents=self.enemy_agents,
+                      reward_config=self.reward_config)
         obs_size = env.observation_space.shape[0]
         n_actions = env.action_space.n
         q_func = chainerrl.q_functions.FCStateQFunctionWithDiscreteAction(
@@ -208,6 +212,7 @@ def hill_climbing_mp(args):
 
 
 def hill_climbing(partygen: PartyGenerator, seed_party: Party, baseline_party_rl_file,
+                  reward_config: RewardConfig,
                   neighbor: int,
                   iter: int,
                   match_count: int,
@@ -218,11 +223,12 @@ def hill_climbing(partygen: PartyGenerator, seed_party: Party, baseline_party_rl
 
     dummy_party = load_pickle(baseline_party_rl_file)["parties"][0]["party"]
     dummy_env = PokeEnv(dummy_party, [dummy_party],
-                        feature_types="enemy_type hp_ratio nv_condition rank fighting_idx alive_idx".split(" "))
+                        feature_types="enemy_type hp_ratio nv_condition rank fighting_idx alive_idx".split(" "),
+                        reward_config=reward_config)
     baseline_parties, baseline_agents = load_parties_agents(dummy_env, baseline_party_rl_file)
     baseline_rates = np.full((len(baseline_parties),), 1500.0, dtype=np.float32)  # TODO
 
-    pte = PartyTrainEvaluator(baseline_parties, baseline_agents, baseline_rates, match_count)
+    pte = PartyTrainEvaluator(baseline_parties, baseline_agents, baseline_rates, match_count, reward_config)
     uuids = set()
     uuids.add(party_uuid)
     party_rate = pte.train_and_evaluate(party, party_rate, os.path.join(dst_dir, party_uuid))
@@ -280,6 +286,7 @@ def main():
     args = parser.parse_args()
     context.init()
     partygen = PartyGenerator(PartyRule[args.rule])
+    reward_config = RewardConfig()
     results = []
     os.makedirs(args.dst_dir)
     seed_parties = [p["party"] for p in load_pickle(args.seed_party)["parties"]]
@@ -288,7 +295,7 @@ def main():
         for seed_party in seed_parties:
             # agentをロードしてサブプロセスに送ろうと思ってもpickle失敗となるため、サブプロセスでロードする
             args_list.append(
-                (partygen, seed_party, args.baseline_party_rl_file, args.neighbor, args.iter,
+                (partygen, seed_party, args.baseline_party_rl_file, reward_config, args.neighbor, args.iter,
                  args.match_count, args.dst_dir))
         for generated_party, rate, party_uuid, history_result in pool.imap_unordered(hill_climbing_mp, args_list):
             # 1サンプル生成ごとに呼ばれる(全計算が終わるまで待たない)

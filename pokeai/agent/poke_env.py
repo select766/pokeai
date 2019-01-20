@@ -29,6 +29,20 @@ from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 
 
+class RewardConfig:
+    """
+    勝敗以外の報酬設定
+    """
+    illegal_action: float
+    damage: float
+    faint: float
+
+    def __init__(self, *, illegal_action: float = -0.1, damage: float = 0.5, faint: float = 0.5):
+        self.illegal_action = illegal_action
+        self.damage = damage
+        self.faint = faint
+
+
 class PokeEnv(gym.Env):
     """
     OpenAI Gym互換のポケモンバトル環境
@@ -43,10 +57,12 @@ class PokeEnv(gym.Env):
     feature_types: List[str]
     player_party_size: int  # プレイヤーのパーティのポケモン数
     random_change_rate: float  # ランダムに行動する場合に、交代を選ぶ確率
+    reward_config: RewardConfig
     MAX_TURNS = 64
 
     def __init__(self, player_party: Party, enemy_parties: List[Party], feature_types: List[str],
-                 random_change_rate=0.1, enemy_agents: Optional[List[Callable[[np.ndarray], int]]] = None):
+                 random_change_rate=0.1, enemy_agents: Optional[List[Callable[[np.ndarray], int]]] = None,
+                 reward_config: Optional[RewardConfig] = None):
         super().__init__()
         self.player_party = player_party
         self.player_party_size = len(player_party.pokes)
@@ -62,8 +78,9 @@ class PokeEnv(gym.Env):
         self.random_change_rate = random_change_rate
         self.observation_space = gym.spaces.Box(0.0, 1.0, shape=self._get_observation_shape(), dtype=np.float32)
         self.reward_range = (-1.0, 1.0)
-        self.legal_count = 0
-        self.illegal_count = 0
+        if reward_config is None:
+            reward_config = RewardConfig()
+        self.reward_config = reward_config
 
     def reset(self, enemy_party: Optional[Party] = None, enemy_agent: Optional[Callable[[np.ndarray], int]] = None):
         """
@@ -96,6 +113,7 @@ class PokeEnv(gym.Env):
         :return:
         """
         assert not self.done, "call reset before step"
+        dr_before = self._calc_damage_reward()
         player_action, legal = self._get_field_action(0, action)
         if self.enemy_agent is not None:
             obs = self._make_observation(1)
@@ -106,10 +124,14 @@ class PokeEnv(gym.Env):
         self.field.actions_begin = [player_action, enemy_action]
         phase = self.field.step()
 
-        reward = 0.0 if legal else -0.1  # illegal actionを選ばないようにするためにrewardでフィードバックする
+        dr_after = self._calc_damage_reward()  # player0に有利なら大きな値になっている
+
+        reward = dr_after - dr_before
+        if not legal:  # illegal actionを選ばないようにするためにrewardでフィードバックする
+            reward += self.reward_config.illegal_action
         if phase is FieldPhase.GAME_END:
             self.done = True
-            reward = [1.0, -1.0][self.field.winner]
+            reward += [1.0, -1.0][self.field.winner]
         else:
             if self.field.turn_number >= PokeEnv.MAX_TURNS:
                 # 引き分けで打ち切り
@@ -121,6 +143,8 @@ class PokeEnv(gym.Env):
                 self._faint_change_forward()
             else:
                 raise NotImplementedError
+
+        reward = max(min(reward, 1.0), -1.0)
 
         return self._make_observation(), reward, self.done, {}
 
@@ -362,3 +386,28 @@ class PokeEnv(gym.Env):
             if not party.get(i).is_faint():
                 feat[i] = 1.0
         return feat
+
+    def _calc_damage_reward(self) -> float:
+        """
+        ダメージに対する報酬の計算。ターンの開始時と終了時の差がそのターンの報酬となる。
+        :return: player0に有利なら正、不利なら負の値
+        """
+        rr_diff = self._calc_party_remain_rate(self.field.parties[0]) - self._calc_party_remain_rate(
+            self.field.parties[1])
+        return rr_diff * self.reward_config.damage
+
+    def _calc_party_remain_rate(self, party: Party) -> float:
+        """
+        パーティのHP残存率の計算
+        :param party:
+        :return: 初期状態で1.0、すべて瀕死で0.0
+        """
+        sum_remain = 0.0
+        rc = self.reward_config
+        for poke in party.pokes:
+            # 生きている: rc.faintを加算
+            sum_remain += int(not poke.is_faint()) * rc.faint
+            # 残っているHP率 * (1.0-rc.faint)を加算
+            sum_remain += (poke.hp / poke.max_hp) * (1.0 - rc.faint)
+        sum_remain /= len(party.pokes)
+        return sum_remain
