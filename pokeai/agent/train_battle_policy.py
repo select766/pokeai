@@ -5,30 +5,19 @@
 import os
 import argparse
 from typing import Dict, List, Tuple
-import copy
-import pickle
-import numpy as np
-import chainer
-import chainer.functions as F
-import chainer.links as L
 import chainerrl
 import logging
 import sys
-import gym
-
-from pokeai.agent.party_generator import PartyGenerator, PartyRule
-from pokeai.agent.poke_env import PokeEnv
-from pokeai.sim import Field
-from pokeai.sim.dexno import Dexno
-from pokeai.sim.field import FieldPhase
-from pokeai.sim.field_action import FieldAction, FieldActionType
-from pokeai.sim.game_rng import GameRNGRandom
-from pokeai.sim.move import Move
-from pokeai.sim.party import Party
-from pokeai.sim.poke_static import PokeStatic
-from pokeai.sim.poke_type import PokeType
+from bson import ObjectId
+from pokeai.agent import party_db
+from pokeai.agent.battle_agent import BattleAgent
+from pokeai.agent.battle_agents import load_agent
+from pokeai.agent.battle_observer import BattleObserver
+from pokeai.agent.poke_env import PokeEnv, RewardConfig
+from pokeai.sim.party_template import PartyTemplate
 from pokeai.sim import context
-from pokeai.agent.util import load_pickle, save_pickle
+from pokeai.agent.util import load_pickle, save_pickle, load_yaml
+import pokeai.agent.agent_builder
 
 logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 # suppress message from chainerrl (output on every episode)
@@ -36,61 +25,65 @@ train_agent_logger = logging.getLogger("chainerrl.experiments.train_agent")
 train_agent_logger.setLevel(logging.WARNING)
 
 
-def train(outdir: str, friend_party: Party, enemy_pool: List[Party]):
-    env = PokeEnv(friend_party, enemy_pool, feature_types="enemy_type hp_ratio nv_condition rank".split(" "))
-    obs_size = env.observation_space.shape[0]
-    n_actions = env.action_space.n
-    q_func = chainerrl.q_functions.FCStateQFunctionWithDiscreteAction(
-        obs_size, n_actions,
-        n_hidden_layers=2, n_hidden_channels=32)
+def train(outdir: str, agent_id: ObjectId, friend_party_t: PartyTemplate, agent_params,
+          enemy_agents: List[BattleAgent]):
+    party_size = len(friend_party_t.poke_sts)
+    observer_kwargs = {"party_size": party_size}
+    observer_kwargs.update(agent_params["observer"])
+    observer = BattleObserver(**observer_kwargs)
+    reward_config = RewardConfig(**agent_params["reward"])
 
-    optimizer = chainer.optimizers.Adam(eps=1e-2)
-    optimizer.setup(q_func)
+    env = PokeEnv(friend_party_t, observer, enemy_agents, reward_config)
 
-    # Set the discount factor that discounts future rewards.
-    gamma = 0.95
+    agent = pokeai.agent.agent_builder.build(agent_params, observer)
 
-    # Use epsilon-greedy for exploration
-    explorer = chainerrl.explorers.ConstantEpsilonGreedy(
-        epsilon=0.1, random_action_func=env.action_space.sample)
-
-    # DQN uses Experience Replay.
-    # Specify a replay buffer and its capacity.
-    replay_buffer = chainerrl.replay_buffer.ReplayBuffer(capacity=10 ** 6)
-
-    # Now create an agent that will interact with the environment.
-    agent = chainerrl.agents.DoubleDQN(
-        q_func, optimizer, replay_buffer, gamma, explorer,
-        replay_start_size=500, update_interval=1,
-        target_update_interval=100)
-
+    train_config = agent_params["train"]
+    steps = train_config["steps"]
+    train_kwargs = {
+        "max_episode_len": 100,
+        "eval_n_runs": 100,
+        "eval_interval": 10000,
+    }
+    train_kwargs.update(train_config)
     chainerrl.experiments.train_agent_with_evaluation(
         agent, env,
-        steps=30000,  # Train the agent for 100000 steps
-        eval_n_runs=100,  # 10 episodes are sampled for each evaluation
-        max_episode_len=200,  # Maximum length of each episodes
-        eval_interval=10000,  # Evaluate the agent after every 10000 steps
-        outdir=outdir)  # Save everything to 'result' directory
+        outdir=outdir,
+        **train_kwargs)
+
+    model_dump_dir = os.path.join(outdir, f"{steps}_finish")  # 最終的なモデルの出力ディレクトリ
+    return {
+        "_id": agent_id,
+        "party_id": friend_party_t.party_id,
+        "class_name": "BattleAgentRl",
+        "agent": {"params": agent_params, "model_dump_dir": model_dump_dir},
+        "observer": observer_kwargs
+    }
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("dst")
-    parser.add_argument("friend_pool")
-    parser.add_argument("enemy_pool")
-    parser.add_argument("--count", type=int, default=-1, help="いくつのパーティについて方策を学習するか")
-    parser.add_argument("--skip", type=int, default=0)
+    parser.add_argument("agent_tag")
+    parser.add_argument("friend_party_group_tag")
+    parser.add_argument("enemy_agent_tag")
+    parser.add_argument("agent_params")
     args = parser.parse_args()
     context.init()
-    friend_pool = [p["party"] for p in load_pickle(args.friend_pool)["parties"]]  # type: List[Party]
-    enemy_pool = [p["party"] for p in load_pickle(args.enemy_pool)["parties"]]  # type: List[Party]
+    agent_params = load_yaml(args.agent_params)
+    party_group = party_db.load_party_group(args.friend_party_group_tag)
+
+    enemy_agents = []
+    for agent_info in party_db.col_agent.find({"tags": args.enemy_agent_tag}):
+        enemy_agents.append(load_agent(agent_info))
+    print(f"enemy agents: {len(enemy_agents)}")
     os.makedirs(args.dst)
-    count = args.count
-    if count < 0:
-        count = len(friend_pool) - args.skip
-    for i in range(args.skip, args.skip + count):
-        outdir = os.path.join(args.dst, f"party_{i}")
-        train(outdir, friend_pool[i], enemy_pool)
+    for friend_party_t in party_group:
+        agent_id = ObjectId()
+        outdir = os.path.join(args.dst, str(agent_id))
+        os.makedirs(outdir)
+        agent_info = train(outdir, agent_id, friend_party_t, agent_params, enemy_agents)
+        agent_info["tags"] = [args.agent_tag]
+        party_db.col_agent.insert_one(agent_info)
 
 
 if __name__ == '__main__':

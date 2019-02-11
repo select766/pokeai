@@ -8,6 +8,8 @@ from typing import Tuple, List
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.move import Move
 from pokeai.sim.poke_type import PokeType
+from pokeai.sim.move_flag_db import move_flag_db
+from pokeai.sim.poke_param_db import poke_param_db
 import pokeai.sim
 
 
@@ -90,3 +92,12 @@ class PokeStatic:
         :return:
         """
         return ((bv + iv) * 2 + int(math.ceil(math.sqrt(ev))) // 4) * lv // 100 + lv + 10
+
+    def __str__(self):
+        poke_param = poke_param_db[self.dexno]
+        s = f"{poke_param.names['ja']} (LV {self.lv})\n"
+        s += "  "
+        for mi in self.moves:
+            move_flag = move_flag_db[mi]
+            s += f"{move_flag.names['ja']} "
+        return s
