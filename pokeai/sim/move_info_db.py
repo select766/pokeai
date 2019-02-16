@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict, Callable
 from pokeai.sim.move import Move
 from pokeai.sim.poke import PokeNVCondition
@@ -74,7 +75,7 @@ def init_move_info_db():
     assign(MoveGroupName.BLIZZARD,
            mh.check_hit_attack_default,
            mh.launch_move_attack_default,
-           mh.gen_check_side_effect_freeze(30),
+           mh.gen_check_side_effect_freeze(int(os.environ["POKEAI_RULE_BLIZZARD_FREEZE_RATE"])),
            mh.launch_side_effect_freeze)
 
     assign(MoveGroupName.FREEZE_10,
