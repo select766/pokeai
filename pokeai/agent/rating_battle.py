@@ -2,6 +2,7 @@
 パーティ同士を対戦させてレーティングを計算する
 """
 
+import os
 import argparse
 from typing import List, Tuple
 import numpy as np
@@ -79,12 +80,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("agent_tags", help="エージェントのタグ(カンマ区切り)")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
+    parser.add_argument("--log", help="対戦ログの保存ディレクトリ")
     args = parser.parse_args()
     context.init()
     agents = []
     for agent_info in party_db.col_agent.find({"tags": {"$in": args.agent_tags.split(",")}}):
         agents.append(load_agent(agent_info))
-    rates, log = rating_battle(agents, args.match_count, take_log=True)
+    take_log = bool(args.log)
+    if take_log:
+        os.makedirs(args.log, exist_ok=True)
+    rates, log = rating_battle(agents, args.match_count, take_log=take_log)
     rate_id = ObjectId()
     rate_info = []
     for agent, rate in zip(agents, rates):
@@ -93,7 +98,8 @@ def main():
         "_id": rate_id,
         "rates": rate_info,
     })
-    save_pickle(log, f"rating_battle_log_{rate_id}.bin")
+    if take_log:
+        save_pickle(log, os.path.join(args.log, f"rating_battle_log_{rate_id}.bin"))
     print(f"rate_id: {rate_id}")
 
 
