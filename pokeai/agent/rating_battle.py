@@ -77,9 +77,24 @@ def rating_battle(agents: List[BattleAgent], match_count: int, fixed_rates: List
     return rates.tolist(), log
 
 
+def load_fixed_rate(agents: List[BattleAgent], rate_id):
+    rate_info = party_db.col_rate.find_one({"_id": rate_id})
+    fixed_rates = [0] * len(agents)
+    agent_id_to_idx = {agent.agent_id: i for i, agent in enumerate(agents)}
+    assigned_ctr = 0
+    for rate_obj in rate_info["rates"]:
+        if rate_obj["agent_id"] in agent_id_to_idx:
+            fixed_rates[agent_id_to_idx[rate_obj["agent_id"]]] = rate_obj["rate"]
+            assigned_ctr += 1
+    assert assigned_ctr > 0, "No agent matches fixed rate"
+    print(f"{assigned_ctr} agents have fixed rates")
+    return fixed_rates
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("agent_tags", help="エージェントのタグ(カンマ区切り)")
+    parser.add_argument("--fixed_rate", help="レート固定パーティのレートid")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
     parser.add_argument("--log", help="対戦ログの保存ディレクトリ")
     args = parser.parse_args()
@@ -87,10 +102,13 @@ def main():
     agents = []
     for agent_info in party_db.col_agent.find({"tags": {"$in": args.agent_tags.split(",")}}):
         agents.append(load_agent(agent_info))
+    fixed_rates = None
+    if args.fixed_rate:
+        fixed_rates = load_fixed_rate(agents, ObjectId(args.fixed_rate))
     take_log = bool(args.log)
     if take_log:
         os.makedirs(args.log, exist_ok=True)
-    rates, log = rating_battle(agents, args.match_count, take_log=take_log)
+    rates, log = rating_battle(agents, args.match_count, fixed_rates=fixed_rates, take_log=take_log)
     rate_id = ObjectId()
     rate_info = []
     for agent, rate in zip(agents, rates):
