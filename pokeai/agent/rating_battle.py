@@ -72,7 +72,8 @@ def rating_battle(agents: List[BattleAgent], match_count: int, fixed_rates: List
                 log.append({"agents": [agents[left].agent_id, agents[right].agent_id],
                             "winner": winner, "log": log_objs})
         abs_mean_diff = np.mean(np.abs(rates - 1500.0))
-        print(f"{i} rate mean diff: {abs_mean_diff}")
+        if take_log:
+            print(f"{i} rate mean diff: {abs_mean_diff}")
     return rates.tolist(), log
 
 
