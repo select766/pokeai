@@ -33,7 +33,7 @@ def match_agents(battle_agents: List[BattleAgent], logger=None) -> int:
     while True:
         actions = []
         for p in range(2):
-            actions.append(battle_agents[p].get_action(field, p))
+            actions.append(battle_agents[p].get_action(field, p, logger=logger))
         if next_phase is FieldPhase.BEGIN:
             field.actions_begin = actions
         elif next_phase is FieldPhase.FAINT_CHANGE:

@@ -18,7 +18,7 @@ class BattleAgentRandom(BattleAgent):
         self.party_t = party_t
         self.observer = observer
 
-    def get_action(self, field: Field, player: int) -> Optional[FieldAction]:
+    def get_action(self, field: Field, player: int, logger=None) -> Optional[FieldAction]:
         action_objs = self.observer.get_field_action_map(field, player)
         if len(action_objs) > 0:
             return random.choice(list(action_objs.values()))

@@ -11,5 +11,5 @@ class BattleAgent:
     agent_id: ObjectId
     party_t: PartyTemplate
 
-    def get_action(self, field: Field, player: int) -> FieldAction:
+    def get_action(self, field: Field, player: int, logger=None) -> FieldAction:
         raise NotImplementedError
