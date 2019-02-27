@@ -1,6 +1,7 @@
 """
 バトルエージェントへの入力特徴生成・行動のオブジェクトへの変換
 """
+import random
 import gym
 from typing import List, Optional, Iterable, Tuple, Dict
 import numpy as np
@@ -18,16 +19,19 @@ class BattleObserver:
     observation_space: gym.spaces.Box
     action_space: gym.spaces.Discrete
     feature_types: List[str]
+    illegal_random: bool  # 無効なアクション番号を与えた場合ランダムな行動を選択。Falseなら有効なものの先頭。
 
-    def __init__(self, party_size: int, feature_types: List[str]):
+    def __init__(self, party_size: int, feature_types: List[str], illegal_random: bool = False):
         self.party_size = party_size
         self.feature_types = feature_types
         self.action_space = gym.spaces.Discrete(
             6 * self.party_size)  # 技4つ*party_size+交代(通常交代、瀕死の交代)*party_size
         self.observation_space = gym.spaces.Box(0.0, 1.0, shape=self.get_observation_shape(), dtype=np.float32)
+        self.illegal_random = illegal_random
 
     def get_config(self):
-        return {"party_size": self.party_size, "feature_types": self.feature_types}
+        return {"party_size": self.party_size, "feature_types": self.feature_types,
+                "illegal_random": self.illegal_random}
 
     def get_field_action_map(self, field: Field, player: int) -> Dict[int, FieldAction]:
         """
@@ -54,7 +58,7 @@ class BattleObserver:
     def get_field_action(self, field: Field, player: int, action: int) -> Tuple[FieldAction, bool]:
         """
         行動番号からFieldActionオブジェクトに変換。
-        無効な選択をしたら、有効なものの中で先頭のものが選ばれる
+        無効な選択をしたら、self.illegal_randomに従って選択
         :param player:
         :param action: N番目のポケモンについて、選択する技(0+6N,1+6N,2+6N,3+6N)、このポケモンに交代(4+6N)、瀕死時にこのポケモンに交代(5+6N)
         :return:
@@ -64,8 +68,10 @@ class BattleObserver:
         legal = True
         if action not in action_map:
             legal = False
-            action = min(action_map.keys())
-            # action = random.choice(list(action_map.keys()))
+            if self.illegal_random:
+                action = random.choice(list(action_map.keys()))
+            else:
+                action = min(action_map.keys())
         player_action = action_map[action]
         return player_action, legal
 
