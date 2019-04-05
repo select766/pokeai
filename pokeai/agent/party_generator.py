@@ -16,6 +16,7 @@ from pokeai.sim.move import Move
 from pokeai.sim.move_learn_condition import MoveLearnType
 from pokeai.sim.move_learn_db import move_learn_db
 from pokeai.sim.party import Party
+from pokeai.sim.party_template import PartyTemplate
 from pokeai.sim.poke_static import PokeStatic
 from pokeai.sim.move_info_db import move_info_db
 
@@ -164,7 +165,7 @@ class PartyGenerator:
         self.neighbor_move_add_rate = neighbor_move_add_rate
         self.neighbor_poke_change_rate = neighbor_poke_change_rate
 
-    def generate(self) -> Party:
+    def generate(self) -> PartyTemplate:
         pokests = []
         dexnos = set()
         for lv in self.lvs:
@@ -172,7 +173,7 @@ class PartyGenerator:
             pokests.append(pokest)
             dexnos.add(pokest.dexno)
         random.shuffle(pokests)  # 先頭をLV55に固定しない
-        return Party(pokests)
+        return PartyTemplate(pokests)
 
     def _generate_poke(self, lv: int, exclude_dexnos: Set[Dexno]) -> PokeStatic:
         while True:
@@ -186,13 +187,13 @@ class PartyGenerator:
             pokest = PokeStatic.create(dexno, moves, lv)
             return pokest
 
-    def generate_neighbor_party(self, party: Party) -> Party:
+    def generate_neighbor_party(self, party_t: PartyTemplate) -> PartyTemplate:
         """
         近傍の(1匹の技を1個だけ変更するか、別のポケモンにする)パーティを生成する。
         :param party:
         :return:
         """
-        pokests = [copy.deepcopy(poke.poke_static) for poke in party.pokes]
+        pokests = [copy.deepcopy(poke_st) for poke_st in party_t.poke_sts]
         target_idx = np.random.randint(len(pokests))
         if np.random.random() < self.neighbor_poke_change_rate:
             # ポケモンを新しいものに変更
@@ -220,4 +221,4 @@ class PartyGenerator:
                 # 技を変更する
                 new_move = learnable_moves[randint_len(learnable_moves)]
                 moves[randint_len(moves)] = new_move
-        return Party(pokests)
+        return PartyTemplate(pokests)

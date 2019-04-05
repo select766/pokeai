@@ -5,128 +5,158 @@
 import random
 import argparse
 from typing import Dict, List, Tuple, Iterable, Optional
-import copy
-import pickle
 import numpy as np
-import uuid
-from tqdm import tqdm
+
+from bson import ObjectId
 from multiprocessing import Pool
 
+from pokeai.agent.battle_agent_random import BattleAgentRandom
+from pokeai.agent.battle_observer import BattleObserver
+from pokeai.agent.party_db import load_party_group
 from pokeai.agent.party_generator import PartyGenerator, PartyRule
-from pokeai.sim import Field
-from pokeai.sim.dexno import Dexno
-from pokeai.sim.field import FieldPhase
-from pokeai.sim.field_action import FieldAction, FieldActionType
-from pokeai.sim.game_rng import GameRNGRandom
-from pokeai.sim.move import Move
-from pokeai.sim.move_info_db import move_info_db
-from pokeai.sim.move_learn_db import move_learn_db
-from pokeai.sim.party import Party
-from pokeai.sim.poke_static import PokeStatic
-from pokeai.sim.poke_type import PokeType
+from pokeai.sim.party_template import PartyTemplate
 from pokeai.sim import context
-from pokeai.agent.common import match_random_policy
 from pokeai.agent.util import load_pickle, save_pickle, reset_random, load_party_rate, load_yaml
+from pokeai.agent import party_db
+from pokeai.agent.battle_agents import load_agent
+from pokeai.agent.rating_battle import rating_battle
+from pokeai.agent.party_feature.party_rate_predictor import PartyRatePredictor
 
 
-def rating_single_party(target_party: Party, parties: List[Party], party_rates: np.ndarray, match_count: int,
-                        initial_rate: float = 1500.0,
-                        reject_rate: float = 0.0) -> float:
+def load_benchmark_agents(rate_id):
     """
-    あるパーティを、レーティングが判明している別パーティ群と戦わせてレーティングを計算する。
-    :return: パーティのレーティング
+    ベンチマークとなるエージェントおよびレートをロードする
+    :param rate_id:
+    :return: エージェントリスト、レートリストのタプル
     """
-    rate = initial_rate
-    for i in range(match_count):
-        # 対戦相手を決める
-        rate_with_random = rate + np.random.normal(scale=200.)
-        # 対戦相手にもランダムに値を加算する。さもないと、rateが十分高い場合に最上位の相手としか当たらなくなる。
-        party_rates_with_random = party_rates + np.random.normal(scale=200., size=party_rates.shape)
-        nearest_party_idx = int(np.argmin(np.abs(party_rates_with_random - rate_with_random)))
-        winner = match_random_policy((target_party, parties[nearest_party_idx]))
-        # レートを変動させる
-        if winner >= 0:
-            left_winrate = 1.0 / (1.0 + 10.0 ** ((party_rates[nearest_party_idx] - rate) / 400.0))
-            if winner == 0:
-                left_incr = 32 * (1.0 - left_winrate)
-            else:
-                left_incr = 32 * (-left_winrate)
-            rate += left_incr
-            if rate < reject_rate:
-                # 明らかに弱く、山登り法で採用の可能性がない場合に打ち切る
-                break
-    return rate
+    rate_info = party_db.col_rate.find_one({"_id": rate_id})
+    rates = []
+    agents = []
+    for rate_obj in rate_info["rates"]:
+        rates.append(rate_obj["rate"])
+        agent_info = party_db.col_agent.find_one({"_id": rate_obj["agent_id"]})
+        agents.append(load_agent(agent_info))
+    return agents, rates
 
 
-def hill_climbing_mp(args):
-    return hill_climbing(*args)
+def hill_climbing_mp(kwargs):
+    return hill_climbing(**kwargs)
 
 
-def hill_climbing(partygen: PartyGenerator, seed_party, baseline_parties, baseline_rates, neighbor: int, iter: int,
-                  match_count: int,
-                  history: Optional[list] = None):
+benchmark_agents = None
+benchmark_rates = None
+party_rate_predictor = None  # type: PartyRatePredictor
+
+
+def rate_party(match_count, party_t: PartyTemplate, observer):
+    target_agent = BattleAgentRandom(ObjectId(), party_t, observer)
+    agents = benchmark_agents.copy()  # shallow copy
+    agents.append(target_agent)
+    fixed_rates = benchmark_rates.copy()  # ベンチマークのパーティ群のレートは固定して、測定対象だけ可変
+    fixed_rates.append(0)
+    rates, _ = rating_battle(agents, match_count, fixed_rates)
+    return rates[-1]
+
+
+def hill_climbing(partygen: PartyGenerator, seed_party: PartyTemplate, neighbor: int,
+                  pred_neighbor: int, iter: int, match_count: int, pred_only: bool,
+                  history=False):
+    """
+
+    :param partygen:
+    :param seed_party:
+    :param neighbor: バトルでレートを測定する近傍数
+    :param pred_neighbor: パーティ予測関数でレートを予測する近傍数。上位neighborがバトルに回る。0を指定すればパーティ予測関数を使わない。
+    :param iter:
+    :param match_count:
+    :param pred_only: バトルを行わず、パーティ予測関数のみを使用する。pred_neighbor個のパーティからパーティ予測関数で上位1個を選択する処理となる。
+    :param history:
+    :return:
+    """
+    dummy_observer = BattleObserver(len(seed_party.poke_sts), [])  # ランダムエージェントでは不要なのでダミーを生成
     party = seed_party
-    party_rate = rating_single_party(party, baseline_parties, baseline_rates, match_count, 0.0)
+    party.party_id = ObjectId()  # もしも山登り法で良いパーティができなかった場合、このパーティを結果として出力する。idを変えないと重複してしまいエラーとなる。
+    history_data = []
+
+    if pred_only:
+        party_rate = party_rate_predictor.predict([party])[0]
+    else:
+        party_rate = rate_party(match_count, party, dummy_observer)
     if history is not None:
-        history.append((party, party_rate))
+        history_data.append((party, party_rate))
     for i in range(iter):
         neighbors = []
         neighbor_rates = []
-        for n in range(neighbor):
-            new_party = partygen.generate_neighbor_party(party)
-            new_rate = rating_single_party(new_party, baseline_parties, baseline_rates, match_count, party_rate,
-                                           party_rate - 400.0)
-            neighbors.append(new_party)
-            neighbor_rates.append(new_rate)
-        print(f"{i} rates: {neighbor_rates}")
-        best_neighbor_idx = int(np.argmax(neighbor_rates))
-        if neighbor_rates[best_neighbor_idx] > party_rate:
-            party_rate = neighbor_rates[best_neighbor_idx]
-            party = neighbors[best_neighbor_idx]
-        if history is not None:
-            history.append((party, party_rate))
+        if pred_neighbor:
+            # pred_neighbor個の近傍作成、party_rate_predictorで上位neighbor個抽出、バトルで最上位を選択
+            pred_neighbors = []
+            for n in range(pred_neighbor):
+                pred_neighbors.append(partygen.generate_neighbor_party(party))
+            pred_rates = party_rate_predictor.predict(pred_neighbors)
+            if pred_only:
+                top_idx = int(np.argmax(pred_rates))
+                top_rate = pred_rates[top_idx]
+                top_party = pred_neighbors[top_idx]
+            else:
+                for idx in np.argsort(pred_rates)[:-neighbor - 1:-1]:  # 逆順にneighbor個取得
+                    neighbors.append(pred_neighbors[idx])
+        else:
+            for n in range(neighbor):
+                neighbors.append(partygen.generate_neighbor_party(party))
+
+        if not pred_only:
+            for neighbor_party in neighbors:
+                neighbor_rates.append(rate_party(match_count, neighbor_party, dummy_observer))
+            top_idx = int(np.argmax(neighbor_rates))
+            top_rate = neighbor_rates[top_idx]
+            top_party = neighbors[top_idx]
+        if top_rate > party_rate:
+            party_rate = top_rate
+            party = top_party
+        if history:
+            history_data.append((party, party_rate))
     print(party)
     print(f"rate: {party_rate}")
-    return party, party_rate, history
+    return party, party_rate, history_data
 
 
-def process_init():
+def process_init(config):
+    global benchmark_agents, benchmark_rates, party_rate_predictor
     reset_random()
     context.init()
+    benchmark_agents, benchmark_rates = load_benchmark_agents(ObjectId(config["benchmark_rate_id"]))
+    if config["party_rate_predictor"]:
+        party_rate_predictor = load_pickle(config["party_rate_predictor"])
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("dst")
-    parser.add_argument("seed_party", help="更新元になるパーティ群")
-    parser.add_argument("baseline_party_pool", help="レーティング測定相手パーティ群")
-    parser.add_argument("baseline_party_rate", help="レーティング測定相手パーティ群のレーティング")
-    parser.add_argument("--rule", choices=[r.name for r in PartyRule], default=PartyRule.LV55_1.name)
-    parser.add_argument("--rule_params")
-    parser.add_argument("--neighbor", type=int, default=10, help="生成する近傍パーティ数")
-    parser.add_argument("--iter", type=int, default=100, help="iteration数")
-    parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
-    parser.add_argument("--history", action="store_true")
+    parser.add_argument("config")
+    parser.add_argument("dst_party_group_tag")
+    parser.add_argument("--history")
     parser.add_argument("-j", type=int, help="並列処理数")
     args = parser.parse_args()
     context.init()
-    baseline_parties, baseline_rates = load_party_rate(args.baseline_party_pool, args.baseline_party_rate)
-    rule_params = load_yaml(args.rule_params) if args.rule_params else {}
-    partygen = PartyGenerator(PartyRule[args.rule], **rule_params)
-    seed_parties = [p["party"] for p in load_pickle(args.seed_party)["parties"]]
+    config = load_yaml(args.config)
+    partygen = PartyGenerator(PartyRule[config["rule"]], **config["partygen"])
+    seed_parties = load_party_group(config["seed_party_group"])
     results = []
-    with Pool(processes=args.j, initializer=process_init) as pool:
+    generated_parties = []
+    with Pool(processes=args.j, initializer=process_init, initargs=(config,)) as pool:
         args_list = []
         for seed_party in seed_parties:
-            history = [] if args.history else None
-            args_list.append((partygen, seed_party, baseline_parties, baseline_rates, args.neighbor, args.iter,
-                              args.match_count, history))
+            job_kwargs = {"partygen": partygen, "history": bool(args.history), "seed_party": seed_party}
+            job_kwargs.update(config["hill_climbing"])
+            args_list.append(job_kwargs)
         for generated_party, rate, history_result in pool.imap_unordered(hill_climbing_mp, args_list):
             # 1サンプル生成ごとに呼ばれる(全計算が終わるまで待たない)
+            generated_parties.append(generated_party)
             results.append(
-                {"party": generated_party, "uuid": str(uuid.uuid4()), "optimize_rate": rate, "history": history_result})
+                {"party": generated_party, "optimize_rate": rate, "history": history_result})
             print(f"completed {len(results)} / {len(seed_parties)}")
-    save_pickle({"parties": results}, args.dst)
+    party_db.save_party_group(generated_parties, args.dst_party_group_tag)
+    if args.history:
+        save_pickle(results, args.history)
 
 
 if __name__ == '__main__':

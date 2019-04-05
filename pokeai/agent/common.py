@@ -1,8 +1,8 @@
-
 import random
 from typing import Dict, List, Tuple
 import copy
 
+from pokeai.agent.battle_agent import BattleAgent
 from pokeai.sim import Field
 from pokeai.sim.dexno import Dexno
 from pokeai.sim.field import FieldPhase
@@ -17,22 +17,23 @@ from pokeai.sim.poke_type import PokeType
 from pokeai.sim import context
 
 
-def match_random_policy(parties: Tuple[Party, Party]) -> int:
-    field = Field([copy.deepcopy(parties[0]), copy.deepcopy(parties[1])])
+def match_agents(battle_agents: List[BattleAgent], logger=None) -> int:
+    """
+    エージェント同士を対戦させる。
+    :param battle_agents:
+    :return: 勝ったプレイヤー。引き分けは-1。
+    """
+    field = Field([battle_agents[0].party_t.create(), battle_agents[1].party_t.create()])
     field.rng = GameRNGRandom()
     field.rng.set_field(field)
-    field.put_record = lambda record: None
+    field.put_record = logger or (lambda record: None)
 
     winner = -1
     next_phase = FieldPhase.BEGIN
     while True:
         actions = []
         for p in range(2):
-            legals = field.get_legal_actions(p)
-            if len(legals) == 0:
-                actions.append(None)
-            else:
-                actions.append(random.choice(legals))
+            actions.append(battle_agents[p].get_action(field, p, logger=logger))
         if next_phase is FieldPhase.BEGIN:
             field.actions_begin = actions
         elif next_phase is FieldPhase.FAINT_CHANGE:
