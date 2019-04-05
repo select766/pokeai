@@ -140,6 +140,7 @@ python -m pokeai.agent.rating_battle --fixed_rate 5c6d3c6252338e9f7cfc8023 agent
 ```
 
 結果（参考）
+
 |agent_tag|条件|mean rate|
 |---|---|---|
 |agent_random_random_for_benchmark||1500|
