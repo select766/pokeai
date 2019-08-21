@@ -31,13 +31,24 @@ const randomBattle = () => {
 
         (async () => {
             let chunk;
-            // tslint:disable-next-line no-conditional-assignment
-            while ((chunk = await streams.omniscient.read())) {
+            let end = false;
+            while (!end && (chunk = await streams.omniscient.read())) {
                 for (const line of chunk.split('\n')) {
                     if (line.startsWith('|win|')) {
                         // |win|0 or |win|1
                         const winner = Number(line.slice(5));
+                        end = true;
                         resolve({ parties, winner });
+                        break;
+                    }
+                    if (line.startsWith('|turn|')) {
+                        // |turn|100
+                        const turn = Number(line.slice(6));
+                        if (turn >= 64) {
+                            end = true;
+                            resolve({ parties, winner: -1 });
+                        }
+                        break;
                     }
                 }
             }
@@ -49,8 +60,10 @@ const randomBattle = () => {
     });
 }
 
-randomBattle().then(ret => {
-    console.log(JSON.stringify(ret));
-}).catch(err => {
-    console.error(err);
-});
+(async () => {
+    for (let i = 0; i < 100000; i++) {
+        const battle_result = await randomBattle();
+        console.log(JSON.stringify(battle_result));
+    }
+})();
+
