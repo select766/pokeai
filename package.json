@@ -1,0 +1,24 @@
+{
+  "name": "pokeai",
+  "version": "2.0.0",
+  "description": "Develop ultimate AI Pokémon trainer",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^12.7.2",
+    "typescript": "^3.5.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/select766/pokeai.git"
+  },
+  "author": "select766",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/select766/pokeai/issues"
+  },
+  "homepage": "https://github.com/select766/pokeai#readme"
+}
