@@ -2,17 +2,12 @@ import os
 import subprocess
 import json
 from typing import Optional, List
+from pokeai.simutil import sim_util
 
 
 class TeamValidator:
-    def __init__(self):
-        self.proc = subprocess.Popen(['node', 'js/team_validator'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     encoding='utf-8', cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
     def validate(self, party) -> Optional[List[str]]:
-        self.proc.stdin.write(json.dumps(party) + '\n')
-        self.proc.stdin.flush()
-        return json.loads(self.proc.stdout.readline())
+        return sim_util.call('validateTeam', {'party': party})
 
 
 def demo():
