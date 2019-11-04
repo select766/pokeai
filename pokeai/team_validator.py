@@ -1,3 +1,4 @@
+import os
 import subprocess
 import json
 from typing import Optional, List
@@ -6,7 +7,7 @@ from typing import Optional, List
 class TeamValidator:
     def __init__(self):
         self.proc = subprocess.Popen(['node', 'js/team_validator'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     encoding='utf-8')
+                                     encoding='utf-8', cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
     def validate(self, party) -> Optional[List[str]]:
         self.proc.stdin.write(json.dumps(party) + '\n')

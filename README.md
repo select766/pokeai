@@ -17,6 +17,12 @@ cd Pokemon-Showdown
 npm build
 ```
 
+python 3.8が必要。
+
+```
+python3 setup.py develop
+```
+
 # 基本構成
 
 # 実験方法
