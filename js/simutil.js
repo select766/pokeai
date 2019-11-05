@@ -35,6 +35,12 @@ methods['validateTeam'] = (() => {
     };
 })();
 
+methods['packTeam'] = (() => {
+    return async (params) => {
+        return Dex.packTeam(params['party']);
+    };
+})();
+
 const reader = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout
