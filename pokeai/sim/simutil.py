@@ -1,6 +1,6 @@
-import os
 import subprocess
 import json
+from pokeai.util import ROOT_DIR
 
 
 class SimUtilError(Exception):
@@ -16,7 +16,7 @@ class SimUtil:
 
     def __init__(self):
         self.proc = subprocess.Popen(['node', 'js/simutil'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     encoding='utf-8', cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                                     encoding='utf-8', cwd=str(ROOT_DIR))
 
     def call(self, method: str, params):
         self.proc.stdin.write(json.dumps({'method': method, 'params': params}) + '\n')

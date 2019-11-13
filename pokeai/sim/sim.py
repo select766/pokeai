@@ -6,9 +6,13 @@ import random
 import subprocess
 import json
 from typing import List, Optional
+from logging import getLogger
 
-from pokeai.party_generator import Party
-from pokeai.simutil import sim_util
+from pokeai.sim.party_generator import Party
+from pokeai.sim.simutil import sim_util
+from pokeai.util import ROOT_DIR
+
+logger = getLogger(__name__)
 
 
 class Sim:
@@ -19,32 +23,32 @@ class Sim:
 
     def __init__(self):
         self.proc = subprocess.Popen(['node', 'js/simpipe'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     encoding='utf-8', cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                                     encoding='utf-8', cwd=str(ROOT_DIR))
         self.parties = None
 
     def set_party(self, parites: List[Party]):
         self.parties = parites
 
     def _writeChunk(self, commands: List[str]):
-        print("write", json.dumps('\n'.join(commands)) + '\n')
+        logger.debug("writeChunk " + json.dumps('\n'.join(commands)))
         self.proc.stdin.write(json.dumps('\n'.join(commands)) + '\n')
         self.proc.stdin.flush()
 
     def _readChunk(self) -> List[str]:
         line = self.proc.stdout.readline()
+        logger.debug("readChunk " + line)
         rawstr = json.loads(line)
         return rawstr.split('\n')
 
     def run(self):
         """
         バトルを１回行う
-        :return:
+        :return: endメッセージの内容 {'winner': 'p1', 'turns': 34, ...}
         """
         self._writeStart()
         c = None
         while True:
             c = self._readChunk()
-            print(c)
             battle_result = None
             try:
                 battle_result = self._processChunk(c)

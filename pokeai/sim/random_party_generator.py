@@ -1,18 +1,18 @@
 import os
 import random
 
-from pokeai.party_generator import PartyGenerator, Party, PartyPoke
-from pokeai.dataset import DATASET_DIR
-from pokeai.team_validator import TeamValidator
+from pokeai.sim.party_generator import PartyGenerator, Party, PartyPoke
+from pokeai.util import DATASET_DIR
+from pokeai.sim.team_validator import TeamValidator
 from pokeai.util import json_load
 
 
 class RandomPartyGenerator(PartyGenerator):
     def __init__(self, regulation: str = "default"):
         self._validator = TeamValidator()
-        self._pokedex = json_load(os.path.join(DATASET_DIR, 'pokedex.json'))
-        self._regulation = json_load(os.path.join(DATASET_DIR, 'regulations', regulation, 'regulation.json'))
-        self._learnsets = json_load(os.path.join(DATASET_DIR, 'regulations', regulation, 'learnsets.json'))
+        self._pokedex = json_load(DATASET_DIR.joinpath('pokedex.json'))
+        self._regulation = json_load(DATASET_DIR.joinpath('regulations', regulation, 'regulation.json'))
+        self._learnsets = json_load(DATASET_DIR.joinpath('regulations', regulation, 'learnsets.json'))
 
     def _single_random(self, level: int) -> PartyPoke:
         # 1体ランダム個体を生成(validationしない)
