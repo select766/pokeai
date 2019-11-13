@@ -4,7 +4,8 @@
 const bs = require('../Pokemon-Showdown/.sim-dist/battle-stream');
 const BattleStream = bs.BattleStream;
 
-const stream = new BattleStream();
+// keepAlive: 複数回バトルを行えるようにする(デフォルトではバトルが終了するとストリームが閉じられる)
+const stream = new BattleStream({ debug: false, keepAlive: true });
 
 const reader = require('readline').createInterface({
     input: process.stdin,

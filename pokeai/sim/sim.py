@@ -73,11 +73,11 @@ class Sim:
         sideplayer = chunk[1]  # p1 or p2
         assert len(chunk) == 3
         msg = chunk[2]  # |request|{"active":[{"moves":...
-        assert msg.startswith('|request|')
-        request = json.loads(msg[len('|request|'):])
-        choice = self._randomChoice(request)
-        if choice:
-            self._writeChunk([f'>{sideplayer} {choice}'])
+        if msg.startswith('|request|'):
+            request = json.loads(msg[len('|request|'):])
+            choice = self._randomChoice(request)
+            if choice:
+                self._writeChunk([f'>{sideplayer} {choice}'])
 
     def _randomChoice(self, request) -> Optional[str]:
         # Pokemon-Showdown/sim/tools/random-player-ai.ts
