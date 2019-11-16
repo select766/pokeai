@@ -14,7 +14,7 @@ from pokeai.util import pickle_load, pickle_dump
 
 def main():
     import logging
-    # logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     parser = argparse.ArgumentParser()
     parser.add_argument("parties")
     parser.add_argument("dst")

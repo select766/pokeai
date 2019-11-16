@@ -7,7 +7,7 @@ import re
 from typing import Optional, List, Tuple
 from logging import getLogger
 
-from pokeai.ai.battle_status import BattleStatus
+from pokeai.ai.battle_status import BattleStatus, parse_hp_condition
 
 logger = getLogger(__name__)
 
@@ -20,7 +20,6 @@ class BattleStreamProcessor:
     ignore_msgs = ['',
                    'debug',
                    'player',
-                   'teamsize',
                    'gametype',
                    'gen',
                    'tier',
@@ -60,6 +59,7 @@ class BattleStreamProcessor:
             'request': self._handle_request,
             'switch': self._handle_switch,
             'drag': self._handle_drag,
+            'teamsize': self._handle_teamsize,
             'turn': self._handle_turn,
             '-damage': self._handle_damage,
             '-heal': self._handle_heal,
@@ -86,7 +86,8 @@ class BattleStreamProcessor:
         """
         self.side = side
         self.last_request = None
-        self.battle_status = BattleStatus()
+        # FIXME: BattleStatusと責任境界が分かれてない
+        self.battle_status = BattleStatus(side)
 
     def process_chunk(self, chunk_type: str, data: str) -> Optional[str]:
         """
@@ -157,38 +158,34 @@ class BattleStreamProcessor:
             raise ValueError("Unknown situation of choice")
         return None
 
-    def _parse_hp_condition(self, hp_condition: str) -> Tuple[int, int, str]:
-        """
-        HPと状態異常を表す文字列のパース
-        :param hp_condition: '50/200' (現在HP=50, 最大HP=200, 状態異常なし) or '50/200 psn' (状態異常の時)
-        :return: 現在HP, 最大HP, 状態異常('', 'fnt'(瀕死))
-        """
-        if hp_condition == '0 fnt':
-            # 瀕死の時は0という表示になっている
-            # 便宜上最大HP100として返している
-            return 0, 100, 'fnt'
-        m = re.match('^(\\d+)/(\\d+)(?: (psn|tox|par|brn|slp|frz|fnt)|)?$', hp_condition)
-        # m[3]は状態異常がないときNoneとなる
-        return m[1], m[2], m[3] or ''
-
     def _handle_switch(self, msgargs: List[str]) -> Optional[str]:
-        # TODO
         """
         |switch|p1a: Ninetales|Ninetales, L50, M|179/179
         :return:
         """
-        logger.info(f"switch: {msgargs}")
+        self.battle_status.switch(msgargs[0], msgargs[1], msgargs[2])
         return None
 
     def _handle_drag(self, msgargs: List[str]) -> Optional[str]:
-        # TODO:
         """
         switchと似ているが強制的に引き摺り出された場合（吠える）
         |move|p2a: Moltres|Roar|p1a: Ninetales
         |drag|p1a: Natu|Natu, L55, M|116/160
         :return:
         """
-        logger.info(f"drag: {msgargs}")
+        self.battle_status.switch(msgargs[0], msgargs[1], msgargs[2])
+        # 今のところswitchと違いはない
+        return None
+
+    def _handle_teamsize(self, msgargs: List[str]) -> Optional[str]:
+        """
+        |teamsize|p2|3
+        :return:
+        """
+        teamsize = int(msgargs[1])
+        ss = self.battle_status.side_statuses[msgargs[0]]
+        ss.total_pokes = teamsize
+        ss.remaining_pokes = teamsize
         return None
 
     def _handle_turn(self, msgargs: List[str]) -> Optional[str]:
@@ -200,99 +197,131 @@ class BattleStreamProcessor:
         # 最初のターンは1
         turn = int(msgargs[0])
         self.battle_status.turn = turn
+        logger.debug('turn_start ' + self.battle_status.json_dumps())
         return self._random_choice_turn_start()
 
     def _handle_start(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: 状態変化開始
+        """
+        状態変化開始
+        :param msgargs:
+        :return:
+        """
         # |-start|p1a: Ninetales|Substitute
+        self.battle_status.get_side(msgargs[0]).active.volatile_statuses.add(msgargs[1])
         return None
 
     def _handle_end(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: 状態変化終了
+        # 状態変化終了
         # |-start|p1a: Ninetales|Substitute
+        # set.removeでなくset.discard(要素なくてもエラーにならない)を使用
+        # |-end|p2a: Dodrio|move: Bide
+        # という例あり
+        self.battle_status.get_side(msgargs[0]).active.volatile_statuses.discard(msgargs[1])
         return None
 
     def _handle_damage(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: ダメージを受けた
+        # ダメージを受けた
         # |-damage|p1a: Ninetales|135/179
         # |-damage|p2a: Granbull|184/196 tox|[from] psn
+        hp_current, hp_max, status = parse_hp_condition(msgargs[1])
+        active = self.battle_status.get_side(msgargs[0]).active
+        active.hp_current = hp_current
+        active.status = status
         return None
 
     def _handle_heal(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: 回復
+        # 回復
         # |move|p2a: Skiploom|Giga Drain|p1a: Natu
         # |-resisted|p1a: Natu
         # |-damage|p1a: Natu|139/160
         # |-heal|p2a: Skiploom|132/176|[from] drain|[of] p1a: Natu
+        hp_current, hp_max, status = parse_hp_condition(msgargs[1])
+        active = self.battle_status.get_side(msgargs[0]).active
+        active.hp_current = hp_current
+        active.status = status
         return None
 
     def _handle_status(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: 状態異常が発生
+        # 状態異常が発生
         # |move|p1a: Ninetales|Toxic|p2a: Granbull
         # |-status|p2a: Granbull|tox
+        self.battle_status.get_side(msgargs[0]).active.status = msgargs[1]
         return None
 
     def _handle_curestatus(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: 状態異常が回復
+        # 状態異常が回復
         # |-curestatus|p2a: Granbull|tox
+        self.battle_status.get_side(msgargs[0]).active.status = ''
         return None
 
     def _handle_boost(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: ランク変化（上がる）
+        # ランク変化（上がる）
         # |move|p2a: Porygon|Barrier|p2a: Porygon
         # |-boost|p2a: Porygon|def|2
         # 数値は変化量
+        self.battle_status.get_side(msgargs[0]).active.rank_boost(msgargs[1], int(msgargs[2]))
         return None
 
     def _handle_unboost(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: ランク変化（下がる）
+        # ランク変化（下がる）
         # |move|p2a: Granbull|Tail Whip|p1a: Ninetales
         # |-unboost|p1a: Ninetales|def|1
+        self.battle_status.get_side(msgargs[0]).active.rank_unboost(msgargs[1], int(msgargs[2]))
         return None
 
     def _handle_setboost(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: ランク変化（特定の値をセット）　はらだいこなど
+        # ランク変化（特定の値をセット）　はらだいこなど
         # 数値は変化後の値
+        self.battle_status.get_side(msgargs[0]).active.rank_setboost(msgargs[1], int(msgargs[2]))
         return None
 
     def _handle_copyboost(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: ランク変化（相手のものをそのままコピー）
+        # ランク変化（相手のものをそのままコピー）
         # |move|p1a: Natu|Psych Up|p2a: Granbull
         # |-copyboost|p1a: Natu|p2a: Granbull|[from] move: Psych Up
         # SIM-PROTOCOL.mdだと
         # |-copyboost|SOURCE|TARGET
         # という説明になっているが、実際のメッセージは逆のように見える
         # じこあんじをしたのはNatuなのでNatuが変化する側
+        source = self.battle_status.get_side(msgargs[1]).active
+        target = self.battle_status.get_side(msgargs[0]).active
+        target.ranks = source.ranks.copy()
         return None
 
     def _handle_clearallboost(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: 全てのポケモンの全てのランク変化をリセット（くろいきり）
+        # 全てのポケモンの全てのランク変化をリセット（くろいきり）
         # |move|p2a: Golbat|Haze|p2a: Golbat
         # |-clearallboost
+        for side in self.battle_status.side_statuses.values():
+            side.active.rank_clearallboost()
         return None
 
     def _handle_sidestart(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: プレイヤーの場に生じる状態の発生
+        # プレイヤーの場に生じる状態の発生
         # |move|p2a: Skiploom|Reflect|p2a: Skiploom
         # |-sidestart|p2: p2|Reflect
+        self.battle_status.get_side(msgargs[0]).side_statuses.add(msgargs[1])
         return None
 
     def _handle_sideend(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: プレイヤーの場に生じる状態の消滅
+        # プレイヤーの場に生じる状態の消滅
         # |-sideend|p2: p2|Safeguard
+        self.battle_status.get_side(msgargs[0]).side_statuses.remove(msgargs[1])
         return None
 
     def _handle_faint(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: ポケモンの瀕死
+        # ポケモンの瀕死
         # |-damage|p2a: Granbull|0 fnt|[from] psn|[of] p1a: Ninetales
         # |faint|p2a: Granbull
+        self.battle_status.get_side(msgargs[0]).remaining_pokes -= 1
         return None
 
     def _handle_weather(self, msgargs: List[str]) -> Optional[str]:
-        # TODO: 天候の開始/終了 (天候のところにnone)
+        # 天候の開始/終了 (天候のところにnone)
         # |move|p1a: Xatu|Sunny Day|p1a: Xatu
         # |-weather|SunnyDay
         # SunnyDay,RainDance,Sandstorm,none
+        self.battle_status.weather = msgargs[0]
         return None
 
     def _random_choice_turn_start(self):
