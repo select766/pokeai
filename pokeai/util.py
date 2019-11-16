@@ -25,3 +25,11 @@ def pickle_load(path: Union[str, Path]):
 def pickle_dump(obj, path: Union[str, Path]):
     with open(path, 'wb') as f:
         pickle.dump(obj, f)
+
+
+def side2idx(side: str) -> int:
+    return {'p1': 0, 'p2': 1}[side]
+
+
+def idx2side(idx: int) -> str:
+    return ['p1', 'p2'][idx]
