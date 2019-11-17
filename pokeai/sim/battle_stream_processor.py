@@ -16,6 +16,7 @@ class BattleStreamProcessor:
     side: Optional[str]  # p1 or p2
     last_request: dict  # 最新の行動選択時における味方の状態
     battle_status: BattleStatus
+    policy: "ActionPolicy"
     # 処理しないメッセージ（進行上重要でなく、AIの判断に使わない情報）
     ignore_msgs = ['',
                    'debug',
@@ -55,6 +56,7 @@ class BattleStreamProcessor:
 
     def __init__(self):
         self.side = None
+        self.policy = None
         self._handlers = {
             'request': self._handle_request,
             'switch': self._handle_switch,
@@ -78,12 +80,16 @@ class BattleStreamProcessor:
             '-weather': self._handle_weather,
         }
 
+    def set_policy(self, policy: "ActionPolicy"):
+        self.policy = policy
+
     def start_battle(self, side: str):
         """
         バトルの開始。バトルの状態を初期化する。
         :param side:
         :return:
         """
+        assert self.policy is not None
         self.side = side
         self.last_request = None
         # FIXME: BattleStatusと責任境界が分かれてない
@@ -130,26 +136,12 @@ class BattleStreamProcessor:
             # 相手だけが強制交換の状況
             # 選択肢なし、返答自体なし
             return None
-        elif forceSwitch := request.get('forceSwitch'):
+        elif request.get('forceSwitch'):
             # 強制交換(瀕死)
             # このタイミングで交換先を選ぶ
             # 厳密には、この後にターンの経過（どの技が使われたかなど）のメッセージが来るのでそれも判断に取り入れるべきだが、現状では無視
-            # TODO: ランダムではなくAIに移譲するようにする
-            # TODO: バトンタッチ対応
-            assert len(forceSwitch) == 1  # シングルバトル
-            assert forceSwitch[0]
-            switch_choices = []
-            for i, backpokemon in enumerate(request['side']['pokemon']):  # 手持ちの全ポケモン
-                if backpokemon['active']:
-                    # 場に出ている
-                    continue
-                if backpokemon['condition'].endswith(' fnt'):
-                    # 瀕死状態
-                    continue
-                switch_choices.append(f"switch {i + 1}")  # 1-origin index
-            assert len(switch_choices) > 0
-            return random.choice(switch_choices)
-        elif active := request.get('active'):
+            return self.policy.choice_force_switch(self.battle_status, request)
+        elif request.get('active'):
             # 通常のターン開始時の行動選択
             # この後に前回ターンの経過が来るので、それを待った上でAIが判断する
             pass
@@ -198,7 +190,7 @@ class BattleStreamProcessor:
         turn = int(msgargs[0])
         self.battle_status.turn = turn
         logger.debug('turn_start ' + self.battle_status.json_dumps())
-        return self._random_choice_turn_start()
+        return self.policy.choice_turn_start(self.battle_status, self.last_request)
 
     def _handle_start(self, msgargs: List[str]) -> Optional[str]:
         """
@@ -323,38 +315,6 @@ class BattleStreamProcessor:
         # SunnyDay,RainDance,Sandstorm,none
         self.battle_status.weather = msgargs[0]
         return None
-
-    def _random_choice_turn_start(self):
-        # ターン開始時の行動をランダム選択
-        request = self.last_request
-        active = request['active']
-        assert len(active) == 1  # シングルバトル
-        move_choices = []
-        for i, move in enumerate(active[0]['moves']):
-            if not move.get('disabled'):
-                move_choices.append(f'move {i + 1}')  # 1-origin index
-
-        # ゴッドバードなど複数ターン継続する技では、
-        # [{"moves":[{"move":"Sky Attack","id":"skyattack"}],"trapped":true}],
-        # のようにmoveが１要素だけになり、active.trapped:trueとなる
-        # moveの番号自体ずれる(固定された技を強制選択となり"move 1"を返すこととなる)ので、番号と技の対応に注意
-        switch_choices = []
-        if not active[0].get('trapped'):
-            for i, backpokemon in enumerate(request['side']['pokemon']):  # 手持ちの全ポケモン
-                if backpokemon['active']:
-                    # 場に出ている
-                    continue
-                if backpokemon['condition'].endswith(' fnt'):
-                    # 瀕死状態
-                    continue
-                switch_choices.append(f"switch {i + 1}")  # 1-origin index
-
-        if len(switch_choices) > 0 and (len(move_choices) == 0 or random.random() < 0.2):
-            # 交換しかできない場合か、両方できる場合で一定確率で交換を選ぶ
-            return random.choice(switch_choices)
-        else:
-            assert len(move_choices) > 0
-            return random.choice(move_choices)
 
 
 """

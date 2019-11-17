@@ -9,6 +9,7 @@ import re
 from typing import List, Optional
 from logging import getLogger
 
+from pokeai.ai.action_policy import ActionPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.party_generator import Party
 from pokeai.sim.simutil import sim_util
@@ -23,6 +24,7 @@ class Sim:
     """
     parties: List[Party]
     processors: List[BattleStreamProcessor]
+    policies: List[ActionPolicy]
 
     def __init__(self):
         self.proc = subprocess.Popen(['node', 'js/simpipe'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,

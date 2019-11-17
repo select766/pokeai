@@ -6,6 +6,7 @@ import argparse
 from typing import List
 from tqdm import tqdm
 
+from pokeai.ai.random_policy import RandomPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.party_generator import Party
 from pokeai.sim.sim import Sim
@@ -21,7 +22,12 @@ def main():
     args = parser.parse_args()
     parties = pickle_load(args.parties)  # type: List[Party]
     sim = Sim()
-    sim.set_processor([BattleStreamProcessor(), BattleStreamProcessor()])
+    bsps = []
+    for i in [0, 1]:
+        bsp = BattleStreamProcessor()
+        bsp.set_policy(RandomPolicy())
+        bsps.append(bsp)
+    sim.set_processor(bsps)
     results = []
     for i in tqdm(range(len(parties))):
         for j in range(i + 1, len(parties)):
