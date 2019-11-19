@@ -6,6 +6,9 @@ import argparse
 from typing import List
 from tqdm import tqdm
 
+from pokeai.ai.feature_extractor import FeatureExtractor
+from pokeai.ai.linear_model import LinearModel
+from pokeai.ai.linear_policy import LinearPolicy
 from pokeai.ai.random_policy import RandomPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.party_generator import Party
@@ -23,9 +26,15 @@ def main():
     parties = pickle_load(args.parties)  # type: List[Party]
     sim = Sim()
     bsps = []
+    feature_extractor = FeatureExtractor()
     for i in [0, 1]:
         bsp = BattleStreamProcessor()
-        bsp.set_policy(RandomPolicy())
+        if True:
+            model = LinearModel(feature_dims=feature_extractor.get_dims(), action_dims=18)
+            policy = LinearPolicy(feature_extractor, model)
+        else:
+            policy = RandomPolicy()
+        bsp.set_policy(policy)
         bsps.append(bsp)
     sim.set_processor(bsps)
     results = []

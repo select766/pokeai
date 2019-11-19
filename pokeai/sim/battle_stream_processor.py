@@ -185,7 +185,6 @@ class BattleStreamProcessor:
         |turn|1
         :return:
         """
-        # TODO: ターン開始に従い行動選択するAIを呼び出す
         # 最初のターンは1
         turn = int(msgargs[0])
         self.battle_status.turn = turn
