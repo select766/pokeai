@@ -35,10 +35,6 @@ class LinearPolicy(RandomPolicy):
         :param request:
         :return: 行動。"move [1-4]|switch [1-6]"
         """
-        active = request['active']
-        if active[0].get('trapped'):
-            # あなをほるなど特定の技の発動中で、それを選ぶほかない
-            return 'move 1'
         choice_idxs, choice_keys = self._get_possible_actions(request, False)
         if len(choice_idxs) == 1:
             return choice_keys[0]
@@ -92,45 +88,3 @@ class LinearPolicy(RandomPolicy):
             exp = np.exp((vec - ofs) / self.softmax_temp)
             softmax = exp / np.sum(exp)
         return softmax
-
-    def _get_possible_actions(self, request: dict, force_switch: bool):
-        """
-        取れる行動の番号およびそれを表す文字列を返す
-        :param request:
-        :return:
-        """
-
-        """
-        出力ベクトルの各次元と行動の関係
-        X番目のポケモン(X=0~5)
-        6X+0~3: 技0~3
-        6X+4: このポケモンに交代
-        6X+5: 強制交換の時このポケモンを出す
-        """
-        active_poke_idx = None
-        choice_idxs = []
-        choice_keys = []
-        for i, backpokemon in enumerate(request['side']['pokemon']):  # 手持ちの全ポケモン
-            if backpokemon['active']:
-                # 場に出ている
-                active_poke_idx = i
-                continue
-            if backpokemon['condition'].endswith(' fnt'):
-                # 瀕死状態
-                continue
-            if force_switch:
-                choice_idxs.append(i * 6 + 5)
-                choice_keys.append(f'switch {i + 1}')  # 1-origin index
-            else:
-                choice_idxs.append(i * 6 + 4)
-                choice_keys.append(f'switch {i + 1}')  # 1-origin index
-        assert active_poke_idx is not None
-        if not force_switch:
-            active = request['active']
-            assert not active[0].get('trapped')
-            for i, move in enumerate(active[0]['moves']):
-                if not move.get('disabled'):
-                    choice_idxs.append(active_poke_idx * 6 + i)
-                    choice_keys.append(f'move {i + 1}')  # 1-origin index
-        assert len(choice_idxs) > 0
-        return choice_idxs, choice_keys
