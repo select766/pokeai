@@ -1,5 +1,6 @@
 import os
 import random
+from typing import Set
 
 from pokeai.sim.party_generator import PartyGenerator, Party, PartyPoke
 from pokeai.util import DATASET_DIR
@@ -40,12 +41,15 @@ class RandomPartyGenerator(PartyGenerator):
         levels = self._regulation['levels'].copy()
         random.shuffle(levels)
         party: Party = []
+        species: Set[str] = set()
         for level in levels:
             while True:
                 cand = self._single_random(level)
-                if self._validator.validate([cand]) is None:
+                # ポケモン単体でおかしくないか＆種族が被っていないか
+                if (cand['species'] not in species) and (self._validator.validate([cand]) is None):
                     break
             party.append(cand)
+            species.add(cand['species'])
         val_error = self._validator.validate(party)
         if val_error:
             # 単体ではOKの個体の組み合わせでエラーになることは想定していない
