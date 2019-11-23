@@ -69,6 +69,7 @@ class BattleStreamProcessor:
             '-end': self._handle_end,
             '-status': self._handle_status,
             '-curestatus': self._handle_curestatus,
+            '-cureteam': self._handle_cureteam,
             '-sethp': self._handle_sethp,
             '-boost': self._handle_boost,
             '-unboost': self._handle_unboost,
@@ -243,6 +244,13 @@ class BattleStreamProcessor:
     def _handle_curestatus(self, msgargs: List[str]) -> Optional[str]:
         # 状態異常が回復
         # |-curestatus|p2a: Granbull|tox
+        self.battle_status.get_side(msgargs[0]).active.status = ''
+        return None
+
+    def _handle_cureteam(self, msgargs: List[str]) -> Optional[str]:
+        # 味方全員の状態異常が回復（いやしのすず）
+        # |-cureteam|p2a: Snubbull|[from] move: Heal Bell
+        # 現状控えのポケモンの状態異常を管理していないため、curestatusと同じ
         self.battle_status.get_side(msgargs[0]).active.status = ''
         return None
 
