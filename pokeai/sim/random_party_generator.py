@@ -1,4 +1,4 @@
-import os
+import copy
 import random
 from typing import Set
 
@@ -9,11 +9,14 @@ from pokeai.util import json_load
 
 
 class RandomPartyGenerator(PartyGenerator):
-    def __init__(self, regulation: str = "default"):
+    def __init__(self,
+                 regulation: str = "default",
+                 neighbor_poke_change_rate: float = 0.1):
         self._validator = TeamValidator()
         self._pokedex = json_load(DATASET_DIR.joinpath('pokedex.json'))
         self._regulation = json_load(DATASET_DIR.joinpath('regulations', regulation, 'regulation.json'))
         self._learnsets = json_load(DATASET_DIR.joinpath('regulations', regulation, 'learnsets.json'))
+        self.neighbor_poke_change_rate = neighbor_poke_change_rate
 
     def _single_random(self, level: int) -> PartyPoke:
         # 1体ランダム個体を生成(validationしない)
@@ -55,3 +58,43 @@ class RandomPartyGenerator(PartyGenerator):
             # 単体ではOKの個体の組み合わせでエラーになることは想定していない
             raise RuntimeError('party validation failed: ' + str(val_error))
         return party
+
+    def neighbor(self, party: Party) -> Party:
+        """
+        近傍パーティを生成する
+        :param party:
+        :return:ポケモン1匹か、ポケモン1匹の技1つを変更したパーティ。まれに変更なしの場合あり。
+        """
+        new_party = copy.deepcopy(party)
+        change_idx = random.randrange(len(new_party))  # 変更するポケモンのindex
+        if self.neighbor_poke_change_rate > random.random():
+            # ポケモンを変更
+            species = {poke['species'] for i, poke in enumerate(new_party) if i != change_idx}
+            while True:
+                cand = self._single_random(new_party[change_idx]['level'])
+                # ポケモン単体でおかしくないか＆種族が被っていないか
+                if (cand['species'] not in species) and (self._validator.validate([cand]) is None):
+                    break
+            new_party[change_idx] = cand
+        else:
+            # 技を変更
+            change_poke = new_party[change_idx]
+            available_moves = self._learnsets[change_poke['species']]
+            current_moves = change_poke['moves'].copy()
+            if len(available_moves) > 4:  # 覚えられる技が4つ以下なら選択の余地なし
+                for i in range(100):  # 技は4つより多いものの、両立不可によりどうしても変更できない場合の無限ループ回避
+                    change_move_idx = random.randrange(len(current_moves))
+                    new_move = random.choice(available_moves)
+                    if new_move in current_moves:
+                        continue
+                    change_poke['moves'][change_move_idx] = new_move
+                    # 両立不可などの理由でダメな場合を弾く
+                    if self._validator.validate([change_poke]) is None:
+                        break
+                    # 変えた技を元に戻す
+                    change_poke['moves'][change_move_idx] = current_moves[change_move_idx]
+        val_error = self._validator.validate(new_party)
+        if val_error:
+            # 単体ではOKの個体の組み合わせでエラーになることは想定していない
+            raise RuntimeError('party validation failed: ' + str(val_error))
+        return new_party
