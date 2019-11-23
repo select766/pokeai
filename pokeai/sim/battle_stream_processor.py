@@ -69,6 +69,7 @@ class BattleStreamProcessor:
             '-end': self._handle_end,
             '-status': self._handle_status,
             '-curestatus': self._handle_curestatus,
+            '-sethp': self._handle_sethp,
             '-boost': self._handle_boost,
             '-unboost': self._handle_unboost,
             '-setboost': self._handle_setboost,
@@ -243,6 +244,15 @@ class BattleStreamProcessor:
         # 状態異常が回復
         # |-curestatus|p2a: Granbull|tox
         self.battle_status.get_side(msgargs[0]).active.status = ''
+        return None
+
+    def _handle_sethp(self, msgargs: List[str]) -> Optional[str]:
+        # HPを特定の値にセット(いたみわけで発生)
+        # |-sethp|p1a: Cleffa|104/171 par|[from] move: Pain Split|[silent]
+        hp_current, hp_max, status = parse_hp_condition(msgargs[1])
+        active = self.battle_status.get_side(msgargs[0]).active
+        active.hp_current = hp_current
+        active.status = status
         return None
 
     def _handle_boost(self, msgargs: List[str]) -> Optional[str]:
