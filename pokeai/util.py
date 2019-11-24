@@ -1,5 +1,6 @@
 import json
 import pickle
+import yaml
 from pathlib import Path
 from typing import Union
 
@@ -25,6 +26,16 @@ def pickle_load(path: Union[str, Path]):
 def pickle_dump(obj, path: Union[str, Path]):
     with open(path, 'wb') as f:
         pickle.dump(obj, f)
+
+
+def yaml_load(path: Union[str, Path]):
+    with open(path) as f:
+        return yaml.safe_load(f)
+
+
+def yaml_dump(obj, path: Union[str, Path]):
+    with open(path, "w") as f:
+        yaml.safe_dump(obj, f)
 
 
 def side2idx(side: str) -> int:
