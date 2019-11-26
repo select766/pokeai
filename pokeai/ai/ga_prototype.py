@@ -18,37 +18,15 @@ from typing import List
 import numpy as np
 from bson import ObjectId
 from tqdm import tqdm
-from pokeai.ai.action_policy import ActionPolicy
+from pokeai.ai.bias_model import BiasModel
 from pokeai.ai.feature_extractor import FeatureExtractor
 from pokeai.ai.linear_model import LinearModel
 from pokeai.ai.linear_policy import LinearPolicy
-from pokeai.ai.random_policy import RandomPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.util import pickle_load, pickle_dump
 from pokeai.sim.party_generator import Party
 from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj, unpack_obj, AgentDoc
 from pokeai.ai.rating_battle import load_agent
-
-
-def add_noise(model: LinearModel, std: float):
-    """
-    モデルにノイズを加えて次の候補とする
-    :param model:
-    :param std:
-    :return:
-    """
-    model.intercept_ += np.random.normal(scale=std, size=model.intercept_.shape)
-    model.coef_ += np.random.normal(scale=std, size=model.coef_.shape)
-
-
-def generate_next_generations(model: LinearModel, size: int, std: float):
-    models = []
-    for _ in range(size):
-        newmodel = model.copy()
-        add_noise(newmodel, std)
-        models.append(newmodel)
-    return models
 
 
 def fitness(sim, feature_extractor, fitness_policies, fitness_parties, target_party, target_model):
@@ -66,10 +44,9 @@ def fitness(sim, feature_extractor, fitness_policies, fitness_parties, target_pa
     return wins / len(fitness_parties)
 
 
-def ga(fitness_policies, fitness_parties, target_party, generations, populations, selections, std):
+def ga(feature_extractor, initial_model, fitness_policies, fitness_parties, target_party, generations, populations,
+       selections, std):
     sim = Sim()
-    feature_extractor = FeatureExtractor()
-    initial_model = LinearModel(feature_dims=feature_extractor.get_dims(), action_dims=18)
     current_models = [initial_model] * selections
     current_fitnesses = [0.0] * selections
     for gen in tqdm(range(generations)):
@@ -78,7 +55,7 @@ def ga(fitness_policies, fitness_parties, target_party, generations, populations
         for pop in range(populations):
             base_model = random.choice(current_models)
             cand_model = base_model.copy()
-            add_noise(base_model, std=std)
+            base_model.add_noise(std=std)
             cand_fitness = fitness(sim, feature_extractor, fitness_policies, fitness_parties, target_party, cand_model)
             cand_models.append(cand_model)
             cand_fitnesses.append(cand_fitness)
@@ -102,6 +79,7 @@ def main():
     parser.add_argument("party_id", help="学習対象のパーティID")
     parser.add_argument("agent_tags", help="エージェントのタグ(カンマ区切り)")
     parser.add_argument("dst_agent_tags")
+    parser.add_argument("--model_type", default="linear", choices=["linear", "bias"])
     parser.add_argument("--generations", type=int, default=10)
     parser.add_argument("--populations", type=int, default=100)
     parser.add_argument("--selections", type=int, default=10)
@@ -116,7 +94,15 @@ def main():
         fitness_policies.append(policy)
     target_party_doc = col_party.find_one({'_id': ObjectId(args.party_id)})
     target_party = target_party_doc['party']
-    trained_policy = ga(fitness_policies, fitness_parties, target_party,
+
+    feature_extractor = FeatureExtractor()
+    if args.model_type == "linear":
+        initial_model = LinearModel(feature_dims=feature_extractor.get_dims(), action_dims=18)
+    elif args.model_type == "bias":
+        initial_model = BiasModel(feature_dims=feature_extractor.get_dims(), action_dims=18)
+    else:
+        raise ValueError
+    trained_policy = ga(feature_extractor, initial_model, fitness_policies, fitness_parties, target_party,
                         args.generations, args.populations, args.selections, args.std)
     trained_agent_id = ObjectId()
     col_agent.insert_one({

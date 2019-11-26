@@ -12,3 +12,7 @@ class LinearModel(PolicyModel):
 
     def __call__(self, feature: np.ndarray) -> np.ndarray:
         return feature @ self.coef_ + self.intercept_
+
+    def add_noise(self, std: float):
+        self.intercept_ += np.random.normal(scale=std, size=self.intercept_.shape)
+        self.coef_ += np.random.normal(scale=std, size=self.coef_.shape)

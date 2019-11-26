@@ -8,3 +8,6 @@ class PolicyModel:
 
     def copy(self) -> "PolicyModel":
         return copy.deepcopy(self)
+
+    def add_noise(self, std: float):
+        raise NotImplementedError

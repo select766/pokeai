@@ -15,4 +15,8 @@ class BiasModel(PolicyModel):
         self.intercept_ = np.zeros((action_dims,), dtype=np.float)
 
     def __call__(self, feature: np.ndarray) -> np.ndarray:
-        return self.intercept_
+        # biasを入力サンプル数だけ繰り返す
+        return np.tile(self.intercept_, (len(feature), 1))
+
+    def add_noise(self, std: float):
+        self.intercept_ += np.random.normal(scale=std, size=self.intercept_.shape)
