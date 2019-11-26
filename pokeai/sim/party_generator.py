@@ -26,3 +26,7 @@ class PartyGenerator(metaclass=ABCMeta):
     @abstractmethod
     def generate(self) -> Party:
         raise NotImplementedError
+
+    @abstractmethod
+    def neighbor(self, party: Party) -> Party:
+        raise NotImplementedError
