@@ -8,6 +8,7 @@ from typing import List, Tuple
 import numpy as np
 from bson import ObjectId
 
+from pokeai.ai.common import load_agent
 from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj, unpack_obj, AgentDoc
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
@@ -81,11 +82,6 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
         print(f"{i} rate mean diff: {abs_mean_diff}")
     return rates.tolist(), log
 
-
-def load_agent(agent_doc: AgentDoc):
-    policy = unpack_obj(agent_doc['policy_packed'])
-    party = col_party.find_one({'_id': agent_doc['party_id']})['party']
-    return party, policy
 
 
 def main():
