@@ -34,6 +34,8 @@ def build_agent_v1(params, feature_dims: int, party_size: int) -> Agent:
         v=FCVFunction(feature_dims, **_get_nested(params, 'model.v.kwargs', {})))
     optimizer = chainer.optimizers.Adam(**_get_nested(params, 'optimizer.kwargs', {}))
     optimizer.setup(model)
+    if decay := _get_nested(params, 'optimizer.decay', 0.0) > 0.0:
+        optimizer.add_hook(chainer.optimizer.WeightDecay(decay))
     # 1バトルはせいぜい100ターンなので、t_maxは大きくして1バトル1回学習ということにする(最後にしか報酬が出ないので)
     agent = A3C(model=model, optimizer=optimizer, t_max=1000, **_get_nested(params, 'agent.kwargs', {}))
     agent.process_idx = 0  # なぜかconstructorで設定されない。バグ？
