@@ -6,6 +6,8 @@ import json
 import re
 from typing import Dict, Set, Optional, Tuple
 
+from pokeai.sim.party_generator import Party
+
 
 def parse_hp_condition(hp_condition: str) -> Tuple[int, int, str]:
     """
@@ -123,13 +125,15 @@ class BattleStatus:
     turn: int  # ターン番号(最初が0)
     side_friend: str  # 自分側のside ('p1' or 'p2')
     side_opponent: str  # 相手側のside ('p1' or 'p2')
+    side_party: Party  # 自分側のパーティ
     weather: str  # 天候（なしの時はWEATHER_NONE='none'）
     side_statuses: Dict[str, SideStatus]  # key: 'p1' or 'p2'
 
-    def __init__(self, side_friend: str):
+    def __init__(self, side_friend: str, side_party: Party):
         assert side_friend in ['p1', 'p2']
         self.side_friend = side_friend
         self.side_opponent = {'p1': 'p2', 'p2': 'p1'}[side_friend]
+        self.side_party = side_party
         self.turn = 0
         self.weather = BattleStatus.WEATHER_NONE
         self.side_statuses = {'p1': SideStatus(), 'p2': SideStatus()}

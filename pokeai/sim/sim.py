@@ -55,7 +55,7 @@ class Sim:
         :return: endメッセージの内容 {'winner': 'p1', 'turns': 34, ...}
         """
         for i in [0, 1]:
-            self.processors[i].start_battle(idx2side(i))
+            self.processors[i].start_battle(idx2side(i), self.parties[i])
 
         self._writeStart()
         while True:
@@ -66,6 +66,11 @@ class Sim:
             except Exception as ex:
                 raise ValueError(f"Exception on processing chunk {chunk_type},{chunk_data}", ex)
             if battle_result is not None:
+                # FIXME: ここで呼ぶべきか、processorにメソッドを設けるべきか
+                winner = battle_result['winner']
+                for side in ['p1', 'p2']:
+                    self.processors[side2idx(side)].policy.game_end(reward=(1.0 if winner == side else -1.0))
+
                 return battle_result
 
     def _extractUpdateForSide(self, side: str, chunk_data: str):

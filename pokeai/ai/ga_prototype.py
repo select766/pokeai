@@ -21,7 +21,7 @@ from tqdm import tqdm
 from pokeai.ai.bias_model import BiasModel
 from pokeai.ai.feature_extractor import FeatureExtractor
 from pokeai.ai.linear_model import LinearModel
-from pokeai.ai.linear_policy import LinearPolicy
+from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
 from pokeai.sim.party_generator import Party
@@ -31,7 +31,7 @@ from pokeai.ai.rating_battle import load_agent
 
 def fitness(sim, feature_extractor, fitness_policies, fitness_parties, target_party, target_model):
     bsp_t = BattleStreamProcessor()
-    bsp_t.set_policy(LinearPolicy(feature_extractor, target_model))
+    bsp_t.set_policy(RLPolicy(feature_extractor, target_model))
     wins = 0
     for fitness_policy, fitness_party in zip(fitness_policies, fitness_parties):
         bsp_f = BattleStreamProcessor()
@@ -69,7 +69,7 @@ def ga(feature_extractor, initial_model, fitness_policies, fitness_parties, targ
             next_fitnesses.append(cand_fitnesses[idx])
         current_fitnesses = next_fitnesses
         current_models = next_models
-    return LinearPolicy(feature_extractor, current_models[0])
+    return RLPolicy(feature_extractor, current_models[0])
 
 
 def main():

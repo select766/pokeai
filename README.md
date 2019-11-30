@@ -14,7 +14,7 @@ node v10.x が必要。
 ```
 git submodule update -i
 cd Pokemon-Showdown
-npm build
+npm run build
 ```
 
 python 3.8が必要。

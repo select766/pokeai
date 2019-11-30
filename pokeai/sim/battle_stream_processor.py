@@ -8,12 +8,14 @@ from typing import Optional, List, Tuple
 from logging import getLogger
 
 from pokeai.ai.battle_status import BattleStatus, parse_hp_condition
+from pokeai.sim.party_generator import Party
 
 logger = getLogger(__name__)
 
 
 class BattleStreamProcessor:
     side: Optional[str]  # p1 or p2
+    side_party: Optional[Party]  # プレイヤー側のパーティ
     last_request: dict  # 最新の行動選択時における味方の状態
     battle_status: BattleStatus
     policy: "ActionPolicy"
@@ -56,6 +58,7 @@ class BattleStreamProcessor:
 
     def __init__(self):
         self.side = None
+        self.side_party = None
         self.policy = None
         self._handlers = {
             'request': self._handle_request,
@@ -85,7 +88,7 @@ class BattleStreamProcessor:
     def set_policy(self, policy: "ActionPolicy"):
         self.policy = policy
 
-    def start_battle(self, side: str):
+    def start_battle(self, side: str, side_party: Party):
         """
         バトルの開始。バトルの状態を初期化する。
         :param side:
@@ -93,9 +96,10 @@ class BattleStreamProcessor:
         """
         assert self.policy is not None
         self.side = side
+        self.side_party = side_party
         self.last_request = None
         # FIXME: BattleStatusと責任境界が分かれてない
-        self.battle_status = BattleStatus(side)
+        self.battle_status = BattleStatus(side, side_party)
 
     def process_chunk(self, chunk_type: str, data: str) -> Optional[str]:
         """
