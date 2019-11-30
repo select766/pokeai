@@ -5,7 +5,7 @@ import tempfile
 import shutil
 import os
 
-from chainerrl.agents import A3C
+from chainerrl.agent import Agent
 
 from pokeai.ai.agent_builder import build_agent
 from pokeai.ai.battle_status import BattleStatus
@@ -22,18 +22,18 @@ class RLPolicy(RandomPolicy):
     """
     feature_extractor: FeatureExtractor
     agent_build_params: dict
-    agent: A3C
+    agent: Agent
 
     def __init__(self, feature_extractor: FeatureExtractor, agent_build_params: dict):
         """
         方策のコンストラクタ
         :param feature_extractor:
-        :param agent:
+        :param agent_build_params:
         """
         super().__init__()
         self.feature_extractor = feature_extractor
         self.agent_build_params = agent_build_params
-        self.agent = build_agent(agent_build_params, feature_extractor.get_dims())
+        self.agent = build_agent(agent_build_params, feature_extractor.get_dims(), feature_extractor.party_size)
 
     def choice_turn_start(self, battle_status: BattleStatus, request: dict) -> str:
         """
@@ -115,7 +115,8 @@ class RLPolicy(RandomPolicy):
         state_direct = state.copy()
         del state_direct['agent_archive']
         self.__dict__.update(state_direct)
-        self.agent = build_agent(self.agent_build_params, self.feature_extractor.get_dims())
+        self.agent = build_agent(self.agent_build_params, self.feature_extractor.get_dims(),
+                                 self.feature_extractor.party_size)
         dump_dir = tempfile.mkdtemp()  # /tmp/xyz
         tar_path = os.path.join(dump_dir, 'archive.tar')
         with open(tar_path, 'wb') as f:  # /tmp/xyz/archive.tar を作成

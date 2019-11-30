@@ -10,24 +10,16 @@ A3Cによる行動学習のプロトタイプ
 
 import argparse
 import random
-from typing import List
 import numpy as np
 from bson import ObjectId
-import chainer
-from chainerrl.agents import A3C
-from chainerrl.agents.a3c import A3CModel, A3CSeparateModel
-from chainerrl.v_functions import FCVFunction
 from tqdm import tqdm
-from pokeai.ai.bias_model import BiasModel
 from pokeai.ai.feature_extractor import FeatureExtractor
-from pokeai.ai.limited_policy import FCSoftmaxPolicyLimited
-from pokeai.ai.linear_model import LinearModel
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.sim.party_generator import Party
-from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj, unpack_obj, AgentDoc
+from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj
 from pokeai.ai.rating_battle import load_agent
+from pokeai.util import yaml_load
 
 
 def a3c_train(target_policy, target_party, fitness_policies, fitness_parties, battles: int):
@@ -53,6 +45,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("party_id", help="学習対象のパーティID")
     parser.add_argument("agent_tags", help="エージェントのタグ(カンマ区切り)")
+    parser.add_argument("agent_params", help="エージェントのモデル構造パラメータファイル")
     parser.add_argument("dst_agent_tags")
     parser.add_argument("--battles", type=int, default=100)
     args = parser.parse_args()
@@ -67,7 +60,7 @@ def main():
     target_party = target_party_doc['party']
 
     feature_extractor = FeatureExtractor()
-    target_policy = RLPolicy(feature_extractor, {})
+    target_policy = RLPolicy(feature_extractor, yaml_load(args.agent_params))
     target_policy.train = True
     a3c_train(target_policy, target_party, fitness_policies, fitness_parties, args.battles)
     trained_agent_id = ObjectId()
