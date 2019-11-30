@@ -63,6 +63,7 @@ def main():
     target_policy = RLPolicy(feature_extractor, yaml_load(args.agent_params))
     target_policy.train = True
     a3c_train(target_policy, target_party, fitness_policies, fitness_parties, args.battles)
+    target_policy.train = False
     trained_agent_id = ObjectId()
     col_agent.insert_one({
         '_id': trained_agent_id,
