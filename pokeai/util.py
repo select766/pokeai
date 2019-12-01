@@ -15,7 +15,7 @@ def json_load(path: Union[str, Path]):
 
 def json_dump(obj, path: Union[str, Path]):
     with open(path, 'w', encoding='utf-8') as f:
-        json.dump(obj, f)
+        json.dump(obj, f, indent=2, ensure_ascii=False)
 
 
 def pickle_load(path: Union[str, Path]):
