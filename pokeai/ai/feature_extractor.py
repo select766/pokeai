@@ -45,6 +45,7 @@ class FeatureExtractor:
         "nv_condition",
         "rank",
         "weather"]
+    # TODO: 持ち物があるかどうか（BattleStatusに現状情報がなく、requestから取り出す経路が必要）
 
     def __init__(self, feature_types: Optional[List[str]] = None, party_size: int = 3):
         self.feature_types = feature_types or FeatureExtractor.ALL_FEATURE_TYPES

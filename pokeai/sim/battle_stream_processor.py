@@ -47,6 +47,8 @@ class BattleStreamProcessor:
                    '-anim',  # アニメーション？
                    '-hitcount',  # *かいあたった
                    '-ohko',  # いちげきひっさつ
+                   '-item',  # アイテムが開示される
+                   '-enditem',  # アイテムが消費される
                    # |move|p1a: Xatu|Solar Beam||[still]
                    # |-prepare|p1a: Xatu|Solar Beam|p2a: Skiploom
                    # |-anim|p1a: Xatu|Solar Beam|p2a: Skiploom
