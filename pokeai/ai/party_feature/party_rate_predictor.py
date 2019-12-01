@@ -3,7 +3,7 @@
 """
 from typing import List
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+import scipy.sparse
 from sklearn.svm import LinearSVR
 
 from pokeai.ai.party_feature.party_feature_extractor import PartyFeatureExtractor
@@ -20,8 +20,12 @@ class PartyRatePredictor:
         self.regressor = LinearSVR(**self.params["regressor_params"])
 
     def _extract_feats(self, parties: List[Party]):
-        feats_array = [self.feature_extractor.get_feature(party_t) for party_t in parties]
-        return np.array(feats_array)
+        # scipy.sparse.csr_matrixは1次元ベクトルを渡すと(1, len)サイズの2次元行列になる
+        # LinearSVRではfloat64, CSR形式が受け付けられる
+        # https://github.com/scikit-learn/scikit-learn/blob/14031f65d144e3966113d3daec836e443c6d7a5b/sklearn/svm/classes.py#L374
+        feats_array = [scipy.sparse.csr_matrix(self.feature_extractor.get_feature(party_t).astype(np.float))
+                       for party_t in parties]
+        return scipy.sparse.vstack(feats_array, format='csr')
 
     def _scale(self, y: np.ndarray):
         return (y - PartyRatePredictor.SCALE_BIAS) / PartyRatePredictor.SCALE_STD

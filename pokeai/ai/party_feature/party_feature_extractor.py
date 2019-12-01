@@ -1,6 +1,6 @@
 """
 パーティ特徴抽出器
-現在2技関係=["P", "M", "PP", "MM", "PM"]が実装されている。
+現在2技関係=["P", "M", "I", "PP", "MM", "PM", "PI", "MI"]が実装されている。
 """
 from typing import List
 
@@ -16,6 +16,10 @@ _pokemon2idx = {name: i for i, name in enumerate(_all_pokemons)}
 # 技のid ["absorb", ...]
 _all_moves = json_load(DATASET_DIR.joinpath('all_moves.json'))  # type: List[str]
 _move2idx = {name: i for i, name in enumerate(_all_moves)}
+# 道具のid ["berryjuice", ...]
+# 道具なしが特徴になる場合も想定し、先頭に道具なし状態に対応する""を挿入。
+_all_items = [""] + json_load(DATASET_DIR.joinpath('all_items.json'))  # type: List[str]
+_item2idx = {name: i for i, name in enumerate(_all_items)}
 
 
 class PartyFeatureExtractor:
@@ -23,18 +27,25 @@ class PartyFeatureExtractor:
     total_dims: int  # 次元数
     N_POKES = len(_all_pokemons)
     N_MOVES = len(_all_moves)
+    N_ITEMS = len(_all_items)
     DIM_P = N_POKES
     DIM_M = N_MOVES
+    DIM_I = N_ITEMS
     DIM_PP = N_POKES * (N_POKES - 1) // 2
     DIM_MM = N_MOVES * (N_MOVES - 1) // 2
     DIM_PM = N_POKES * N_MOVES
-    ALL_NAMES = ["P", "M", "PP", "MM", "PM"]
+    DIM_PI = N_POKES * N_ITEMS
+    DIM_MI = N_MOVES * N_ITEMS
+    ALL_NAMES = ["P", "M", "I", "PP", "MM", "PM", "PI", "MI"]
     DIMS = {
         "P": DIM_P,
         "M": DIM_M,
+        "I": DIM_I,
         "PP": DIM_PP,
         "MM": DIM_MM,
         "PM": DIM_PM,
+        "PI": DIM_PI,
+        "MI": DIM_MI,
     }
 
     def __init__(self, names: List[str]):
@@ -43,9 +54,12 @@ class PartyFeatureExtractor:
         self._get_features = {
             "P": self._get_feature_p,
             "M": self._get_feature_m,
+            "I": self._get_feature_i,
             "PP": self._get_feature_pp,
             "MM": self._get_feature_mm,
             "PM": self._get_feature_pm,
+            "PI": self._get_feature_pi,
+            "MI": self._get_feature_mi,
         }
 
     def get_dimensions(self):
@@ -55,11 +69,16 @@ class PartyFeatureExtractor:
         """
 
         dims = []
-        getters = {"P": self._get_dimensions_p,
-                   "M": self._get_dimensions_m,
-                   "PP": self._get_dimensions_pp,
-                   "MM": self._get_dimensions_mm,
-                   "PM": self._get_dimensions_pm}
+        getters = {
+            "P": self._get_dimensions_p,
+            "M": self._get_dimensions_m,
+            "I": self._get_dimensions_i,
+            "PP": self._get_dimensions_pp,
+            "MM": self._get_dimensions_mm,
+            "PM": self._get_dimensions_pm,
+            "PI": self._get_dimensions_pi,
+            "MI": self._get_dimensions_mi,
+        }
         for name in self.names:
             dims.extend(getters[name]())
         return dims
@@ -68,14 +87,21 @@ class PartyFeatureExtractor:
         dims = []
         # P
         for d in _all_pokemons:
-            dims.append((d,))
+            dims.append(("P", d))
         return dims
 
     def _get_dimensions_m(self):
         dims = []
         # M
         for m in _all_moves:
-            dims.append((m,))
+            dims.append(("M", m))
+        return dims
+
+    def _get_dimensions_i(self):
+        dims = []
+        # I
+        for i in _all_items:
+            dims.append(("I", i))
         return dims
 
     def _get_dimensions_pp(self):
@@ -83,7 +109,7 @@ class PartyFeatureExtractor:
         # PP
         for di in range(len(_all_pokemons)):
             for dj in range(di + 1, len(_all_pokemons)):
-                dims.append((_all_pokemons[di], _all_pokemons[dj]))
+                dims.append(("PP", _all_pokemons[di], _all_pokemons[dj]))
         return dims
 
     def _get_dimensions_mm(self):
@@ -91,7 +117,7 @@ class PartyFeatureExtractor:
         # MM (1匹のポケモンが覚えている2技の組)
         for mi in range(len(_all_moves)):
             for mj in range(mi + 1, len(_all_moves)):
-                dims.append((_all_moves[mi], _all_moves[mj]))
+                dims.append(("MM", _all_moves[mi], _all_moves[mj]))
         return dims
 
     def _get_dimensions_pm(self):
@@ -99,7 +125,23 @@ class PartyFeatureExtractor:
         # PM
         for d in _all_pokemons:
             for m in _all_moves:
-                dims.append((d, m))
+                dims.append(("PM", d, m))
+        return dims
+
+    def _get_dimensions_pi(self):
+        dims = []
+        # PI
+        for d in _all_pokemons:
+            for it in _all_items:
+                dims.append(("PI", d, it))
+        return dims
+
+    def _get_dimensions_mi(self):
+        dims = []
+        # MI
+        for m in _all_moves:
+            for it in _all_items:
+                dims.append(("MI", m, it))
         return dims
 
     def get_feature(self, party: Party) -> np.ndarray:
@@ -127,6 +169,11 @@ class PartyFeatureExtractor:
             # M
             for m in poke['moves']:
                 feat[_move2idx[m]] = 1
+
+    def _get_feature_i(self, party: Party, feat: np.ndarray):
+        for poke in party:
+            # I
+            feat[_item2idx[poke['item']]] = 1
 
     def _get_feature_pp(self, party: Party, feat: np.ndarray):
         # PP
@@ -169,4 +216,17 @@ class PartyFeatureExtractor:
             # p1m1, p1m2, ..., p2m1, p2m2の順
             for m in poke['moves']:
                 idx = _pokemon2idx[poke['species']] * PartyFeatureExtractor.N_MOVES + _move2idx[m]
+                feat[idx] = 1
+
+    def _get_feature_pi(self, party: Party, feat: np.ndarray):
+        for poke in party:
+            # PI
+            idx = _pokemon2idx[poke['species']] * PartyFeatureExtractor.N_ITEMS + _item2idx[poke['item']]
+            feat[idx] = 1
+
+    def _get_feature_mi(self, party: Party, feat: np.ndarray):
+        for poke in party:
+            # MI
+            for m in poke['moves']:
+                idx = _move2idx[m] * PartyFeatureExtractor.N_ITEMS + _item2idx[poke['item']]
                 feat[idx] = 1
