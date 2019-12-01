@@ -2,6 +2,7 @@
 jsonで記述可能なエージェント・モデルパラメータからchainerrlのagentクラスのインスタンスを生成
 """
 import chainer
+from chainer.optimizer_hooks import WeightDecay
 from chainerrl.agent import Agent
 from chainerrl.agents import A3C
 from chainerrl.agents.a3c import A3CSeparateModel
@@ -63,7 +64,9 @@ def build_agent_v2(params, feature_dims: int, party_size: int) -> Agent:
     optimizer = chainer.optimizers.Adam(**_get_nested(params, 'optimizer.kwargs', {}))
     optimizer.setup(model)
     if decay := _get_nested(params, 'optimizer.decay', 0.0) > 0.0:
-        optimizer.add_hook(chainer.optimizer.WeightDecay(decay))
+        for param in model.params():
+            if param.name != 'b':  # バイアス以外だったら
+                param.update_rule.add_hook(WeightDecay(decay))  # 重み減衰を適用
     agent_type = _get_nested(params, 'agent.type', None)
     if agent_type == 'ACER':
         replay_buffer = EpisodicReplayBuffer(**_get_nested(params, 'replay_buffer.kwargs', {}))
