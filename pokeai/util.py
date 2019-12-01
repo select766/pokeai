@@ -9,12 +9,12 @@ DATASET_DIR = ROOT_DIR.joinpath('data', 'dataset')  # type:Path
 
 
 def json_load(path: Union[str, Path]):
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         return json.load(f)
 
 
 def json_dump(obj, path: Union[str, Path]):
-    with open(path, "w") as f:
+    with open(path, 'w', encoding='utf-8') as f:
         json.dump(obj, f)
 
 
@@ -29,12 +29,12 @@ def pickle_dump(obj, path: Union[str, Path]):
 
 
 def yaml_load(path: Union[str, Path]):
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
 def yaml_dump(obj, path: Union[str, Path]):
-    with open(path, "w") as f:
+    with open(path, 'w', encoding='utf-8') as f:
         yaml.safe_dump(obj, f)
 
 
