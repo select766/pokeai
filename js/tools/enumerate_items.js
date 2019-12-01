@@ -9,7 +9,7 @@ const item_ids = [];
 for (const key in items) {
     if (items.hasOwnProperty(key)) {
         const element = items[key];
-        if (element.gen === 2) {
+        if (element.gen === 2 && !element.isPokeball) {
             item_ids.push(key);
         }
     }
