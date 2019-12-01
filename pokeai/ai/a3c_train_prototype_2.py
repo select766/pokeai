@@ -61,17 +61,19 @@ def main():
 
     feature_extractor = FeatureExtractor()
     target_policy = RLPolicy(feature_extractor, yaml_load(args.agent_params))
-    target_policy.train = True
-    a3c_train(target_policy, target_party, fitness_policies, fitness_parties, args.battles)
-    target_policy.train = False
-    trained_agent_id = ObjectId()
-    col_agent.insert_one({
-        '_id': trained_agent_id,
-        'party_id': target_party_doc['_id'],
-        'policy_packed': pack_obj(target_policy),
-        'tags': args.dst_agent_tags.split(',')
-    })
-    print(f"trained agent id: {trained_agent_id}")
+    for i in range(10):
+        target_policy.train = True
+        a3c_train(target_policy, target_party, fitness_policies, fitness_parties, args.battles // 10)
+        target_policy.train = False
+        trained_agent_id = ObjectId()
+        col_agent.insert_one({
+            '_id': trained_agent_id,
+            'party_id': target_party_doc['_id'],
+            'policy_packed': pack_obj(target_policy),
+            'tags': args.dst_agent_tags.split(','),
+            'step': i,
+        })
+        print(f"trained agent id: {trained_agent_id}")
 
 
 if __name__ == '__main__':
