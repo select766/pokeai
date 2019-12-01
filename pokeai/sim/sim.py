@@ -25,10 +25,12 @@ class Sim:
     parties: List[Party]
     processors: List[BattleStreamProcessor]
     policies: List[ActionPolicy]
+    proc: subprocess.Popen
+    n_battle: int
 
     def __init__(self):
-        self.proc = subprocess.Popen(['node', 'js/simpipe'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     encoding='utf-8', cwd=str(ROOT_DIR))
+        self.n_battle = 0
+        self.proc = None
         self.parties = None
         self.processors = None
 
@@ -54,6 +56,17 @@ class Sim:
         バトルを１回行う
         :return: endメッセージの内容 {'winner': 'p1', 'turns': 34, ...}
         """
+        # シミュレータプログラムの実行。長く運用するとクラッシュすることがあるので定期的に再起動
+        if self.n_battle >= 1000:
+            self.proc.stdin.close()
+            self.proc.terminate()
+            self.proc = None
+            self.n_battle = 0
+        if self.proc is None:
+            self.proc = subprocess.Popen(['node', 'js/simpipe'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                         encoding='utf-8', cwd=str(ROOT_DIR))
+        self.n_battle += 1
+
         for i in [0, 1]:
             self.processors[i].start_battle(idx2side(i), self.parties[i])
 
