@@ -34,7 +34,7 @@ def a3c_train(target_policy, target_party, fitness_policies, fitness_parties, ba
         sim.set_processor([bsp_t, bsp_o])
         sim.set_party([target_party, fitness_parties[opponent_idx]])
         battle_result = sim.run()
-        results.append(1 if battle_result['winner'] == 'p1' else 0)
+        results.append({'p1': 1.0, 'p2': 0.0, '': 0.5}[battle_result['winner']])
         if gen % 10 == 0:
             print(f"mean winrate: {np.mean(results[-100:])}")
 

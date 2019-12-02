@@ -71,18 +71,30 @@ class Sim:
             self.processors[i].start_battle(idx2side(i), self.parties[i])
 
         self._writeStart()
+        sent_forcetie = False
         while True:
             chunk_type, chunk_data = self._readChunk()
             battle_result = None
+            if chunk_data.find('|turn|100') >= 0 and not sent_forcetie:
+                # 長すぎるバトルをカット
+                logger.warning(f"battle reached to 100 turns, exiting as tie")
+                self._writeChunk([
+                    f'>forcetie'
+                ])
+                sent_forcetie = True
+                # この後はendメッセージを待つだけ。エージェントにchoiceを送らせてはいけない
+                # (|error|[Invalid choice] Can't do anything: The game is over)というエラーになる
+                continue
             try:
-                battle_result = self._processChunk(chunk_type, chunk_data)
+                battle_result = self._processChunk(chunk_type, chunk_data, sent_forcetie)
             except Exception as ex:
                 raise ValueError(f"Exception on processing chunk {chunk_type},{chunk_data}", ex)
             if battle_result is not None:
                 # FIXME: ここで呼ぶべきか、processorにメソッドを設けるべきか
-                winner = battle_result['winner']
-                for side in ['p1', 'p2']:
-                    self.processors[side2idx(side)].policy.game_end(reward=(1.0 if winner == side else -1.0))
+                winner = battle_result['winner']  # 'p1', 'p2', '' (forcetieで引き分けの時)
+                reward_p1 = {'p1': 1.0, 'p2': -1.0, '': 0.0}[winner]
+                for side, sign in [('p1', 1.0), ('p2', -1.0)]:
+                    self.processors[side2idx(side)].policy.game_end(reward=reward_p1 * sign)
 
                 return battle_result
 
@@ -97,7 +109,7 @@ class Sim:
             chunk_data = re.sub('\n\\|split\\|' + side + '\n([^\n]*)\n(?:[^\n]*)', '\n\\1', chunk_data)
         return re.sub('\n\\|split\\|(?:[^\n]*)\n(?:[^\n]*)\n\n?', '\n', chunk_data)  # 対象でない秘密データ削除
 
-    def _processChunk(self, chunk_type: str, chunk_data: str) -> Optional[object]:
+    def _processChunk(self, chunk_type: str, chunk_data: str, sent_forcetie: bool) -> Optional[object]:
         """
         chunkの種類ごとに適切なプロセッサに振り分ける。バトル終了の場合はendメッセージの内容を返す
         :param chunk_type:
@@ -106,6 +118,12 @@ class Sim:
         """
         # 振り分けについては
         # battle-stream.ts を参考にする
+        if chunk_type == 'end':
+            # バトル終了
+            return json.loads(chunk_data)  # バトルの結果を返す
+        if sent_forcetie:
+            # forcetieを送った後は、endメッセージ以外無視
+            return None
         if chunk_type == 'sideupdate':
             side, side_data = chunk_data.split('\n')
             choice = self.processors[side2idx(side)].process_chunk(chunk_type, side_data)
@@ -117,9 +135,6 @@ class Sim:
                                                                        self._extractUpdateForSide(side, chunk_data))
                 if choice is not None:
                     self._writeChunk([f'>{side} {choice}'])
-        elif chunk_type == 'end':
-            # バトル終了
-            return json.loads(chunk_data)  # バトルの結果を返す
         else:
             raise NotImplementedError(f"Unknown chunk type {chunk_type}")
 

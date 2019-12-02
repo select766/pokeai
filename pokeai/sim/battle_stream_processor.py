@@ -56,6 +56,7 @@ class BattleStreamProcessor:
                    # |-damage|p2a: Skiploom|163/176
                    'cant',  # 麻痺などで行動ができない
                    'win',  # 勝敗決定(勝者の取得は別途endメッセージで行う)
+                   'tie',  # 引き分け(forcetieで発生)
                    ]
 
     def __init__(self):

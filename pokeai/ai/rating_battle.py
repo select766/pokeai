@@ -24,7 +24,7 @@ def match_agents(sim, parties, policies):
     sim.set_processor(bsps)
     sim.set_party(parties)
     result = sim.run()
-    winner = {'p1': 0, 'p2': 1}[result['winner']]
+    winner = {'p1': 0, 'p2': 1, '': -1}[result['winner']]
     return winner
 
 
@@ -83,8 +83,9 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
     return rates.tolist(), log
 
 
-
 def main():
+    import logging
+    logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
     parser.add_argument("agent_tags", help="エージェントのタグ(カンマ区切り)")
     parser.add_argument("--fixed_rate", help="レート固定パーティのレートid")
