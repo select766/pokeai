@@ -7,12 +7,15 @@ import argparse
 from typing import List, Tuple
 import numpy as np
 from bson import ObjectId
+from logging import getLogger
 
 from pokeai.ai.common import load_agent
 from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj, unpack_obj, AgentDoc
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
 from pokeai.util import pickle_dump
+
+logger = getLogger(__name__)
 
 
 def match_agents(sim, parties, policies):
@@ -64,6 +67,7 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
             if fixed_rates[left] != 0 and fixed_rates[right] != 0:
                 # どちらもレート固定パーティなので、対戦不要
                 continue
+            logger.debug(f"match start: {agent_ids[left]}, {agent_ids[right]}")
             winner = match_agents(sim, [parties[left], parties[right]], [policies[left], policies[right]])
             # レートを変動させる
             if winner >= 0:
@@ -78,20 +82,22 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
                     rates[right] -= left_incr
             log.append({"agents": [agent_ids[left], agent_ids[right]],
                         "winner": winner})
+            logger.debug(f"match end: winner: {winner}")
         abs_mean_diff = np.mean(np.abs(rates - 1500.0))
-        print(f"{i} rate mean diff: {abs_mean_diff}")
+        logger.info(f"{i} rate mean diff: {abs_mean_diff}")
     return rates.tolist(), log
 
 
 def main():
     import logging
-    logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
     parser.add_argument("agent_tags", help="エージェントのタグ(カンマ区切り)")
     parser.add_argument("--fixed_rate", help="レート固定パーティのレートid")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
     parser.add_argument("--log", help="ログディレクトリ")
+    parser.add_argument("--loglevel", help="対戦経過のログ出力のレベル", choices=["INFO", "WARNING", "DEBUG"], default="INFO")
     args = parser.parse_args()
+    logging.basicConfig(level=getattr(logging, args.loglevel))
     parties = []
     policies = []
     agent_ids = []

@@ -67,7 +67,7 @@ class RLPolicy(RandomPolicy):
         :param choice_keys:
         :return:
         """
-        logger.info(f"choice of player {battle_status.side_friend}")
+        logger.debug(f"choice of player {battle_status.side_friend}")
         feat = self.feature_extractor.transform(battle_status, choice_vec)
         logger.debug(f"feature: {feat.tolist()}")
         if self.train:
