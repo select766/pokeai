@@ -116,7 +116,7 @@ def main():
         parties.append(party)
         policies.append(policy)
         agent_ids.append(agent_doc['_id'])
-        fixed_rates.append(fixed_rate_map.get(agent_doc['_id'], 0.0))
+        fixed_rates.append(fixed_rate_map.get(str(agent_doc['_id']), 0.0))
     rates, log = rating_battle(parties, policies, agent_ids, args.match_count, fixed_rates=fixed_rates)
     col_rate.insert_one({
         "_id": rate_id,
