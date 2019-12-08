@@ -14,9 +14,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("tags")
     parser.add_argument("-n", type=int, default=100)
+    parser.add_argument("-r", default="default", help="regulation")
     args = parser.parse_args()
     tags = args.tags.split(",") if args.tags else []
-    gen = RandomPartyGenerator()
+    gen = RandomPartyGenerator(regulation=args.r)
     parties = [{'_id': ObjectId(), 'party': gen.generate(), 'tags': tags} for _ in range(args.n)]
     col_party.insert_many(parties)
 

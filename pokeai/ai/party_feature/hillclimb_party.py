@@ -39,6 +39,7 @@ def main():
     parser.add_argument("predictor", help="学習済評価関数")
     parser.add_argument("seed_tags", help="変更元にするパーティのタグ")
     parser.add_argument("dst_tags", help="生成パーティの保存タグ")
+    parser.add_argument("-r", default="default", help="regulation")
     parser.add_argument("--generations", type=int, default=10)
     parser.add_argument("--populations", type=int, default=10)
     args = parser.parse_args()
@@ -47,7 +48,7 @@ def main():
     for party_doc in col_party.find({"tags": {"$in": args.seed_tags.split(",")}}):
         seed_parties.append(party_doc["party"])
     dst_tags = args.dst_tags.split(",")
-    party_generator = RandomPartyGenerator()
+    party_generator = RandomPartyGenerator(regulation=args.r)
     generated_parties = hillclimb(predictor=predictor,
                                   party_generator=party_generator,
                                   seed_parties=seed_parties,
