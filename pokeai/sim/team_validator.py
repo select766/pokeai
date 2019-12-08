@@ -76,6 +76,10 @@ def demo():
           "moves": ['lightscreen', 'swordsdance'],  # 卵技ひかりのかべ(第1世代に存在)と第1世代限定技マシンつるぎのまい=>OK
           }],
         [{**fill,
+          "species": "cubone",  # カラカラ
+          "moves": ['perishsong', 'swordsdance'],  # 卵技ほろびのうた・つるぎのまい=>同時遺伝経路がない
+          }],
+        [{**fill,
           "species": "espeon",  # エーフィ
           "moves": ['skullbash', 'psychic'],  # 第1世代限定技マシンロケットずつきと第2世代限定の進化系=>OK
           }],
