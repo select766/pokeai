@@ -45,6 +45,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("party_id", help="学習対象のパーティID")
     parser.add_argument("agent_tags", help="対戦相手エージェントのタグ(カンマ区切り)")
+    parser.add_argument("feature_params", help="特徴抽出パラメータファイル")
     parser.add_argument("agent_params", help="エージェントのモデル構造パラメータファイル")
     parser.add_argument("dst_agent_tags")
     parser.add_argument("--battles", type=int, default=100)
@@ -63,8 +64,7 @@ def main():
     target_party_doc = col_party.find_one({'_id': ObjectId(args.party_id)})
     target_party = target_party_doc['party']
 
-    feature_extractor = FeatureExtractor()
-    target_policy = RLPolicy(feature_extractor, yaml_load(args.agent_params))
+    target_policy = RLPolicy(yaml_load(args.feature_params), yaml_load(args.agent_params))
     target_policy.train = True
     sim = Sim()
     results = []

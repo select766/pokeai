@@ -24,16 +24,18 @@ class RLPolicy(RandomPolicy):
     agent_build_params: dict
     agent: Agent
 
-    def __init__(self, feature_extractor: FeatureExtractor, agent_build_params: dict):
+    def __init__(self, feature_extractor_params: dict, agent_build_params: dict):
         """
         方策のコンストラクタ
-        :param feature_extractor:
+        :param feature_extractor_params:
         :param agent_build_params:
         """
         super().__init__()
-        self.feature_extractor = feature_extractor
+        self.feature_extractor = FeatureExtractor(**feature_extractor_params)
         self.agent_build_params = agent_build_params
-        self.agent = build_agent(agent_build_params, feature_extractor.get_dims(), feature_extractor.party_size)
+        self.agent = build_agent(agent_build_params,
+                                 self.feature_extractor.get_dims(),
+                                 self.feature_extractor.party_size)
 
     def choice_turn_start(self, battle_status: BattleStatus, request: dict) -> str:
         """
