@@ -2,6 +2,7 @@
 シミュレータからのメッセージを解釈し、AIを制御する
 """
 import json
+import logging
 import random
 import re
 from typing import Optional, List, Tuple
@@ -9,6 +10,7 @@ from logging import getLogger
 
 from pokeai.ai.battle_status import BattleStatus, parse_hp_condition
 from pokeai.sim.party_generator import Party
+from pokeai.util import pickle_base64_dumps
 
 logger = getLogger(__name__)
 
@@ -149,7 +151,14 @@ class BattleStreamProcessor:
             # 強制交換(瀕死)
             # このタイミングで交換先を選ぶ
             # 厳密には、この後にターンの経過（どの技が使われたかなど）のメッセージが来るのでそれも判断に取り入れるべきだが、現状では無視
-            return self.policy.choice_force_switch(self.battle_status, request)
+            choice = self.policy.choice_force_switch(self.battle_status, request)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    'choice_force_switch: ' + json.dumps({"battle_status": pickle_base64_dumps(self.battle_status),
+                                                          "battle_status_json": self.battle_status.json_dumps(),
+                                                          "request": request,
+                                                          "choice": choice}))
+            return choice
         elif request.get('active'):
             # 通常のターン開始時の行動選択
             # この後に前回ターンの経過が来るので、それを待った上でAIが判断する
@@ -197,8 +206,13 @@ class BattleStreamProcessor:
         # 最初のターンは1
         turn = int(msgargs[0])
         self.battle_status.turn = turn
-        logger.debug('turn_start ' + self.battle_status.json_dumps())
-        return self.policy.choice_turn_start(self.battle_status, self.last_request)
+        choice = self.policy.choice_turn_start(self.battle_status, self.last_request)
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug('choice_turn_start: ' + json.dumps({"battle_status": pickle_base64_dumps(self.battle_status),
+                                                             "battle_status_json": self.battle_status.json_dumps(),
+                                                             "request": self.last_request,
+                                                             "choice": choice}))
+        return choice
 
     def _handle_start(self, msgargs: List[str]) -> Optional[str]:
         """
