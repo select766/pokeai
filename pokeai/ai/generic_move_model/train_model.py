@@ -59,9 +59,23 @@ def train_loop(out_dir, train_loader, val_loader, model, optimizer, train_config
     summary_writer.flush()  # flushしないと最後のサンプルが欠損している場合がある
 
 
+def predict(out_dir, val_loader, model):
+    loaded_state_dict = torch.load(os.path.join(out_dir, "model.pt"))
+    model.load_state_dict(loaded_state_dict["model_state_dict"])
+    del loaded_state_dict
+    model.eval()
+    preds = []
+    with torch.no_grad():
+        for input_feats, choices in val_loader:
+            pred = model(input_feats).numpy()
+            preds.append(pred)
+    np.savez(os.path.join(out_dir, "pred.npz"), pred=np.concatenate(preds, axis=0))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out_dir")
+    parser.add_argument("--predict", action="store_true")
     args = parser.parse_args()
     model_config = yaml_load(os.path.join(args.out_dir, "model.yaml"))
     train_config = yaml_load(os.path.join(args.out_dir, "train.yaml"))
@@ -71,6 +85,9 @@ def main():
                            False)
     assert model_config["class"] == "MLPModel"
     model = MLPModel(558, **model_config["kwargs"])
+    if args.predict:
+        predict(out_dir=args.out_dir, val_loader=val_loader, model=model)
+        return
     # optimizer = optim.Adam(model.parameters(), lr=1e-2)
     optimizer = getattr(optim, train_config["optimizer"]["class"])(model.parameters(),
                                                                    **train_config["optimizer"]["kwargs"])
