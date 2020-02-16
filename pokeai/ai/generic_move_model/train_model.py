@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from torch.utils.tensorboard import SummaryWriter
 
 from pokeai.ai.generic_move_model.mlp_model import MLPModel
+from pokeai.util import yaml_load
 
 
 def load_data(data_dir, batch_size, shuffle=False):
@@ -18,11 +19,11 @@ def load_data(data_dir, batch_size, shuffle=False):
     return loader
 
 
-def train_loop(out_dir, train_loader, val_loader, model, optimizer):
+def train_loop(out_dir, train_loader, val_loader, model, optimizer, train_config):
     criterion = nn.CrossEntropyLoss()
     trained_samples = 0
     summary_writer = SummaryWriter(os.path.join(out_dir, "log"))
-    for epoch in range(100):
+    for epoch in range(train_config["epoch"]):
         model.train()
         for input_feats, choices in train_loader:
             optimizer.zero_grad()
@@ -55,20 +56,26 @@ def train_loop(out_dir, train_loader, val_loader, model, optimizer):
         summary_writer.add_scalar("val/avg_loss", avg_loss, trained_samples)
         summary_writer.add_scalar("val/avg_top1_accuracy", avg_top1_accuracy, trained_samples)
         torch.save({"model_state_dict": model.state_dict()}, os.path.join(out_dir, "model.pt"))
+    summary_writer.flush()  # flushしないと最後のサンプルが欠損している場合がある
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("out_dir")
-    parser.add_argument("train_dir")
-    parser.add_argument("val_dir")
     args = parser.parse_args()
-    train_loader = load_data(args.train_dir, 64, True)
-    val_loader = load_data(args.val_dir, 64, False)
-    model = MLPModel(558, n_layers=2, n_channels=64)
-    optimizer = optim.Adam(model.parameters(), lr=1e-2)
-    os.makedirs(args.out_dir, exist_ok=True)
-    train_loop(args.out_dir, train_loader=train_loader, val_loader=val_loader, model=model, optimizer=optimizer)
+    model_config = yaml_load(os.path.join(args.out_dir, "model.yaml"))
+    train_config = yaml_load(os.path.join(args.out_dir, "train.yaml"))
+    train_loader = load_data(train_config["dataset"]["train"]["dir"], train_config["dataset"]["train"]["batch_size"],
+                             True)
+    val_loader = load_data(train_config["dataset"]["val"]["dir"], train_config["dataset"]["val"]["batch_size"],
+                           False)
+    assert model_config["class"] == "MLPModel"
+    model = MLPModel(558, **model_config["kwargs"])
+    # optimizer = optim.Adam(model.parameters(), lr=1e-2)
+    optimizer = getattr(optim, train_config["optimizer"]["class"])(model.parameters(),
+                                                                   **train_config["optimizer"]["kwargs"])
+    train_loop(args.out_dir, train_loader=train_loader, val_loader=val_loader, model=model, optimizer=optimizer,
+               train_config=train_config)
 
 
 if __name__ == '__main__':
