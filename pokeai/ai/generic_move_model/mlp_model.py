@@ -9,7 +9,7 @@ class MLPModel(nn.Module):
         bn_layers = []
         cur_hidden_ch = input_dim
         for i in range(n_layers):
-            layers.append(nn.Conv1d(cur_hidden_ch, n_channels, 1))  # in,out,ksize
+            layers.append(nn.Conv1d(cur_hidden_ch, n_channels, 1, bias=not bn))  # in,out,ksize
             cur_hidden_ch = n_channels
             if bn:
                 bn_layers.append(nn.BatchNorm1d(n_channels))
