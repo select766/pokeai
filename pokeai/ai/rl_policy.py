@@ -1,17 +1,11 @@
-import chainer
-import numpy as np
 from logging import getLogger
-import tempfile
-import shutil
-import os
 
-from chainerrl.agent import Agent
-
-from pokeai.ai.agent_builder import build_agent
+from pokeai.ai.generic_move_model.agent import Agent
 from pokeai.ai.battle_status import BattleStatus
 from pokeai.ai.common import get_possible_actions
 from pokeai.ai.feature_extractor import FeatureExtractor
 from pokeai.ai.random_policy import RandomPolicy
+from pokeai.ai.rl_policy_observation import RLPolicyObservation
 
 logger = getLogger(__name__)
 
@@ -21,21 +15,14 @@ class RLPolicy(RandomPolicy):
     強化学習による方策
     """
     feature_extractor: FeatureExtractor
-    agent_build_params: dict
     agent: Agent
 
-    def __init__(self, feature_extractor_params: dict, agent_build_params: dict):
+    def __init__(self, agent: Agent):
         """
         方策のコンストラクタ
-        :param feature_extractor_params:
-        :param agent_build_params:
         """
         super().__init__()
-        self.feature_extractor = FeatureExtractor(**feature_extractor_params)
-        self.agent_build_params = agent_build_params
-        self.agent = build_agent(agent_build_params,
-                                 self.feature_extractor.get_dims(),
-                                 self.feature_extractor.party_size)
+        self.agent = agent
 
     def choice_turn_start(self, battle_status: BattleStatus, request: dict) -> str:
         """
@@ -44,10 +31,7 @@ class RLPolicy(RandomPolicy):
         :param request:
         :return: 行動。"move [1-4]|switch [1-6]"
         """
-        choice_idxs, choice_keys, choice_vec = get_possible_actions(battle_status, request)
-        if len(choice_idxs) == 1:
-            return choice_keys[0]
-        return self._choice_by_model(battle_status, choice_idxs, choice_keys, choice_vec)
+        return self._choice_by_model(battle_status, request)
 
     def choice_force_switch(self, battle_status: BattleStatus, request: dict) -> str:
         """
@@ -56,12 +40,9 @@ class RLPolicy(RandomPolicy):
         :param request:
         :return: 行動。"switch [1-6]"
         """
-        choice_idxs, choice_keys, choice_vec = get_possible_actions(battle_status, request)
-        if len(choice_idxs) == 1:
-            return choice_keys[0]
-        return self._choice_by_model(battle_status, choice_idxs, choice_keys, choice_vec)
+        return self._choice_by_model(battle_status, request)
 
-    def _choice_by_model(self, battle_status: BattleStatus, choice_idxs, choice_keys, choice_vec):
+    def _choice_by_model(self, battle_status: BattleStatus, request: dict) -> str:
         """
         モデルで各行動の優先度を出し、それに従い行動を選択する
         :param battle_status:
@@ -70,12 +51,14 @@ class RLPolicy(RandomPolicy):
         :return:
         """
         logger.debug(f"choice of player {battle_status.side_friend}")
-        feat = self.feature_extractor.transform(battle_status, choice_vec)
-        logger.debug(f"feature: {feat.tolist()}")
-        if self.train:
-            action = self.agent.act_and_train(feat, 0.0)  # 0~17の番号
-        else:
-            action = self.agent.act(feat)
+        choice_idxs, choice_keys, choice_vec = get_possible_actions(battle_status, request)
+        if len(choice_idxs) == 1:
+            # 選択肢が１つだけの場合はモデルに与えない
+            # 与える場合、action番号を正しく設定する必要あり(get_possible_actions内コメントに注意)
+            logger.debug(f"only one choice: {choice_keys[0]}")
+            return choice_keys[0]
+        obs = RLPolicyObservation(battle_status, request)
+        action = self.agent.act(obs, 0.0)
         for idx, key in zip(choice_idxs, choice_keys):
             if idx == action:
                 chosen = key
@@ -86,44 +69,4 @@ class RLPolicy(RandomPolicy):
         return chosen
 
     def game_end(self, reward: float):
-        if self.train:
-            # done=Trueの場合はstateは使用されないので問題ない
-            self.agent.stop_episode_and_train(None, reward, True)
-        else:
-            # LSTMなどの場合には呼び出しが必要
-            self.agent.stop_episode()
-
-    def __getstate__(self):
-        # pickle.dumpで呼び出される
-        # agentはdumpできないので、インスタンスの生成引数を別途dictに入れる
-        # エラー例: AttributeError: Can't pickle local object 'Optimizer.setup.<locals>.OptimizerHookable'
-        # 学習された重みはディレクトリに保存しそれをtarアーカイブ、バイナリ文字列として読んでpickleに保存
-        d = self.__dict__.copy()
-        del d['agent']
-        dump_dir = tempfile.mkdtemp()  # /tmp/xyz
-        agent_dump_dir = os.path.join(dump_dir, 'agent')  # /tmp/xyz/agent
-        os.mkdir(agent_dump_dir)
-        self.agent.save(agent_dump_dir)  # /tmp/xyz/agent/model.npz など
-        tar_path_wo_ext = os.path.join(dump_dir, 'archive')
-        tar_path = tar_path_wo_ext + '.tar'
-        shutil.make_archive(tar_path_wo_ext, 'tar', agent_dump_dir)  # /tmp/xyz/archive.tar
-        with open(tar_path, 'rb') as f:
-            archive_data = f.read()  # /tmp/xyz/archive.tar の中身
-        shutil.rmtree(dump_dir)
-        d['agent_archive'] = archive_data
-        return d
-
-    def __setstate__(self, state):
-        state_direct = state.copy()
-        del state_direct['agent_archive']
-        self.__dict__.update(state_direct)
-        self.agent = build_agent(self.agent_build_params, self.feature_extractor.get_dims(),
-                                 self.feature_extractor.party_size)
-        dump_dir = tempfile.mkdtemp()  # /tmp/xyz
-        tar_path = os.path.join(dump_dir, 'archive.tar')
-        with open(tar_path, 'wb') as f:  # /tmp/xyz/archive.tar を作成
-            f.write(state['agent_archive'])
-        agent_dump_dir = os.path.join(dump_dir, 'agent')  # /tmp/xyz/agent
-        shutil.unpack_archive(tar_path, agent_dump_dir)  # /tmp/xyz/agent/model.npz など
-        self.agent.load(agent_dump_dir)
-        shutil.rmtree(dump_dir)
+        self.agent.stop_episode(reward)

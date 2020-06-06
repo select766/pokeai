@@ -84,7 +84,7 @@ def main():
     val_loader = load_data(train_config["dataset"]["val"]["dir"], train_config["dataset"]["val"]["batch_size"],
                            False)
     assert model_config["class"] == "MLPModel"
-    model = MLPModel(558, **model_config["kwargs"])
+    model = MLPModel((558, 4), **model_config["kwargs"])
     if args.predict:
         predict(out_dir=args.out_dir, val_loader=val_loader, model=model)
         return

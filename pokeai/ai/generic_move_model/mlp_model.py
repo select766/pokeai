@@ -3,11 +3,11 @@ import torch.nn.functional as F
 
 
 class MLPModel(nn.Module):
-    def __init__(self, input_dim, n_layers=2, n_channels=64, bn=False):
+    def __init__(self, input_shape, output_dim, n_layers=2, n_channels=64, bn=False):
         super().__init__()
         layers = []
         bn_layers = []
-        cur_hidden_ch = input_dim
+        cur_hidden_ch = input_shape[0]
         for i in range(n_layers):
             layers.append(nn.Conv1d(cur_hidden_ch, n_channels, 1, bias=not bn))  # in,out,ksize
             cur_hidden_ch = n_channels
