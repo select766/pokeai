@@ -81,7 +81,7 @@ def main():
     # party_tagsのいずれかのタグを含むエージェントを列挙
     for party_doc in col_party.find({"tags": {"$in": args.party_tags.split(",")}}):
         parties.append(party_doc["party"])
-    trainer = Trainer({}, {})
+    trainer = Trainer({"n_layers": 3, "n_channels": 16, "bn": False}, {})
 
     sim = Sim()
     for battle_idx in tqdm(range(args.battles)):
