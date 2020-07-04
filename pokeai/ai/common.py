@@ -4,27 +4,9 @@ from bson import ObjectId
 import numpy as np
 
 from pokeai.ai.battle_status import BattleStatus
-from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj, unpack_obj, AgentDoc
+from pokeai.ai.party_db import col_party, col_rate, pack_obj, unpack_obj
 from pokeai.sim.party_generator import Party
 from pokeai.ai.dex import dex
-
-
-def load_agent(agent_doc: AgentDoc):
-    """
-    AgentコレクションのドキュメントからParty, Policyをロードする
-    :param agent_doc:
-    :return:
-    """
-    policy = unpack_obj(agent_doc['policy_packed'])
-    party = col_party.find_one({'_id': agent_doc['party_id']})['party']
-    return party, policy
-
-
-def load_agent_by_id(_id: Union[ObjectId, str]):
-    if not isinstance(_id, ObjectId):
-        _id = ObjectId(_id)
-    agent_doc = col_agent.find_one({'_id': _id})
-    return load_agent(agent_doc)
 
 
 def get_possible_actions(battle_status: BattleStatus, request: dict) -> Tuple[List[int], List[str], np.ndarray]:
@@ -57,6 +39,7 @@ def get_possible_actions(battle_status: BattleStatus, request: dict) -> Tuple[Li
     # [{"moves":[{"move":"Sky Attack","id":"skyattack"}],"trapped":true}],
     # のようにmoveが１要素だけになり、active.trapped:trueとなる
     # moveの番号自体ずれる(固定された技を強制選択となり"move 1"を返すこととなる)ので、番号と技の対応に注意
+    # TODO: ソーラービームで"trapped"がないがmoveが1要素だけという事態があり要検証
 
     # request['side']['pokemon']:
     # {\"ident\":\"p1: Kangaskhan\",\"details\":\"Kangaskhan, L50, F\",\"condition\":\"211/211\",\"active\":true,

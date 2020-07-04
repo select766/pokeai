@@ -8,9 +8,9 @@ from bson import ObjectId
 from pokeai.sim.party_generator import Party
 
 client = MongoClient()
-db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_2")]
+db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_3")]
 col_party = db["Party"]  # document type PartyDoc
-col_agent = db["Agent"]  # document type AgentDoc
+col_trainer = db["Trainer"]  # document type TrainerDoc
 col_rate = db["Rate"]  # document type RateDoc
 
 
@@ -20,16 +20,16 @@ class PartyDoc(TypedDict):
     tags: List[str]
 
 
-class AgentDoc(TypedDict):
+class TrainerDoc(TypedDict):
     _id: ObjectId
-    party_id: ObjectId
-    policy_packed: bytes  # pack_objによりシリアライズされたActionPolicy
+    trainer_packed: bytes  # pack_obj(Trainer.save_state())
+    train_params: dict  # 学習手法パラメータ
     tags: List[str]
 
 
 class RateDoc(TypedDict):
     _id: ObjectId
-    rates: Dict[str, float]  # str(agent_id) => rate (平均1500)
+    rates: Dict[str, float]  # str(trainer_id)+'+'+str(party_id) => rate (平均1500)
 
 
 def pack_obj(obj):

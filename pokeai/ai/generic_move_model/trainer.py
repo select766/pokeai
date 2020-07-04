@@ -24,13 +24,18 @@ DQN_DEFAULT_PARAMS = {
 
 
 class Trainer:
-    def __init__(self, model_params: dict, dqn_params: dict):
-        self.feature_extractor = FeatureExtractor()
+    def __init__(self, model_params: dict, dqn_params: dict, feature_params: dict):
+        self.constructor_params = {
+            "model_params": model_params,
+            "dqn_params": dqn_params,
+            "feature_params": feature_params,
+        }
+        self.feature_extractor = FeatureExtractor(**feature_params)
         self.model_params = model_params.copy()
         self.model_params["input_shape"] = self.feature_extractor.input_shape
         self.model_params["output_dim"] = self.feature_extractor.output_dim
-        self.model = MLPModel(**self.model_params)
-        self.target_model = MLPModel(**self.model_params)
+        self.model = self._construct_model()
+        self.target_model = self._construct_model()
         self.target_model.load_state_dict(self.model.state_dict())
         self.optimizer = optim.Adam(self.model.parameters())
         # replay bufferに追加された全ステップ数
@@ -50,22 +55,30 @@ class Trainer:
         self.target_update = dqn_params_with_default["target_update"]  # optimize回数ごとにtarget networkをupdate
         self.double_dqn = dqn_params_with_default["double_dqn"]
 
-    def save_state(self):
+    def _construct_model(self):
+        # TODO: モデルクラスの選択
+        return MLPModel(**self.model_params)
+
+    def save_state(self, resume=False):
         # 現状、get_val_agentが可能な最低限の情報を保存している
         # TODO: optimizer, replay_bufferなども保存し、学習の再開も可能とする
-        return {"model": self.model.state_dict()}
+        assert resume is False
+        return {"model": self.model.state_dict(), "constructor_params": self.constructor_params}
 
-    def load_state(self, state):
-        self.model.load_state_dict(state["model"])
+    @classmethod
+    def load_state(cls, state):
+        trainer = cls(**state["constructor_params"])
+        trainer.model.load_state_dict(state["model"])
+        return trainer
 
     def get_train_agent(self):
-        model = MLPModel(**self.model_params)
+        model = self._construct_model()
         model.load_state_dict(self.model.state_dict())
         model.eval()
         return AgentTrain(model, self.feature_extractor, self.epsilon)
 
     def get_val_agent(self):
-        model = MLPModel(**self.model_params)
+        model = self._construct_model()
         model.load_state_dict(self.model.state_dict())
         model.eval()
         return AgentVal(model, self.feature_extractor)

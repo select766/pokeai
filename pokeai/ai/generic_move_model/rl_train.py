@@ -11,21 +11,16 @@ from pokeai.ai.generic_move_model.trainer import Trainer
 from pokeai.ai.random_policy import RandomPolicy
 from pokeai.sim.party_generator import Party
 
-# Prevent numpy from using multiple threads
-os.environ['OMP_NUM_THREADS'] = '1'  # NOQA
-
 import argparse
 import random
 import numpy as np
 from bson import ObjectId
 from tqdm import tqdm
-from pokeai.ai.feature_extractor import FeatureExtractor
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj
-from pokeai.ai.rating_battle import load_agent
-from pokeai.util import yaml_load, pickle_dump
+from pokeai.ai.party_db import col_party, col_trainer, pack_obj
+from pokeai.util import yaml_load
 
 
 def battle_once(sim, trainer: Trainer, target_parties: List[Party]) -> float:
@@ -73,23 +68,30 @@ def main():
     import logging
     logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
-    parser.add_argument("dst")
-    parser.add_argument("party_tags", help="学習対象のパーティのタグ(カンマ区切り)")
-    parser.add_argument("--battles", type=int, default=100)
+    parser.add_argument("train_param_file")
     args = parser.parse_args()
+    train_params = yaml_load(args.train_param_file)
+    tags = train_params["tags"]
     parties = []
     # party_tagsのいずれかのタグを含むエージェントを列挙
-    for party_doc in col_party.find({"tags": {"$in": args.party_tags.split(",")}}):
+    for party_doc in col_party.find({"tags": {"$in": train_params["party_tags"]}}):
         parties.append(party_doc["party"])
-    trainer = Trainer({"n_layers": 3, "n_channels": 16, "bn": False}, {})
+    trainer = Trainer(**train_params["trainer"])
 
     sim = Sim()
-    for battle_idx in tqdm(range(args.battles)):
+    for battle_idx in tqdm(range(train_params["battles"])):
         target_parties = random.sample(parties, 2)
         train_episode(sim, trainer, target_parties)
         if battle_idx % 1000 == 0:
             print("mean score", random_val(sim, trainer, parties, 100))
-    pickle_dump(trainer.save_state(), args.dst)
+    trainer_id = ObjectId()
+    col_trainer.insert_one({
+        "_id": trainer_id,
+        "trainer_packed": pack_obj(trainer.save_state()),
+        "train_params": train_params,
+        "tags": tags,
+    })
+    print("trainer id", trainer_id)
 
 
 if __name__ == '__main__':

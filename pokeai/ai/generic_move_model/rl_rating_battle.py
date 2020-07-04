@@ -1,6 +1,6 @@
 """
 パーティ同士を対戦させてレーティングを計算する
-暫定的に、1つのモデルだけを対象にしてパーティの組み合わせだけ変える
+パーティ数*trainer数のプレイヤーがいると想定して対戦
 """
 
 import os
@@ -11,9 +11,8 @@ import torch
 from bson import ObjectId
 from logging import getLogger
 
-from pokeai.ai.common import load_agent
 from pokeai.ai.generic_move_model.trainer import Trainer
-from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj, unpack_obj, AgentDoc
+from pokeai.ai.party_db import col_party, col_trainer, col_rate, pack_obj, unpack_obj
 from pokeai.ai.random_policy import RandomPolicy
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
@@ -97,40 +96,42 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
 def main():
     import logging
     parser = argparse.ArgumentParser()
-    parser.add_argument("trainer_state")
+    parser.add_argument("trainer_ids", help="trainerの保存idか'#random'(カンマ区切り)")
     parser.add_argument("party_tags", help="学習対象のパーティのタグ(カンマ区切り)")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
-    parser.add_argument("--log", help="ログディレクトリ")
-    parser.add_argument("--loglevel", help="対戦経過のログ出力のレベル", choices=["INFO", "WARNING", "DEBUG"], default="INFO")
+    parser.add_argument("--loglevel", help="対戦経過のログ出力(stderr)のレベル", choices=["INFO", "WARNING", "DEBUG"], default="INFO")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.loglevel))
-    agent_ids = []
     rate_id = ObjectId()
-    if args.log:
-        os.makedirs(args.log, exist_ok=True)
     print(f"rate_id: {rate_id}")
-    parties = []
+    src_parties = []
+    src_party_ids = []
     # party_tagsのいずれかのタグを含むエージェントを列挙
     for party_doc in col_party.find({"tags": {"$in": args.party_tags.split(",")}}):
-        parties.append(party_doc["party"])
-        agent_ids.append(party_doc["_id"])
-    if args.trainer_state:
-        trainer = Trainer({"n_layers": 3, "n_channels": 16, "bn": False}, {})
-        trainer.load_state(pickle_load(args.trainer_state))
-        policy = RLPolicy(trainer.get_val_agent())
-    else:
-        # 比較用ランダム行動版
-        policy = RandomPolicy()
-    policies = [policy] * len(parties)
+        src_parties.append(party_doc["party"])
+        src_party_ids.append(str(party_doc["_id"]))
+    parties = []
+    policies = []
+    player_ids = []
+    for trainer_id in args.trainer_ids.split(','):
+        if trainer_id == "#random":
+            policy = RandomPolicy()
+        else:
+            trainer_doc = col_trainer.find_one({"_id": ObjectId(trainer_id)})
+            trainer = Trainer.load_state(unpack_obj(trainer_doc["trainer_packed"]))
+            policy = RLPolicy(trainer.get_val_agent())
+        for party, party_id in zip(src_parties, src_party_ids):
+            parties.append(party)
+            policies.append(policy)
+            player_ids.append(f"{trainer_id}+{party_id}")
     fixed_rates = [0.0] * len(parties)  # 未使用
-    rates, log = rating_battle(parties, policies, agent_ids, args.match_count, fixed_rates=fixed_rates)
+    rates, log = rating_battle(parties, policies, player_ids, args.match_count, fixed_rates=fixed_rates)
     print(f"rate_id: {rate_id}")
-    if args.log:
-        pickle_dump({
-            "_id": rate_id,
-            "rates": {str(agent_id): rate for agent_id, rate in zip(agent_ids, rates)},
-        }, os.path.join(args.log, f"rate_table_{rate_id}.bin"))
-        pickle_dump(log, os.path.join(args.log, f"rate_{rate_id}.bin"))
+    col_rate.insert_one({
+        "_id": rate_id,
+        "rates": {str(agent_id): rate for agent_id, rate in zip(player_ids, rates)},
+        "log": log,
+    })
 
 
 if __name__ == '__main__':
