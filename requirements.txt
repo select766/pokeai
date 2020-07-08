@@ -39,7 +39,7 @@ opencv-python==4.1.2.30
 pandocfilters==1.4.2
 parso==0.5.1
 pickleshare==0.7.5
-Pillow==6.2.1
+Pillow==7.2.0
 -e git+https://github.com/select766/pokeai@e0f9b8f6b0269384d7107a00f176e1efa80f1835#egg=pokeai
 prometheus-client==0.7.1
 prompt-toolkit==2.0.10
