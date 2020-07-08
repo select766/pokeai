@@ -1,7 +1,12 @@
+import json
+import logging
+from logging import getLogger
 import numpy as np
 import torch
 
 from pokeai.ai.generic_move_model.feature_extractor import FeatureExtractor
+
+logger = getLogger(__name__)
 
 
 class Agent:
@@ -20,6 +25,9 @@ class Agent:
         q_vector = self._model(torch.from_numpy(obs_vector[np.newaxis, ...])).numpy()[0]
         q_vector[action_mask == 0] = -np.inf
         action = int(np.argmax(q_vector))
+        if logger.isEnabledFor(logging.DEBUG):
+            # infは Infinity としてシリアライズされエラーにならない（JSON規格外だが）
+            logger.debug(f"q_func: " + json.dumps({"q_func": q_vector.tolist(), "action": action}))
         return action
 
     def _act_random(self, obs_vector, action_mask) -> int:
