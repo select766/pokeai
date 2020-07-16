@@ -24,8 +24,7 @@ from tqdm import tqdm
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.ai.party_db import col_party, col_agent, col_rate, pack_obj
-from pokeai.ai.rating_battle import load_agent
+from pokeai.ai.party_db import col_party
 from pokeai.util import yaml_load, pickle_dump, pickle_load
 
 
