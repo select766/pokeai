@@ -20,9 +20,13 @@ class Agent:
     def stop_episode(self, reward: float) -> None:
         raise NotImplementedError
 
-    def _act_by_model(self, obs_vector, action_mask) -> int:
+    def _calc_q_vector(self, obs_vector) -> np.ndarray:
         # GPUを使うなら入力を.to(device)し、出力を.cpu().numpy()とする
         q_vector = self._model(torch.from_numpy(obs_vector[np.newaxis, ...])).numpy()[0]
+        return q_vector
+
+    def _act_by_model(self, obs_vector, action_mask) -> int:
+        q_vector = self._calc_q_vector(obs_vector)
         q_vector[action_mask == 0] = -np.inf
         action = int(np.argmax(q_vector))
         if logger.isEnabledFor(logging.DEBUG):
