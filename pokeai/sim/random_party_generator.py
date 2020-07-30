@@ -1,6 +1,6 @@
 import copy
 import random
-from typing import Set
+from typing import Set, Optional, List
 
 from pokeai.sim.party_generator import PartyGenerator, Party, PartyPoke
 from pokeai.util import DATASET_DIR
@@ -21,9 +21,10 @@ class RandomPartyGenerator(PartyGenerator):
         self.neighbor_poke_change_rate = neighbor_poke_change_rate
         self.neighbor_item_change_rate = neighbor_item_change_rate if len(self._items) > 0 else 0.0
 
-    def _single_random(self, level: int) -> PartyPoke:
+    def _single_random(self, level: int, species: Optional[str] = None) -> PartyPoke:
         # 1体ランダム個体を生成(validationしない)
-        species = random.choice(list(self._learnsets.keys()))
+        if species is None:
+            species = random.choice(list(self._learnsets.keys()))
         # 性別固定ポケモンはgenderにその文字が、そうでなければ空文字列
         # 性別固定でなければ、攻撃個体値maxはオスとなる
         gender = self._pokedex[species]['gender'] or 'M'
@@ -44,7 +45,12 @@ class RandomPartyGenerator(PartyGenerator):
             'nature': ''
         }
 
-    def generate(self) -> Party:
+    def generate(self, fix_species: Optional[List[str]] = None) -> Party:
+        """
+        ランダムなパーティを1つ生成する。
+        :param fix_species: 使用するポケモンの種族を固定する場合、パーティのポケモン数分の種族名リスト。シャッフルせずに使用される。ex. ["gyarados", "dugtrio", "ninetales"]
+        :return:
+        """
         levels = self._regulation['levels'].copy()
         random.shuffle(levels)
         party: Party = []
@@ -52,7 +58,7 @@ class RandomPartyGenerator(PartyGenerator):
         items: Set[str] = set()
         for level in levels:
             while True:
-                cand = self._single_random(level)
+                cand = self._single_random(level, fix_species[len(party)] if fix_species is not None else None)
                 # ポケモン単体でおかしくないか＆種族が被っていないか
                 if (cand['species'] not in species) and (cand['item'] not in items) and (
                         self._validator.validate([cand]) is None):
