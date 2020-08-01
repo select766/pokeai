@@ -99,10 +99,12 @@ def main():
     parser.add_argument("trainer_ids", help="trainerの保存idか'#random'(カンマ区切り)")
     parser.add_argument("party_tags", help="学習対象のパーティのタグ(カンマ区切り)")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
-    parser.add_argument("--loglevel", help="対戦経過のログ出力(stderr)のレベル", choices=["INFO", "WARNING", "DEBUG"], default="INFO")
+    parser.add_argument("--loglevel", help="対戦経過のログ出力(stderr)のレベル", choices=["INFO", "WARNING", "DEBUG"],
+                        default="INFO")
+    parser.add_argument("--rate_id")
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.loglevel))
-    rate_id = ObjectId()
+    rate_id = ObjectId(args.rate_id)  # Noneならランダム生成
     print(f"rate_id: {rate_id}")
     src_parties = []
     src_party_ids = []

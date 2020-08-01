@@ -1,4 +1,5 @@
 # https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html#dqn-algorithm
+import math
 
 import numpy as np
 
@@ -13,6 +14,7 @@ from pokeai.ai.generic_move_model.replay_buffer import ReplayBuffer
 
 DQN_DEFAULT_PARAMS = {
     "epsilon": 0.3,
+    "epsilon_decay": 0.0,  # ex. 1e-6 (1 - epsilon_decay) ** step * epsilon
     "gamma": 0.95,
     "batch_size": 32,
     "first_update_steps": 500,
@@ -48,6 +50,7 @@ class Trainer:
 
         self.replay_buffer = ReplayBuffer(dqn_params_with_default["replay_buffer_size"])
         self.epsilon = dqn_params_with_default["epsilon"]
+        self.epsilon_decay = dqn_params_with_default["epsilon_decay"]
         self.gamma = dqn_params_with_default["gamma"]
         self.batch_size = dqn_params_with_default["batch_size"]
         self.first_update_steps = dqn_params_with_default["first_update_steps"]
@@ -75,7 +78,8 @@ class Trainer:
         model = self._construct_model()
         model.load_state_dict(self.model.state_dict())
         model.eval()
-        return AgentTrain(model, self.feature_extractor, self.epsilon)
+        epsilon = math.pow(1.0 - self.epsilon_decay, self.total_steps) * self.epsilon
+        return AgentTrain(model, self.feature_extractor, epsilon)
 
     def get_val_agent(self):
         model = self._construct_model()

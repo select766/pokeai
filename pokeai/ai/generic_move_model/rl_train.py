@@ -69,7 +69,9 @@ def main():
     logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
     parser.add_argument("train_param_file")
+    parser.add_argument("--trainer_id")
     args = parser.parse_args()
+    trainer_id = ObjectId(args.trainer_id)  # Noneならランダム生成
     train_params = yaml_load(args.train_param_file)
     tags = train_params["tags"]
     parties = []
@@ -84,7 +86,6 @@ def main():
         train_episode(sim, trainer, target_parties)
         if battle_idx % 1000 == 0:
             print("mean score", random_val(sim, trainer, parties, 100))
-    trainer_id = ObjectId()
     col_trainer.insert_one({
         "_id": trainer_id,
         "trainer_packed": pack_obj(trainer.save_state()),
