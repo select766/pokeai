@@ -22,6 +22,7 @@ DQN_DEFAULT_PARAMS = {
     "target_update": 100,
     "double_dqn": True,
     "replay_buffer_size": 100000,
+    "lr": 1e-3,
 }
 
 
@@ -39,7 +40,6 @@ class Trainer:
         self.model = self._construct_model()
         self.target_model = self._construct_model()
         self.target_model.load_state_dict(self.model.state_dict())
-        self.optimizer = optim.Adam(self.model.parameters())
         # replay bufferに追加された全ステップ数
         self.total_steps = 0
         # 学習済みステップ数
@@ -47,6 +47,8 @@ class Trainer:
         # DQNの設定
         dqn_params_with_default = DQN_DEFAULT_PARAMS.copy()
         dqn_params_with_default.update(dqn_params)
+
+        self.optimizer = optim.Adam(self.model.parameters(), lr=dqn_params_with_default["lr"])
 
         self.replay_buffer = ReplayBuffer(dqn_params_with_default["replay_buffer_size"])
         self.epsilon = dqn_params_with_default["epsilon"]
@@ -66,7 +68,11 @@ class Trainer:
         # 現状、get_val_agentが可能な最低限の情報を保存している
         # TODO: optimizer, replay_bufferなども保存し、学習の再開も可能とする
         assert resume is False
-        return {"model": self.model.state_dict(), "constructor_params": self.constructor_params}
+        return {
+            "model": self.model.state_dict(),
+            "constructor_params": self.constructor_params,
+            "update_steps": self.update_steps
+        }
 
     @classmethod
     def load_state(cls, state):

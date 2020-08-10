@@ -64,15 +64,28 @@ def train_episode(sim, trainer: Trainer, target_parties: List[Party]):
     trainer.train()
 
 
+def calc_save_at(n_battles, n_split):
+    # n_battles == 50, n_split = 5なら
+    # battle_idx == 9, 19, 29, 39, 49 のときに保存したい
+    battle_idxs = []
+    for battle_idx in np.linspace(0, n_battles, n_split + 1)[1:]:
+        battle_idxs.append(int(battle_idx) - 1)
+    return battle_idxs
+
+
 def main():
     import logging
     logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
     parser.add_argument("train_param_file")
-    parser.add_argument("--trainer_id")
+    parser.add_argument("--trainer_id", help="カンマ区切りでtrainer_idを複数指定すると一定間隔で保存する")
     args = parser.parse_args()
-    trainer_id = ObjectId(args.trainer_id)  # Noneならランダム生成
+    if args.trainer_id is not None:
+        trainer_ids = [ObjectId(p) for p in args.trainer_id.split(',')]
+    else:
+        trainer_ids = [ObjectId()]
     train_params = yaml_load(args.train_param_file)
+    save_ats = calc_save_at(train_params["battles"], len(trainer_ids))
     tags = train_params["tags"]
     parties = []
     # party_tagsのいずれかのタグを含むエージェントを列挙
@@ -86,13 +99,15 @@ def main():
         train_episode(sim, trainer, target_parties)
         if battle_idx % 1000 == 0:
             print("mean score", random_val(sim, trainer, parties, 100))
-    col_trainer.insert_one({
-        "_id": trainer_id,
-        "trainer_packed": pack_obj(trainer.save_state()),
-        "train_params": train_params,
-        "tags": tags,
-    })
-    print("trainer id", trainer_id)
+        if battle_idx in save_ats:
+            trainer_id = trainer_ids[save_ats.index(battle_idx)]
+            col_trainer.insert_one({
+                "_id": trainer_id,
+                "trainer_packed": pack_obj(trainer.save_state()),
+                "train_params": train_params,
+                "tags": tags,
+            })
+    print("trainer id", trainer_ids)
 
 
 if __name__ == '__main__':
