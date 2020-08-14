@@ -3,53 +3,87 @@
 """
 
 import argparse
-import pickle
-import os
 from typing import List, Tuple
 
 import numpy as np
 from bson import ObjectId
+from tqdm import tqdm
 
-from pokeai.ai.party_db import col_party, col_agent, col_rate
-from pokeai.ai.party_feature.party_rate_predictor import PartyRatePredictor
+from pokeai.ai.party_db import col_party
+from pokeai.ai.party_feature.party_evaluator import PartyEvaluator, build_party_evaluator_by_trainer_id
+from pokeai.ai.party_feature.party_feature_extractor import PartyFeatureExtractor
 from pokeai.sim.party_generator import Party, PartyGenerator
 from pokeai.sim.random_party_generator import RandomPartyGenerator
 from pokeai.util import pickle_dump, yaml_load, yaml_dump, pickle_load
 
+WEIGHT_PARAMS_DEFAULT = {
+    "party_feature_names": ["P", "M", "PM", "MM"],
+    "party_feature_penalty": 0.01,
+}
 
-def hillclimb(predictor: PartyRatePredictor, party_generator: PartyGenerator, seed_parties: List[Party],
+
+class FitnessEvaluator:
+    def __init__(self, party_evaluator: PartyEvaluator, opponent_pokes: List[str], weight_params: dict):
+        self.party_evaluator = party_evaluator
+        self.opponent_pokes = opponent_pokes
+        self.weight_params = WEIGHT_PARAMS_DEFAULT.copy()
+        self.weight_params.update(weight_params)
+        self.party_feature_extractor = PartyFeatureExtractor(self.weight_params["party_feature_names"])
+        self.existing_parties_feature = None
+
+    def set_existing_parties(self, parties: List[Party]):
+        """
+        類似度ペナルティ計算用の既存パーティを設定する
+        :param parties:
+        :return:
+        """
+        self.existing_parties_feature = np.vstack(
+            [self.party_feature_extractor.get_feature(party) for party in parties])
+
+    def evaluate(self, party: Party) -> float:
+        q_value = np.mean(self.party_evaluator.gather_best_q(party, self.opponent_pokes))
+        penalty = 0.0
+        if self.existing_parties_feature is not None:
+            feat = self.party_feature_extractor.get_feature(party)
+            penalty = np.sum(feat[np.newaxis, :] @ self.existing_parties_feature.T) * self.weight_params[
+                "party_feature_penalty"]
+        return float(q_value - penalty)
+
+
+def hillclimb(evaluator: FitnessEvaluator, party_generator: PartyGenerator, seed_parties: List[Party],
               generations: int, populations: int):
-    current_parties = seed_parties
-    for gen in range(generations):
-        next_parties = []
-        next_rates = []
-        for current_party in current_parties:
+    generated_parties = []
+    for seed_party in tqdm(seed_parties):
+        current_party = seed_party
+        for gen in range(generations):
             candidates = [party_generator.neighbor(current_party) for _ in range(populations - 1)] + [current_party]
-            candidate_rates = predictor.predict(candidates)
+            candidate_rates = [evaluator.evaluate(candidate) for candidate in candidates]
             best_rated_idx = int(np.argmax(candidate_rates))
-            next_parties.append(candidates[best_rated_idx])
-            next_rates.append(candidate_rates[best_rated_idx])
-        print(f"gen {gen} mean rates: {np.mean(next_rates)}")
-        current_parties = next_parties
-    return current_parties
+            current_party = candidates[best_rated_idx]
+        generated_parties.append(current_party)
+        evaluator.set_existing_parties(generated_parties)
+    return generated_parties
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("predictor", help="学習済評価関数")
-    parser.add_argument("seed_tags", help="変更元にするパーティのタグ")
+    parser.add_argument("trainer_id", help="評価関数として用いるQ関数")
     parser.add_argument("dst_tags", help="生成パーティの保存タグ")
     parser.add_argument("-r", default="default", help="regulation")
-    parser.add_argument("--generations", type=int, default=10)
-    parser.add_argument("--populations", type=int, default=10)
+    parser.add_argument("-n", type=int, default=100, help="生成パーティ数")
+    parser.add_argument("--generations", type=int, default=10, help="世代数")
+    parser.add_argument("--populations", type=int, default=100, help="1世代あたりの候補パーティ数")
     args = parser.parse_args()
-    predictor = pickle_load(args.predictor)  # type: PartyRatePredictor
-    seed_parties = []  # type: List[Party]
-    for party_doc in col_party.find({"tags": {"$in": args.seed_tags.split(",")}}):
-        seed_parties.append(party_doc["party"])
+    party_generator = RandomPartyGenerator(regulation=args.r, neighbor_poke_change_rate=0.1,
+                                           neighbor_item_change_rate=0.0)
+    evaluator = FitnessEvaluator(
+        build_party_evaluator_by_trainer_id(ObjectId(args.trainer_id)),
+        party_generator._learnsets.keys(),  # 使用可能全ポケモンとの対面の平均を使う
+        {},
+    )
+    seed_parties = [party_generator.generate() for _ in range(args.n)]  # type: List[Party]
     dst_tags = args.dst_tags.split(",")
-    party_generator = RandomPartyGenerator(regulation=args.r)
-    generated_parties = hillclimb(predictor=predictor,
+    generated_parties = hillclimb(evaluator=evaluator,
                                   party_generator=party_generator,
                                   seed_parties=seed_parties,
                                   generations=args.generations,
