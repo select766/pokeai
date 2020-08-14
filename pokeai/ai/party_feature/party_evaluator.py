@@ -48,13 +48,7 @@ class PartyEvaluator:
                  'stats': {'atk': 100, 'def': 100, 'spa': 100, 'spd': 100, 'spe': 100}, 'moves': party[0]["moves"],
                  'baseAbility': 'noability', 'item': '', 'pokeball': 'pokeball'}]}}
 
-    def calc_q_func(self, party: Party, opponent_poke: str) -> np.ndarray:
-        """
-        パーティと対面ポケモンに対するq関数を計算する
-        :param party: パーティ
-        :param opponent_poke: ポケモンのid 例: "gyarados"
-        :return: 各技に対応するq値
-        """
+    def _make_obs_vector(self, party: Party, opponent_poke: str) -> np.ndarray:
         request = self._make_request(party)
         battle_status = BattleStatus("p1", party)
         for player in ["p1", "p2"]:
@@ -66,12 +60,26 @@ class PartyEvaluator:
         battle_status.switch(f"p2a: {id2poke[opponent_poke]}", f"{id2poke[opponent_poke]}, L55, M", "100/100")
         obs = RLPolicyObservation(battle_status, request)
         obs_vector, action_mask = self.agent._feature_extractor.transform(obs)
+        return obs_vector[:, 0:4]  # 技4つ分だけ抽出（交代部分削除）
+
+    def calc_q_func(self, party: Party, opponent_poke: str) -> np.ndarray:
+        """
+        パーティと対面ポケモンに対するq関数を計算する
+        :param party: パーティ
+        :param opponent_poke: ポケモンのid 例: "gyarados"
+        :return: 各技に対応するq値
+        """
         with torch.no_grad():
-            q_vector = self.agent._calc_q_vector(obs_vector)
-        return q_vector[:4]
+            q_vector = self.agent._calc_q_vector(self._make_obs_vector(party, opponent_poke))
+        assert q_vector.shape == (4,)
+        return q_vector
 
     def gather_best_q(self, party: Party, opponent_pokes: List[str]) -> np.ndarray:
-        return np.array([np.max(self.calc_q_func(party, opponent_poke)) for opponent_poke in opponent_pokes])
+        obs_vector_batch = np.stack([self._make_obs_vector(party, opponent_poke) for opponent_poke in opponent_pokes])
+        with torch.no_grad():
+            q_vectors = self.agent._calc_q_vector_batch(obs_vector_batch)
+        assert q_vectors.shape == (len(opponent_pokes), 4)
+        return np.max(q_vectors, axis=1)
 
 
 def build_party_evaluator_by_trainer_id(trainer_id: ObjectId) -> PartyEvaluator:

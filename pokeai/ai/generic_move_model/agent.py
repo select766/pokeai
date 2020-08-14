@@ -25,6 +25,10 @@ class Agent:
         q_vector = self._model(torch.from_numpy(obs_vector[np.newaxis, ...])).numpy()[0]
         return q_vector
 
+    def _calc_q_vector_batch(self, obs_vector_batch) -> np.ndarray:
+        q_vectors = self._model(torch.from_numpy(obs_vector_batch)).numpy()
+        return q_vectors
+
     def _act_by_model(self, obs_vector, action_mask) -> int:
         q_vector = self._calc_q_vector(obs_vector)
         q_vector[action_mask == 0] = -np.inf
