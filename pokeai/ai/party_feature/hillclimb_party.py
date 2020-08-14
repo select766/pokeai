@@ -37,15 +37,15 @@ class FitnessEvaluator:
         :param parties:
         :return:
         """
-        self.existing_parties_feature = np.vstack(
-            [self.party_feature_extractor.get_feature(party) for party in parties])
+        self.existing_parties_feature = np.mean(np.vstack(
+            [self.party_feature_extractor.get_feature(party) for party in parties]), axis=0)
 
     def evaluate(self, party: Party) -> float:
         q_value = np.mean(self.party_evaluator.gather_best_q(party, self.opponent_pokes))
         penalty = 0.0
         if self.existing_parties_feature is not None:
             feat = self.party_feature_extractor.get_feature(party)
-            penalty = np.sum(feat[np.newaxis, :] @ self.existing_parties_feature.T) * self.weight_params[
+            penalty = (feat @ self.existing_parties_feature) * self.weight_params[
                 "party_feature_penalty"]
         return float(q_value - penalty)
 
@@ -73,13 +73,14 @@ def main():
     parser.add_argument("-n", type=int, default=100, help="生成パーティ数")
     parser.add_argument("--generations", type=int, default=10, help="世代数")
     parser.add_argument("--populations", type=int, default=100, help="1世代あたりの候補パーティ数")
+    parser.add_argument("--party_feature_penalty", type=float, default=WEIGHT_PARAMS_DEFAULT["party_feature_penalty"])
     args = parser.parse_args()
     party_generator = RandomPartyGenerator(regulation=args.r, neighbor_poke_change_rate=0.1,
                                            neighbor_item_change_rate=0.0)
     evaluator = FitnessEvaluator(
         build_party_evaluator_by_trainer_id(ObjectId(args.trainer_id)),
         party_generator._learnsets.keys(),  # 使用可能全ポケモンとの対面の平均を使う
-        {},
+        {"party_feature_penalty": args.party_feature_penalty},
     )
     seed_parties = [party_generator.generate() for _ in range(args.n)]  # type: List[Party]
     dst_tags = args.dst_tags.split(",")
