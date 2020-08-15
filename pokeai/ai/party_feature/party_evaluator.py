@@ -48,7 +48,7 @@ class PartyEvaluator:
                  'stats': {'atk': 100, 'def': 100, 'spa': 100, 'spd': 100, 'spe': 100}, 'moves': party[0]["moves"],
                  'baseAbility': 'noability', 'item': '', 'pokeball': 'pokeball'}]}}
 
-    def _make_obs_vector(self, party: Party, opponent_poke: str) -> np.ndarray:
+    def _make_obs(self, party: Party, opponent_poke: str) -> RLPolicyObservation:
         request = self._make_request(party)
         battle_status = BattleStatus("p1", party)
         for player in ["p1", "p2"]:
@@ -59,6 +59,10 @@ class PartyEvaluator:
                              "100/100")
         battle_status.switch(f"p2a: {id2poke[opponent_poke]}", f"{id2poke[opponent_poke]}, L55, M", "100/100")
         obs = RLPolicyObservation(battle_status, request)
+        return obs
+
+    def _make_obs_vector(self, party: Party, opponent_poke: str) -> np.ndarray:
+        obs = self._make_obs(party, opponent_poke)
         obs_vector, action_mask = self.agent._feature_extractor.transform(obs)
         return obs_vector[:, 0:4]  # 技4つ分だけ抽出（交代部分削除）
 

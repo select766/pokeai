@@ -10,7 +10,7 @@ from bson import ObjectId
 from tqdm import tqdm
 
 from pokeai.ai.party_db import col_party
-from pokeai.ai.party_feature.party_evaluator import PartyEvaluator, build_party_evaluator_by_trainer_id
+from pokeai.ai.party_feature.party_evaluator_quick import PartyEvaluatorQuick, build_party_evaluator_quick_by_trainer_id
 from pokeai.ai.party_feature.party_feature_extractor import PartyFeatureExtractor
 from pokeai.sim.party_generator import Party, PartyGenerator
 from pokeai.sim.random_party_generator import RandomPartyGenerator
@@ -23,7 +23,7 @@ WEIGHT_PARAMS_DEFAULT = {
 
 
 class FitnessEvaluator:
-    def __init__(self, party_evaluator: PartyEvaluator, opponent_pokes: List[str], weight_params: dict):
+    def __init__(self, party_evaluator: PartyEvaluatorQuick, opponent_pokes: List[str], weight_params: dict):
         self.party_evaluator = party_evaluator
         self.opponent_pokes = opponent_pokes
         self.weight_params = WEIGHT_PARAMS_DEFAULT.copy()
@@ -78,7 +78,7 @@ def main():
     party_generator = RandomPartyGenerator(regulation=args.r, neighbor_poke_change_rate=0.1,
                                            neighbor_item_change_rate=0.0)
     evaluator = FitnessEvaluator(
-        build_party_evaluator_by_trainer_id(ObjectId(args.trainer_id)),
+        build_party_evaluator_quick_by_trainer_id(ObjectId(args.trainer_id)),
         party_generator._learnsets.keys(),  # 使用可能全ポケモンとの対面の平均を使う
         {"party_feature_penalty": args.party_feature_penalty},
     )
