@@ -14,11 +14,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("tags")
     parser.add_argument("-n", type=int, default=100)
+    parser.add_argument("--all_pokemon_once", action="store_true")
     parser.add_argument("-r", default="default", help="regulation")
     args = parser.parse_args()
     tags = args.tags.split(",") if args.tags else []
     gen = RandomPartyGenerator(regulation=args.r)
-    parties = [{'_id': ObjectId(), 'party': gen.generate(), 'tags': tags} for _ in range(args.n)]
+    if args.all_pokemon_once:
+        assert len(gen._regulation["levels"]) == 1, "パーティのポケモン1体のみ対応"
+        parties = [{'_id': ObjectId(), 'party': gen.generate(fix_species=[poke]), 'tags': tags} for poke in
+                   gen._learnsets.keys()]
+    else:
+        parties = [{'_id': ObjectId(), 'party': gen.generate(), 'tags': tags} for _ in range(args.n)]
     col_party.insert_many(parties)
 
 
