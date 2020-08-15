@@ -80,6 +80,10 @@ class Trainer:
         trainer.model.load_state_dict(state["model"])
         return trainer
 
+    def load_initial_model(self, state_dict):
+        self.model.load_state_dict(state_dict)
+        self.target_model.load_state_dict(state_dict)
+
     def get_train_agent(self):
         model = self._construct_model()
         model.load_state_dict(self.model.state_dict())

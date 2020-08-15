@@ -24,8 +24,7 @@ from tqdm import tqdm
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.ai.party_db import col_party
-from pokeai.util import yaml_load, pickle_dump, pickle_load
+from pokeai.ai.party_db import col_party, col_trainer, unpack_obj
 
 
 def battle_once(sim, trainer: Trainer, target_parties: List[Party]) -> float:
@@ -46,7 +45,7 @@ def main():
     import logging
     logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
-    parser.add_argument("trainer_state")
+    parser.add_argument("trainer_id")
     parser.add_argument("party_tags", help="学習対象のパーティのタグ(カンマ区切り)")
     parser.add_argument("--battles", type=int, default=100)
     args = parser.parse_args()
@@ -54,8 +53,8 @@ def main():
     # party_tagsのいずれかのタグを含むエージェントを列挙
     for party_doc in col_party.find({"tags": {"$in": args.party_tags.split(",")}}):
         parties.append(party_doc["party"])
-    trainer = Trainer({"n_layers": 3, "n_channels": 16, "bn": False}, {})
-    trainer.load_state(pickle_load(args.trainer_state))
+    resume_trainer_doc = col_trainer.find_one({"_id": ObjectId(args.trainer_id)})
+    trainer = Trainer.load_state(unpack_obj(resume_trainer_doc["trainer_packed"]))
 
     sim = Sim()
     agent_scores = []

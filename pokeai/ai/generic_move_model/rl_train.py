@@ -19,7 +19,7 @@ from tqdm import tqdm
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.ai.party_db import col_party, col_trainer, pack_obj
+from pokeai.ai.party_db import col_party, col_trainer, pack_obj, unpack_obj
 from pokeai.util import yaml_load
 
 
@@ -79,6 +79,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("train_param_file")
     parser.add_argument("--trainer_id", help="カンマ区切りでtrainer_idを複数指定すると一定間隔で保存する")
+    parser.add_argument("--resume_trainer_id")
     args = parser.parse_args()
     if args.trainer_id is not None:
         trainer_ids = [ObjectId(p) for p in args.trainer_id.split(',')]
@@ -92,7 +93,9 @@ def main():
     for party_doc in col_party.find({"tags": {"$in": train_params["party_tags"]}}):
         parties.append(party_doc["party"])
     trainer = Trainer(**train_params["trainer"])
-
+    if args.resume_trainer_id:
+        resume_trainer_doc = col_trainer.find_one({"_id": ObjectId(args.resume_trainer_id)})
+        trainer.load_initial_model(unpack_obj(resume_trainer_doc["trainer_packed"])["model"])
     sim = Sim()
     for battle_idx in tqdm(range(train_params["battles"])):
         target_parties = random.sample(parties, 2)
