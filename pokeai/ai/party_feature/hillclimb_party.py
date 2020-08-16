@@ -79,7 +79,7 @@ def main():
                                            neighbor_item_change_rate=0.0)
     evaluator = FitnessEvaluator(
         build_party_evaluator_quick_by_trainer_id(ObjectId(args.trainer_id)),
-        party_generator._learnsets.keys(),  # 使用可能全ポケモンとの対面の平均を使う
+        party_generator._pokemons,  # 使用可能全ポケモンとの対面の平均を使う
         {"party_feature_penalty": args.party_feature_penalty},
     )
     seed_parties = [party_generator.generate() for _ in range(args.n)]  # type: List[Party]

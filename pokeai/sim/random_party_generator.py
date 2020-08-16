@@ -17,6 +17,7 @@ class RandomPartyGenerator(PartyGenerator):
         self._pokedex = json_load(DATASET_DIR.joinpath('pokedex.json'))
         self._regulation = json_load(DATASET_DIR.joinpath('regulations', regulation, 'regulation.json'))
         self._learnsets = json_load(DATASET_DIR.joinpath('regulations', regulation, 'learnsets.json'))
+        self._pokemons = json_load(DATASET_DIR.joinpath('regulations', regulation, 'pokemons.json'))
         self._items = json_load(DATASET_DIR.joinpath('regulations', regulation, 'items.json'))
         self.neighbor_poke_change_rate = neighbor_poke_change_rate
         self.neighbor_item_change_rate = neighbor_item_change_rate if len(self._items) > 0 else 0.0
@@ -24,7 +25,7 @@ class RandomPartyGenerator(PartyGenerator):
     def _single_random(self, level: int, species: Optional[str] = None) -> PartyPoke:
         # 1体ランダム個体を生成(validationしない)
         if species is None:
-            species = random.choice(list(self._learnsets.keys()))
+            species = random.choice(list(self._pokemons))
         # 性別固定ポケモンはgenderにその文字が、そうでなければ空文字列
         # 性別固定でなければ、攻撃個体値maxはオスとなる
         gender = self._pokedex[species]['gender'] or 'M'

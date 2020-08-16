@@ -22,7 +22,7 @@ def main():
     if args.all_pokemon_once:
         assert len(gen._regulation["levels"]) == 1, "パーティのポケモン1体のみ対応"
         parties = [{'_id': ObjectId(), 'party': gen.generate(fix_species=[poke]), 'tags': tags} for poke in
-                   gen._learnsets.keys()]
+                   gen._pokemons]
     else:
         parties = [{'_id': ObjectId(), 'party': gen.generate(), 'tags': tags} for _ in range(args.n)]
     col_party.insert_many(parties)
