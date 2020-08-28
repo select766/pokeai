@@ -17,7 +17,7 @@ from pokeai.ai.random_policy import RandomPolicy
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.util import pickle_dump, pickle_load
+from pokeai.util import pickle_dump, pickle_load, json_load
 
 logger = getLogger(__name__)
 
@@ -98,6 +98,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("trainer_ids", help="trainerの保存idか'#random'(カンマ区切り)")
     parser.add_argument("party_tags", help="学習対象のパーティのタグ(カンマ区切り)")
+    parser.add_argument("--player_ids_file", help="player_id (trainer_id+party_id)ファイルを直接指定")
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
     parser.add_argument("--loglevel", help="対戦経過のログ出力(stderr)のレベル", choices=["INFO", "WARNING", "DEBUG"],
                         default="INFO")
@@ -106,26 +107,41 @@ def main():
     logging.basicConfig(level=getattr(logging, args.loglevel))
     rate_id = ObjectId(args.rate_id)  # Noneならランダム生成
     print(f"rate_id: {rate_id}")
-    src_parties = []
-    src_party_ids = []
-    # party_tagsのいずれかのタグを含むエージェントを列挙
-    for party_doc in col_party.find({"tags": {"$in": args.party_tags.split(",")}}):
-        src_parties.append(party_doc["party"])
-        src_party_ids.append(str(party_doc["_id"]))
-    parties = []
-    policies = []
-    player_ids = []
-    for trainer_id in args.trainer_ids.split(','):
+    if args.player_ids_file:
+        player_ids = json_load(args.player_ids_file)["player_ids"]
+        assert len(args.trainer_ids) == 0
+        assert len(args.party_tags) == 0
+        src_parties = {}
+        src_trainer_ids = {player_id.split("+")[0] for player_id in player_ids}
+        src_party_ids = {player_id.split("+")[1] for player_id in player_ids}
+        for party_id in src_party_ids:
+            party_doc = col_party.find_one({"_id": ObjectId(party_id)})
+            src_parties[str(party_doc["_id"])] = party_doc["party"]
+    else:
+        player_ids = []
+        src_parties = {}
+        # party_tagsのいずれかのタグを含むエージェントを列挙
+        for party_doc in col_party.find({"tags": {"$in": args.party_tags.split(",")}}):
+            src_parties[str(party_doc["_id"])] = party_doc["party"]
+        src_trainer_ids = set(args.trainer_ids.split(','))
+        for trainer_id in src_trainer_ids:
+            for party_id in src_parties.keys():
+                player_ids.append(f"{trainer_id}+{party_id}")
+    src_policies = {}
+    for trainer_id in src_trainer_ids:
         if trainer_id == "#random":
             policy = RandomPolicy()
         else:
             trainer_doc = col_trainer.find_one({"_id": ObjectId(trainer_id)})
             trainer = Trainer.load_state(unpack_obj(trainer_doc["trainer_packed"]))
             policy = RLPolicy(trainer.get_val_agent())
-        for party, party_id in zip(src_parties, src_party_ids):
-            parties.append(party)
-            policies.append(policy)
-            player_ids.append(f"{trainer_id}+{party_id}")
+        src_policies[trainer_id] = policy
+    parties = []
+    policies = []
+    for player_id in player_ids:
+        trainer_id, party_id = player_id.split("+")
+        parties.append(src_parties[party_id])
+        policies.append(src_policies[trainer_id])
     fixed_rates = [0.0] * len(parties)  # 未使用
     rates, log = rating_battle(parties, policies, player_ids, args.match_count, fixed_rates=fixed_rates)
     print(f"rate_id: {rate_id}")
