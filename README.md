@@ -2,11 +2,11 @@
 PokéAI(ポケエーアイ)は、ポケモンバトルの戦略を人工知能に考えさせ、
 究極的には人が思いつかなかったような戦略を編み出すことを目標とするプロジェクトです。
 
+成果は同人誌の形で発表。頒布情報は[HP](https://select766.github.io/)参照。2018年10月発行の第1巻はPDF無料配布中。
+
 シミュレータとして[Pokémon Showdown](https://github.com/Zarel/Pokemon-Showdown)を利用。
 
 初代ルールのシミュレータ実装とAI -> [book-201904](https://github.com/select766/pokeai/tree/book-201904)
-
-成果は同人誌の形で発表。頒布情報は[blog](http://select766.hatenablog.com/archive/category/%E3%83%9D%E3%82%B1%E3%83%A2%E3%83%B3)参照。
 
 # setup
 node v10.x が必要。
