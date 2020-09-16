@@ -3,7 +3,7 @@ from logging import getLogger
 from pokeai.ai.generic_move_model.agent import Agent
 from pokeai.ai.battle_status import BattleStatus
 from pokeai.ai.common import get_possible_actions
-from pokeai.ai.feature_extractor import FeatureExtractor
+from pokeai.ai.state_feature_extractor import StateFeatureExtractor
 from pokeai.ai.random_policy import RandomPolicy
 from pokeai.ai.rl_policy_observation import RLPolicyObservation
 
@@ -14,7 +14,7 @@ class RLPolicy(RandomPolicy):
     """
     強化学習による方策
     """
-    feature_extractor: FeatureExtractor
+    feature_extractor: StateFeatureExtractor
     agent: Agent
 
     def __init__(self, agent: Agent):

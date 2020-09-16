@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 
 from pokeai.ai.common import get_possible_actions
-from pokeai.ai.feature_extractor import FeatureExtractor as StateFeatureExtractor
+from pokeai.ai.state_feature_extractor import StateFeatureExtractor
 from pokeai.ai.generic_move_model.choice_to_vec import ChoiceToVec
 from pokeai.ai.rl_policy_observation import RLPolicyObservation
 

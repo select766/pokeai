@@ -32,7 +32,7 @@ RANKS = ['atk', 'def', 'spa', 'spd', 'spe', 'accuracy', 'evasion']
 WEATHERS = ["SunnyDay", "RainDance", "Sandstorm"]
 
 
-class FeatureExtractor:
+class StateFeatureExtractor:
     """
     バトルの状態を実数値ベクトルの特徴量に変換する
     """
@@ -48,7 +48,7 @@ class FeatureExtractor:
     # TODO: 持ち物があるかどうか（BattleStatusに現状情報がなく、requestから取り出す経路が必要）
 
     def __init__(self, feature_types: Optional[List[str]] = None, party_size: int = 3):
-        self.feature_types = feature_types or FeatureExtractor.ALL_FEATURE_TYPES
+        self.feature_types = feature_types or StateFeatureExtractor.ALL_FEATURE_TYPES
         self.party_size = party_size
 
     def get_dims(self) -> int:
