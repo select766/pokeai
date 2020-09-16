@@ -56,7 +56,7 @@ class StateFeatureExtractor:
         特徴次元数
         :return:
         """
-        dims = self.party_size * 6  # 合法手
+        dims = 0
         if "remaining_count" in self.feature_types:
             dims += 2
         if "poke_type" in self.feature_types:
@@ -73,10 +73,6 @@ class StateFeatureExtractor:
 
     def get_dim_meanings(self) -> List[str]:
         ms = []  # type:List[str]
-        for poke_idx in range(self.party_size):
-            for move_idx in range(4):
-                ms += [f"choice_poke_{poke_idx}_move_{move_idx}"]
-            ms += [f"choice_poke_{poke_idx}_switch", f"choice_poke_{poke_idx}_force_switch"]
         if "remaining_count" in self.feature_types:
             ms += ["remaining_count/friend", "remaining_count/opponent"]
         if "poke_type" in self.feature_types:
@@ -94,7 +90,7 @@ class StateFeatureExtractor:
         return ms
 
     def transform(self, battle_status: BattleStatus, choice_vec: np.ndarray) -> np.ndarray:
-        feats = [choice_vec]
+        feats = []
         if "remaining_count" in self.feature_types:
             feats.append(self._transform_remaining_count(battle_status, battle_status.side_friend))
             feats.append(self._transform_remaining_count(battle_status, battle_status.side_opponent))
