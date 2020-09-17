@@ -8,7 +8,7 @@ from bson import ObjectId
 from pokeai.sim.party_generator import Party
 
 client = MongoClient()
-db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_3")]
+db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_4")]
 col_party = db["Party"]  # document type PartyDoc
 col_trainer = db["Trainer"]  # document type TrainerDoc
 col_rate = db["Rate"]  # document type RateDoc
