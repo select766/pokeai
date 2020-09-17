@@ -31,7 +31,7 @@ class RandomPartyGenerator(PartyGenerator):
         gender = self._pokedex[species]['gender'] or 'M'
         available_moves = self._learnsets[species]
         moves = random.sample(available_moves, min(4, len(available_moves)))
-        item = random.choice(self._items) if len(self._items) > 0 else ''  # FIXME: 戦略的な"アイテムなし"が選べない
+        item = random.choice(self._items) if len(self._items) > 0 else ''  # アイテムなしを選ぶにはitems.jsonに''のエントリを挿入
         return {
             'name': species,
             'species': species,
@@ -61,7 +61,8 @@ class RandomPartyGenerator(PartyGenerator):
             while True:
                 cand = self._single_random(level, fix_species[len(party)] if fix_species is not None else None)
                 # ポケモン単体でおかしくないか＆種族が被っていないか
-                if (cand['species'] not in species) and (cand['item'] not in items) and (
+                # アイテムなしは重複可能
+                if (cand['species'] not in species) and ((cand['item'] == '') or (cand['item'] not in items)) and (
                         self._validator.validate([cand]) is None):
                     break
             party.append(cand)
