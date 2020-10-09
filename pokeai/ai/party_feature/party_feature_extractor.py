@@ -16,9 +16,9 @@ _pokemon2idx = {name: i for i, name in enumerate(_all_pokemons)}
 # 技のid ["absorb", ...]
 _all_moves = json_load(DATASET_DIR.joinpath('all_moves.json'))  # type: List[str]
 _move2idx = {name: i for i, name in enumerate(_all_moves)}
-# 道具のid ["berryjuice", ...]
-# 道具なしが特徴になる場合も想定し、先頭に道具なし状態に対応する""を挿入。
-_all_items = [""] + json_load(DATASET_DIR.joinpath('all_items.json'))  # type: List[str]
+# 道具のid ["", "berryjuice", ...]
+# 道具なし状態に対応する""が含まれている。
+_all_items = json_load(DATASET_DIR.joinpath('all_items.json'))  # type: List[str]
 _item2idx = {name: i for i, name in enumerate(_all_items)}
 
 
