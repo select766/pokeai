@@ -4,6 +4,7 @@ import numpy as np
 
 from pokeai.ai.battle_status import BattleStatus
 from pokeai.ai.dex import dex
+from pokeai.ai.rl_policy_observation import RLPolicyObservation
 
 POKE_TYPES = [
     "Normal",
@@ -45,9 +46,8 @@ class StateFeatureExtractor:
         "nv_condition",
         "rank",
         "weather"]
-    # TODO: 持ち物があるかどうか（BattleStatusに現状情報がなく、requestから取り出す経路が必要）
 
-    def __init__(self, feature_types: Optional[List[str]] = None, party_size: int = 3):
+    def __init__(self, party_size: int, feature_types: Optional[List[str]] = None):
         self.feature_types = feature_types or StateFeatureExtractor.ALL_FEATURE_TYPES
         self.party_size = party_size
 
@@ -89,8 +89,9 @@ class StateFeatureExtractor:
             ms += [f"weather/{weather}" for weather in WEATHERS]
         return ms
 
-    def transform(self, battle_status: BattleStatus, choice_vec: np.ndarray) -> np.ndarray:
+    def transform(self, obs: RLPolicyObservation) -> np.ndarray:
         feats = []
+        battle_status = obs.battle_status
         if "remaining_count" in self.feature_types:
             feats.append(self._transform_remaining_count(battle_status, battle_status.side_friend))
             feats.append(self._transform_remaining_count(battle_status, battle_status.side_opponent))

@@ -75,12 +75,14 @@ def calc_save_at(n_battles, n_split):
 
 def main():
     import logging
-    logging.basicConfig(level=logging.WARNING)
     parser = argparse.ArgumentParser()
     parser.add_argument("train_param_file")
     parser.add_argument("--trainer_id", help="カンマ区切りでtrainer_idを複数指定すると一定間隔で保存する")
     parser.add_argument("--resume_trainer_id")
+    parser.add_argument("--loglevel", help="ログ出力(stderr)のレベル", choices=["INFO", "WARNING", "DEBUG"],
+                        default="INFO")
     args = parser.parse_args()
+    logging.basicConfig(level=getattr(logging, args.loglevel))
     if args.trainer_id is not None:
         trainer_ids = [ObjectId(p) for p in args.trainer_id.split(',')]
     else:

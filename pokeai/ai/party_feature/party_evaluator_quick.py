@@ -22,7 +22,7 @@ class PartyEvaluatorQuick(PartyEvaluator):
         self.model = self.agent._model.to(self.device)
         self.all_pokemons = json_load(DATASET_DIR.joinpath("all_pokemons.json"))
         self.pokemon_to_idx = {name: i for i, name in enumerate(self.all_pokemons)}
-        self.all_moves = json_load(DATASET_DIR.joinpath("all_moves.json"))
+        self.all_moves = json_load(DATASET_DIR.joinpath("all_moves_with_hiddenpower_type.json"))
         self.move_to_idx = {name: i + len(self.all_pokemons) for i, name in enumerate(self.all_moves)}
 
         self._state_vecs = {opponent_poke: self._make_state(opponent_poke) for opponent_poke in self.all_pokemons}

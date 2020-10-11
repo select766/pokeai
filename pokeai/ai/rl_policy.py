@@ -1,3 +1,5 @@
+import json
+import logging
 from logging import getLogger
 
 from pokeai.ai.generic_move_model.agent import Agent
@@ -51,22 +53,20 @@ class RLPolicy(RandomPolicy):
         :return:
         """
         logger.debug(f"choice of player {battle_status.side_friend}")
-        choice_idxs, choice_keys, choice_vec = get_possible_actions(battle_status, request)
-        if len(choice_idxs) == 1:
+        possible_actions = get_possible_actions(battle_status, request)
+        if len(possible_actions) == 1:
             # 選択肢が１つだけの場合はモデルに与えない
             # 与える場合、action番号を正しく設定する必要あり(get_possible_actions内コメントに注意)
-            logger.debug(f"only one choice: {choice_keys[0]}")
-            return choice_keys[0]
-        obs = RLPolicyObservation(battle_status, request)
-        action = self.agent.act(obs, 0.0)
-        for idx, key in zip(choice_idxs, choice_keys):
-            if idx == action:
-                chosen = key
-                break
-        else:
-            raise ValueError(f"action number {action} is not valid choice.")
+            logger.debug(f"only one choice: {possible_actions[0]}")
+            return possible_actions[0].simulator_key
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                'possible_actions: ' + json.dumps([pa._asdict() for pa in possible_actions]))
+        obs = RLPolicyObservation(battle_status, request, possible_actions)
+        action = self.agent.act(obs, 0.0)  # TODO: バトルの進行による補助的な報酬
+        chosen = possible_actions[action]
         logger.debug(f"chosen: {chosen}")
-        return chosen
+        return chosen.simulator_key
 
     def game_end(self, reward: float):
         self.agent.stop_episode(reward)

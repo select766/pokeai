@@ -14,7 +14,7 @@ from pokeai.util import json_load
 _all_pokemons = json_load(DATASET_DIR.joinpath('all_pokemons.json'))  # type: List[str]
 _pokemon2idx = {name: i for i, name in enumerate(_all_pokemons)}
 # 技のid ["absorb", ...]
-_all_moves = json_load(DATASET_DIR.joinpath('all_moves.json'))  # type: List[str]
+_all_moves = json_load(DATASET_DIR.joinpath('all_moves_with_hiddenpower_type.json'))  # type: List[str]
 _move2idx = {name: i for i, name in enumerate(_all_moves)}
 # 道具のid ["", "berryjuice", ...]
 # 道具なし状態に対応する""が含まれている。

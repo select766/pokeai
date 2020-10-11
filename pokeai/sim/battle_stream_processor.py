@@ -19,6 +19,7 @@ class BattleStreamProcessor:
     side: Optional[str]  # p1 or p2
     side_party: Optional[Party]  # プレイヤー側のパーティ
     last_request: dict  # 最新の行動選択時における味方の状態
+    last_request_my_action: str  # 直前のrequestで要求された行動の種類 none | turn_start | force_switch
     battle_status: BattleStatus
     policy: "ActionPolicy"
     # 処理しないメッセージ（進行上重要でなく、AIの判断に使わない情報）
@@ -103,6 +104,7 @@ class BattleStreamProcessor:
         self.side = side
         self.side_party = side_party
         self.last_request = None
+        self.last_request_my_action = 'none'
         # FIXME: BattleStatusと責任境界が分かれてない
         self.battle_status = BattleStatus(side, side_party)
 
@@ -119,18 +121,27 @@ class BattleStreamProcessor:
             lineparts = line.split('|')
             msg = lineparts[1]
             msgargs = lineparts[2:]
-            msgchoice = None
             handler = self._handlers.get(msg)
             if handler is not None:
-                msgchoice = handler(msgargs)
+                handler(msgargs)
             elif msg in BattleStreamProcessor.ignore_msgs:
                 # 安全に無視できるメッセージ
                 pass
             else:
                 raise NotImplementedError(f"unknown message {msg} in {data}")
-            if msgchoice is not None:
-                assert choice is None, "multiple choice occurred for one chunk"
-                choice = msgchoice
+        if chunk_type == "update":
+            if self.last_request_my_action == 'turn_start':
+                choice = self.policy.choice_turn_start(self.battle_status, self.last_request)
+            elif self.last_request_my_action == 'force_switch':
+                choice = self.policy.choice_force_switch(self.battle_status, self.last_request)
+            if choice is not None and logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    f'choice_{self.last_request_my_action}: ' + json.dumps(
+                        {"battle_status": pickle_base64_dumps(self.battle_status),
+                         "battle_status_json": self.battle_status.json_dumps(),
+                         "request": self.last_request,
+                         "choice": choice}))
+            self.last_request_my_action = 'none'
         return choice
 
     def _handle_request(self, msgargs: List[str]) -> Optional[str]:
@@ -146,26 +157,22 @@ class BattleStreamProcessor:
         if request.get('wait'):
             # 相手だけが強制交換の状況
             # 選択肢なし、返答自体なし
+            self.last_request_my_action = 'none'
             return None
         elif request.get('forceSwitch'):
             # 強制交換(瀕死)
             # このタイミングで交換先を選ぶ
             # 厳密には、この後にターンの経過（どの技が使われたかなど）のメッセージが来るのでそれも判断に取り入れるべきだが、現状では無視
-            choice = self.policy.choice_force_switch(self.battle_status, request)
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug(
-                    'choice_force_switch: ' + json.dumps({"battle_status": pickle_base64_dumps(self.battle_status),
-                                                          "battle_status_json": self.battle_status.json_dumps(),
-                                                          "request": request,
-                                                          "choice": choice}))
-            return choice
+            self.last_request_my_action = 'force_switch'
         elif request.get('active'):
             # 通常のターン開始時の行動選択
             # この後に前回ターンの経過が来るので、それを待った上でAIが判断する
+            self.last_request_my_action = 'turn_start'
             pass
         else:
             # バトル前の見せ合いで生じるようだが未対応
             raise ValueError("Unknown situation of choice")
+        # TODO: _handle_*の戻り値をOptional[str]からNoneにする
         return None
 
     def _handle_switch(self, msgargs: List[str]) -> Optional[str]:
@@ -206,13 +213,7 @@ class BattleStreamProcessor:
         # 最初のターンは1
         turn = int(msgargs[0])
         self.battle_status.turn = turn
-        choice = self.policy.choice_turn_start(self.battle_status, self.last_request)
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug('choice_turn_start: ' + json.dumps({"battle_status": pickle_base64_dumps(self.battle_status),
-                                                             "battle_status_json": self.battle_status.json_dumps(),
-                                                             "request": self.last_request,
-                                                             "choice": choice}))
-        return choice
+        return None
 
     def _handle_start(self, msgargs: List[str]) -> Optional[str]:
         """

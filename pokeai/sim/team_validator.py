@@ -93,6 +93,16 @@ def demo():
           "moves": ['thunderbolt'],  # 10まんボルト(クリスタル限定教え技)
           "gender": "F"
           }],
+        [{**fill,
+          "species": "blissey",  # ハピナス
+          "moves": ['hiddenpower'],  # めざめるパワー（タイプ特定なし）: OK
+          "gender": "F"
+          }],
+        [{**fill,
+          "species": "blissey",  # ハピナス
+          "moves": ['hiddenpowerice'],  # めざめるパワー（タイプ特定あり）: OK
+          "gender": "F"
+          }],
     ]
     # その他
     # 性別不明ポケモンの性別は検査しない
