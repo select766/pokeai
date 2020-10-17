@@ -2,7 +2,8 @@
 パーティ同士を対戦させてレーティングを計算する
 パーティ数*trainer数のプレイヤーがいると想定して対戦
 """
-
+import json
+import logging
 import os
 import argparse
 from typing import List, Tuple
@@ -72,7 +73,11 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
             if fixed_rates[left] != 0 and fixed_rates[right] != 0:
                 # どちらもレート固定パーティなので、対戦不要
                 continue
-            logger.debug(f"match start: {agent_ids[left]}, {agent_ids[right]}")
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(f"match start: " + json.dumps({
+                    "p1": {"agent_id": agent_ids[left], "party": parties[left]},
+                    "p2": {"agent_id": agent_ids[right], "party": parties[right]},
+                }))
             winner = match_agents(sim, [parties[left], parties[right]], [policies[left], policies[right]])
             # レートを変動させる
             if winner >= 0:
@@ -102,11 +107,13 @@ def main():
     parser.add_argument("--match_count", type=int, default=100, help="1パーティあたりの対戦回数")
     parser.add_argument("--loglevel", help="対戦経過のログ出力(stderr)のレベル", choices=["INFO", "WARNING", "DEBUG"],
                         default="INFO")
+    parser.add_argument("--log", help="ログファイルパス")
     parser.add_argument("--rate_id")
     args = parser.parse_args()
-    logging.basicConfig(level=getattr(logging, args.loglevel))
+    logging.basicConfig(level=getattr(logging, args.loglevel), filename=args.log)
     rate_id = ObjectId(args.rate_id)  # Noneならランダム生成
     print(f"rate_id: {rate_id}")
+    logger.info(f"rate_id: {rate_id}")
     if args.player_ids_file:
         player_ids = json_load(args.player_ids_file)["player_ids"]
         assert len(args.trainer_ids) == 0

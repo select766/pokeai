@@ -34,9 +34,8 @@ class Agent:
         q_vector[action_mask == 0] = -np.inf
         action = int(np.argmax(q_vector))
         if logger.isEnabledFor(logging.DEBUG):
-            if True:
-                logger.debug(
-                    "obs: " + json.dumps({"obs_vector": obs_vector.tolist(), "action_mask": action_mask.tolist()}))
+            # logger.debug(
+            #     "obs: " + json.dumps({"obs_vector": obs_vector.tolist(), "action_mask": action_mask.tolist()}))
             # infは Infinity としてシリアライズされエラーにならない（JSON規格外だが）
             logger.debug(f"q_func: " + json.dumps({"q_func": q_vector.tolist(), "action": action}))
         return action
