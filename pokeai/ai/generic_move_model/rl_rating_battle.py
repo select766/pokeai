@@ -23,7 +23,7 @@ from pokeai.util import pickle_dump, pickle_load, json_load
 logger = getLogger(__name__)
 
 
-def match_agents(sim, parties, policies):
+def match_players(sim, parties, policies):
     bsps = []
     for i in [0, 1]:
         bsp = BattleStreamProcessor()
@@ -37,7 +37,7 @@ def match_agents(sim, parties, policies):
     return winner
 
 
-def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: List[float] = None) -> Tuple[
+def rating_battle(parties, policies, player_ids, match_count: int, fixed_rates: List[float] = None) -> Tuple[
     List[float], list]:
     """
     パーティ同士を多数戦わせ、レーティングを算出する。
@@ -63,7 +63,7 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
         # 対戦相手を決める
         # レーティングに乱数を加算し、ソートして隣接パーティ同士を戦わせる
         rates_with_random = rates + np.random.normal(scale=200., size=rates.shape)
-        ranking = np.argsort(rates_with_random)
+        ranking = np.argsort(rates_with_random).tolist()  # type: List[int]
         for j in range(0, len(parties), 2):
             if j + 1 >= len(parties):
                 # 奇数個パーティがある場合
@@ -75,10 +75,10 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
                 continue
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"match start: " + json.dumps({
-                    "p1": {"agent_id": agent_ids[left], "party": parties[left]},
-                    "p2": {"agent_id": agent_ids[right], "party": parties[right]},
+                    "p1": {"player_id": player_ids[left], "party": parties[left]},
+                    "p2": {"player_id": player_ids[right], "party": parties[right]},
                 }))
-            winner = match_agents(sim, [parties[left], parties[right]], [policies[left], policies[right]])
+            winner = match_players(sim, [parties[left], parties[right]], [policies[left], policies[right]])
             # レートを変動させる
             if winner >= 0:
                 left_winrate = 1.0 / (1.0 + 10.0 ** ((rates[right] - rates[left]) / 400.0))
@@ -90,8 +90,7 @@ def rating_battle(parties, policies, agent_ids, match_count: int, fixed_rates: L
                     rates[left] += left_incr
                 if fixed_rates[right] == 0:
                     rates[right] -= left_incr
-            log.append({"agents": [agent_ids[left], agent_ids[right]],
-                        "winner": winner})
+            log.append([left, right, winner])
             logger.debug(f"match end: winner: {winner}")
         abs_mean_diff = np.mean(np.abs(rates - 1500.0))
         logger.info(f"{i} rate mean diff: {abs_mean_diff}")
@@ -154,7 +153,10 @@ def main():
     print(f"rate_id: {rate_id}")
     col_rate.insert_one({
         "_id": rate_id,
-        "rates": {str(agent_id): rate for agent_id, rate in zip(player_ids, rates)},
+        "player_ids": player_ids,
+        "rates": {str(player_id): rate for player_id, rate in zip(player_ids, rates)},
+        "log_entry_format": "[player1_index (in player ids), player2_index (in player ids), "
+                            "winner (0 for player 1, 1 for player 2, -1 for draw)]",
         "log": log,
     })
 
