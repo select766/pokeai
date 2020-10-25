@@ -1,0 +1,16 @@
+.battleEventUpdateView {
+  border: 1px black solid;
+  margin: 8px;
+}
+
+.battleEventChoiceView {
+  margin: 8px;
+  table {
+    border: 1px black solid;
+    border-collapse: collapse;
+
+    td {
+      border: 1px black solid;
+    }
+  }
+}
