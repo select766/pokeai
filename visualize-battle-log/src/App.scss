@@ -1,10 +1,45 @@
 .battleEventUpdateView {
+  clear: both;
   border: 1px black solid;
   margin: 8px;
+  padding: 8px;
+  ul {
+    margin-block-start: 0;
+    margin-block-end: 0;
+    padding-inline-start: 0;
+  }
+  li {
+    list-style-type: none;
+  }
+  .switch {
+    background-color: lightblue;
+  }
+  .-status {
+    background-color: lightpink;
+  }
+  .-boost {
+    background-color: lightgreen;
+  }
 }
 
 .battleEventChoiceView {
+  float: left;
   margin: 8px;
+  table {
+    border: 1px black solid;
+    border-collapse: collapse;
+
+    td {
+      border: 1px black solid;
+    }
+  }
+
+  .actualChoice {
+    background-color: yellow;
+  }
+}
+
+.partyView {
   table {
     border: 1px black solid;
     border-collapse: collapse;

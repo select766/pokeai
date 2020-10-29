@@ -18,7 +18,7 @@ function App() {
       <form onSubmit={onFileSubmit}>
         JSON log: <input type="file" ref={fileRef} /><input type="submit" value="Submit" />
       </form>
-      {battles.slice(0, 1).map((battle, i) => <BattleView key={i} battle={battle} />)}
+      {battles.slice(0, 100).map((battle, i) => <BattleView key={i} battle={battle} />)}
     </div>
   );
 }
