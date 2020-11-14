@@ -9,6 +9,7 @@ import torch
 
 from pokeai.ai.generic_move_model.trainer import Trainer
 from pokeai.ai.random_policy import RandomPolicy
+from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero, SurrogateRewardConfig
 from pokeai.sim.party_generator import Party
 
 import argparse
@@ -26,7 +27,7 @@ from pokeai.util import yaml_load
 def battle_once(sim, trainer: Trainer, target_parties: List[Party]) -> float:
     agent = trainer.get_val_agent()
     bsp_t = BattleStreamProcessor()
-    bsp_t.set_policy(RLPolicy(agent))
+    bsp_t.set_policy(RLPolicy(agent, SurrogateRewardConfigZero))
     bsp_o = BattleStreamProcessor()
     bsp_o.set_policy(RandomPolicy())
     sim.set_processor([bsp_t, bsp_o])
@@ -46,13 +47,13 @@ def random_val(sim, trainer: Trainer, parties: List[Party], battles: int) -> flo
     return float(np.mean(agent_scores))
 
 
-def train_episode(sim, trainer: Trainer, target_parties: List[Party]):
+def train_episode(sim, trainer: Trainer, target_parties: List[Party], surrogate_reward_config: SurrogateRewardConfig):
     agents = []
     bsps = []
     for player in range(2):
         agent = trainer.get_train_agent()
         bsp = BattleStreamProcessor()
-        bsp.set_policy(RLPolicy(agent))
+        bsp.set_policy(RLPolicy(agent, surrogate_reward_config))
         agents.append(agent)
         bsps.append(bsp)
     sim.set_processor(bsps)
@@ -88,6 +89,7 @@ def main():
     else:
         trainer_ids = [ObjectId()]
     train_params = yaml_load(args.train_param_file)
+    surrogate_reward_config = SurrogateRewardConfig(**train_params["surrogate_reward"])
     save_ats = calc_save_at(train_params["battles"], len(trainer_ids))
     tags = train_params["tags"]
     parties = []
@@ -101,7 +103,7 @@ def main():
     sim = Sim()
     for battle_idx in tqdm(range(train_params["battles"])):
         target_parties = random.sample(parties, 2)
-        train_episode(sim, trainer, target_parties)
+        train_episode(sim, trainer, target_parties, surrogate_reward_config)
         if battle_idx % 1000 == 0:
             print("mean score", random_val(sim, trainer, parties, 100))
         if battle_idx in save_ats:

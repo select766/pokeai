@@ -10,6 +10,13 @@ class ActionPolicy:
     def __init__(self):
         self.train = False
 
+    def game_start(self):
+        """
+        内部状態のリセット
+        :return:
+        """
+        pass
+
     def choice_turn_start(self, battle_status: BattleStatus, request: dict) -> str:
         """
         ターン開始時の行動選択

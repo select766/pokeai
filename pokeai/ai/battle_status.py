@@ -92,12 +92,17 @@ class ActivePokeStatus:
         for stat in self.ranks.keys():
             self.ranks[stat] = ActivePokeStatus.RANK_ZERO
 
+    @property
+    def hp_ratio(self) -> float:
+        return self.hp_current / self.hp_max
+
 
 class SideStatus:
     """
     一方のプレイヤーの状態
     """
     active: Optional[ActivePokeStatus]
+    reserve_pokes: Dict[str, ActivePokeStatus]  # 控えのポケモンの交代直前の状態(瀕死状態のポケモンも含む)
     side_statuses: Set[str]  # プレイヤーの場の状態
     total_pokes: int  # 全手持ちポケモン数
     remaining_pokes: int  # 残っているポケモン数
@@ -107,6 +112,7 @@ class SideStatus:
         バトル開始時の状態を生成する
         """
         self.active = None
+        self.reserve_pokes = {}
         self.side_statuses = set()
         self.total_pokes = 0
         self.remaining_pokes = 0
@@ -117,7 +123,31 @@ class SideStatus:
         :param active:
         :return:
         """
+        if self.active is not None:
+            self.reserve_pokes[self.active.species] = self.active
         self.active = active
+        if active.species in self.reserve_pokes:
+            del self.reserve_pokes[active.species]
+
+    def get_mean_hp_ratio(self) -> float:
+        """
+        控えを含めたポケモンごとの現在HP/最大HPを計算し、全ポケモンの平均を返す
+        :return:
+        """
+        assert self.total_pokes > 0
+        assert self.active is not None
+        # まだ登場していないポケモンはhp_ratio==1.0とみなす
+        ratio_sum = self.active.hp_ratio + sum(p.hp_ratio for p in self.reserve_pokes.values()) + (
+                self.total_pokes - 1 - len(self.reserve_pokes))
+        return ratio_sum / self.total_pokes
+
+    def get_alive_ratio(self) -> float:
+        """
+        生きているポケモン数/全ポケモン数を計算する
+        :return:
+        """
+        assert self.total_pokes > 0
+        return self.remaining_pokes / self.total_pokes
 
 
 class BattleStatus:

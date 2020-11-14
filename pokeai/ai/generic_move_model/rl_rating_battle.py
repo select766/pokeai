@@ -16,6 +16,7 @@ from pokeai.ai.generic_move_model.trainer import Trainer
 from pokeai.ai.party_db import col_party, col_trainer, col_rate, pack_obj, unpack_obj
 from pokeai.ai.random_policy import RandomPolicy
 from pokeai.ai.rl_policy import RLPolicy
+from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
 from pokeai.util import pickle_dump, pickle_load, json_load
@@ -140,7 +141,7 @@ def main():
         else:
             trainer_doc = col_trainer.find_one({"_id": ObjectId(trainer_id)})
             trainer = Trainer.load_state(unpack_obj(trainer_doc["trainer_packed"]))
-            policy = RLPolicy(trainer.get_val_agent())
+            policy = RLPolicy(trainer.get_val_agent(), SurrogateRewardConfigZero)
         src_policies[trainer_id] = policy
     parties = []
     policies = []

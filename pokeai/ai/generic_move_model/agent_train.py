@@ -3,6 +3,7 @@ import numpy as np
 from pokeai.ai.generic_move_model.agent import Agent
 from pokeai.ai.generic_move_model.feature_extractor import FeatureExtractor
 from pokeai.ai.generic_move_model.replay_buffer import ReplayBuffer, ReplayBufferItem
+from pokeai.ai.rl_policy_observation import RLPolicyObservation
 
 
 class AgentTrain(Agent):
@@ -20,7 +21,7 @@ class AgentTrain(Agent):
         self._last_action_mask = None
         self._last_action = 0
 
-    def act(self, obs: object, reward: float) -> int:
+    def act(self, obs: RLPolicyObservation, reward: float) -> int:
         obs_vector, action_mask = self._feature_extractor.transform(obs)
         if self._last_state is not None:
             self._replay_buffer.append(

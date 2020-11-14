@@ -107,6 +107,7 @@ class BattleStreamProcessor:
         self.last_request_my_action = 'none'
         # FIXME: BattleStatusと責任境界が分かれてない
         self.battle_status = BattleStatus(side, side_party)
+        self.policy.game_start()
 
     def process_chunk(self, chunk_type: str, data: str) -> Optional[str]:
         """
