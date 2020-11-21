@@ -68,7 +68,10 @@ class RLPolicy(RandomPolicy):
             ss = battle_status.side_statuses[side]
             side_potential = ss.get_mean_hp_ratio() * self.surrogate_reward_config.hp_ratio + ss.get_alive_ratio() * self.surrogate_reward_config.alive_ratio
             sps.append(side_potential)
-        return sps[0] - sps[1]
+        if self.surrogate_reward_config.only_opponent:
+            return -sps[1]
+        else:
+            return sps[0] - sps[1]
 
     def _choice_by_model(self, battle_status: BattleStatus, request: dict) -> str:
         """
@@ -103,4 +106,7 @@ class RLPolicy(RandomPolicy):
 
     def game_end(self, reward: float):
         # 厳密には最終ターンのダメージで補助報酬を与えるべきかもしれない
+        if self.surrogate_reward_config.offset_at_end:
+            # 今までに与えた補助報酬をキャンセルし、ゲーム全体の報酬和は勝敗（この関数の引数）だけとする
+            reward = reward - self.last_reward_potential
         self.agent.stop_episode(reward)

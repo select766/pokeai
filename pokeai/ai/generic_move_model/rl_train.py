@@ -9,7 +9,8 @@ import torch
 
 from pokeai.ai.generic_move_model.trainer import Trainer
 from pokeai.ai.random_policy import RandomPolicy
-from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero, SurrogateRewardConfig
+from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero, SurrogateRewardConfig, \
+    SurrogateRewardConfigDefaults
 from pokeai.sim.party_generator import Party
 
 import argparse
@@ -89,7 +90,8 @@ def main():
     else:
         trainer_ids = [ObjectId()]
     train_params = yaml_load(args.train_param_file)
-    surrogate_reward_config = SurrogateRewardConfig(**train_params["surrogate_reward"])
+    surrogate_reward_config = SurrogateRewardConfig(
+        **dict(SurrogateRewardConfigDefaults, **train_params["surrogate_reward"]))
     save_ats = calc_save_at(train_params["battles"], len(trainer_ids))
     tags = train_params["tags"]
     parties = []
