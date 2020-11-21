@@ -16,11 +16,12 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
       const updateType = elems[0];
       switch (updateType) {
         case 'move':
-          result.push(<li key={result.length} className={updateType}>{`技 ${name2jp(elems[1].split(' ')[0])}${name2jp(elems[1].split(' ')[1])}の${name2jp(elems[2])}→${name2jp(elems[3].split(' ')[1])}`}</li>);
+          // "p2a: Mr. Mime"があるのでsplit(" ")は使わない
+          result.push(<li key={result.length} className={updateType}>{`技 ${name2jp(elems[1].substring(0, 4))}${name2jp(elems[1].substring(5))}の${name2jp(elems[2])}→${name2jp(elems[3].substring(5))}`}</li>);
           break;
         case 'switch':
           // |switch|p2a: Azumarill|Azumarill, L50, M|206/206
-          result.push(<li key={result.length} className={updateType}>{`交代 ${name2jp(elems[1].split(' ')[0])}${name2jp(elems[1].split(' ')[1])}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`交代 ${name2jp(elems[1].substring(0, 4))}${name2jp(elems[1].substring(5))}`}</li>);
           break;
         case 'split':
           // 次の行は片方のプレイヤーにだけ見えるもので、現状不要
@@ -28,11 +29,11 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
           break;
         case '-damage':
           // |-damage|p2a: Azumarill|169/206
-          result.push(<li key={result.length} className={updateType}>{`ダメージ ${name2jp(elems[1].split(' ')[1])} ${elems[2]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`ダメージ ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
           break;
         case 'faint':
           // |faint|p1a: Beedrill
-          result.push(<li key={result.length} className={updateType}>{`${name2jp(elems[1].split(' ')[1])}は倒れた`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`${name2jp(elems[1].substring(5))}は倒れた`}</li>);
           break;
         case 'start':
           // |start
@@ -60,48 +61,48 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
           break;
         case '-status':
           // |-status|p1a: Gengar|frz
-          result.push(<li key={result.length} className={updateType}>{`状態異常 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`状態異常 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
           break;
         case '-curestatus':
           // |-curestatus|p1a: Stantler|frz|[msg]
-          result.push(<li key={result.length} className={updateType}>{`状態異常回復 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`状態異常回復 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
           break;
         case '-boost':
           // |-boost|p1a: Umbreon|evasion|1
-          result.push(<li key={result.length} className={updateType}>{`ランク上昇 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}${elems[3]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`ランク上昇 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]}`}</li>);
           break;
         case '-unboost':
           // |-unboost|p2a: Lapras|accuracy|1
-          result.push(<li key={result.length} className={updateType}>{`ランク下降 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}${elems[3]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`ランク下降 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]}`}</li>);
           break;
         case '-heal':
           // |-heal|p1a: Gengar|124/166|[from] drain|[of] p2a: Lapras
-          result.push(<li key={result.length} className={updateType}>{`回復 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}${elems[3]}${elems[4]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`回復 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]}${elems[4]}`}</li>);
           break;
         case '-miss':
           // |-miss|p1a: Electabuzz
-          result.push(<li key={result.length} className={updateType}>{`外れた ${name2jp(elems[1].split(' ')[1])}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`外れた ${name2jp(elems[1].substring(5))}`}</li>);
           break;
         case '-fail':
           // |-fail|p1a: Electabuzz|tox
-          result.push(<li key={result.length} className={updateType}>{`失敗 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`失敗 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
           break;
         case '-mustrecharge':
           // |-mustrecharge|p1a: Butterfree
-          result.push(<li key={result.length} className={updateType}>{`反動発生 ${name2jp(elems[1].split(' ')[1])}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`反動発生 ${name2jp(elems[1].substring(5))}`}</li>);
           break;
         case '-start':
           // |-start|p2a: Raichu|confusion|[silent]
-          result.push(<li key={result.length} className={updateType}>{`状態変化 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}${elems[3]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`状態変化 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]}`}</li>);
           break;
         case '-prepare':
           // |-prepare|p2a: Togetic|Solar Beam|p1a: Lapras
-          result.push(<li key={result.length} className={updateType}>{`溜め ${name2jp(elems[1].split(' ')[1])}の${name2jp(elems[2])}→${name2jp(elems[3].split(' ')[1])}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`溜め ${name2jp(elems[1].substring(5))}の${name2jp(elems[2])}→${name2jp(elems[3].substring(5))}`}</li>);
           break;
 
         case 'cant':
           // |cant|p2a: Golduck|frz
-          result.push(<li key={result.length} className={updateType}>{`行動不能 ${name2jp(elems[1].split(' ')[1])} ${elems[2]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`行動不能 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
           break;
         case 'win':
           // |win|p2
