@@ -1,6 +1,7 @@
 import json
 import pickle
 import base64
+import gzip
 import yaml
 from pathlib import Path
 from typing import Union
@@ -37,6 +38,12 @@ def yaml_load(path: Union[str, Path]):
 def yaml_dump(obj, path: Union[str, Path]):
     with open(path, 'w', encoding='utf-8') as f:
         yaml.safe_dump(obj, f)
+
+
+def compress_open(path: Union[str, Path], mode: str):
+    if path.endswith('.gz'):
+        return gzip.open(path, mode, encoding='utf-8')
+    return open(path, mode, encoding='utf-8')
 
 
 def pickle_base64_dumps(obj) -> str:
