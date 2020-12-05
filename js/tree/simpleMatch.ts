@@ -12,7 +12,7 @@ function loadData(path: string): {_id: string, party: any}[] {
 
 function main() {
     const parties = loadData(process.argv[2]);
-    const aiRandom = new AIRandom();
+    const aiRandom = new AIRandom({});
     const results = [];
     console.time('all battles');
     for (let i = 0; i < parties.length; i++) {

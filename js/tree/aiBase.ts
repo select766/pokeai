@@ -25,6 +25,9 @@ export type ChoiceInfo = {
 }
 
 export class AIBase {
+    constructor(options: {}) {
+    }
+
     protected enumChoices(request: any): ChoiceInfo[] {
         // 合法手列挙
         // シミュレータに送るコマンドと、目視確認用の説明（交代先ポケモン名か技名）
