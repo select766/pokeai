@@ -8,6 +8,12 @@ export type SideID = 'p1' | 'p2';
 export const sideIDs = ['p1', 'p2'] as SideID[];
 export const nPlayers = 2;
 export const sideidToSide = { p1: 0, p2: 1 };
+export function invSideID(sideid: SideID): SideID {
+    return {p1: 'p2', p2: 'p1'}[sideid] as SideID;
+}
+export function invSide(side: Side): Side {
+    return (1 - side) as Side;
+}
 
 export class Sim {
     constructor(private battle: any) {

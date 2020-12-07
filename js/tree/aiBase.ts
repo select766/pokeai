@@ -24,6 +24,14 @@ export type ChoiceInfo = {
     }
 }
 
+export function choiceToString(choiceInfo: ChoiceInfo): string {
+    if (choiceInfo.type === 'move') {
+        return choiceInfo.moveInfo.move;
+    } else {
+        return choiceInfo.pokeInfo.details.split(',')[0];
+    }
+}
+
 export class AIBase {
     constructor(options: {}) {
     }

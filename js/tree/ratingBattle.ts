@@ -1,9 +1,11 @@
-import * as fs from "fs";
+
 
 import { AIBase } from "./aiBase";
 import { ais } from "./ais";
+import { argsort, rnorm } from "./mathUtil";
 import { playout } from "./playout";
 import { Sim } from "./sim";
+import { loadJSON, saveJSON } from "./util";
 
 interface Player {
     id: string;
@@ -15,16 +17,6 @@ interface AgentConfig {
     id: string;
     className: string;
     options: any;
-}
-
-function rnorm() {
-    return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
-}
-
-function argsort(ary: number[]): number[] {
-    const idxs = ary.map((v, i) => [v, i]);
-    idxs.sort((a, b) => a[0] - b[0]);
-    return idxs.map((a) => a[1]);
 }
 
 function ratingBattle(players: Player[], matchCount: number): number[] {
@@ -56,13 +48,6 @@ function ratingBattle(players: Player[], matchCount: number): number[] {
     return rates;
 }
 
-function loadJSON(path: string): any {
-    return JSON.parse(fs.readFileSync(path, { encoding: 'utf-8' }));
-}
-
-function saveJSON(path: string, data: any): void {
-    fs.writeFileSync(path, JSON.stringify(data, null, 2));
-}
 
 function constructAgent(agentConfig: AgentConfig): AIBase {
     const ctor = ais[agentConfig.className];
@@ -81,7 +66,7 @@ function main() {
     }
 
     console.time('all battles');
-    const ratings = ratingBattle(players, 100);
+    const ratings = ratingBattle(players, 10);
     console.timeEnd('all battles');
     const results: {id: string; rate: number}[] = [];
     for (let i = 0; i < players.length; i++) {
