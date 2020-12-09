@@ -55,6 +55,11 @@ export class Sim {
         return this.battle.winner;
     }
 
+    /**
+     * 現在のターン数を返す。
+     * バトル開始直後で1。
+     * バトルの終了ではインクリメントされない。バトル終了後の値は、ターンの行動選択のためのchoose呼び出し回数と一致する。
+     */
     getTurn(): number {
         return this.battle.turn;
     }

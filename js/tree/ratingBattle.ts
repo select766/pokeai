@@ -30,7 +30,7 @@ function ratingBattle(players: Player[], matchCount: number): number[] {
             const left = ranking[j];
             const right = ranking[j + 1];
             const sim = Sim.fromParty([players[left].party, players[right].party]);
-            const winner = playout(sim, [players[left].agent, players[right].agent]);
+            const { winner } = playout(sim, [players[left].agent, players[right].agent]);
             if (winner) {
                 const left_winrate = 1.0 / (1.0 + 10.0 ** ((rates[right] - rates[left]) / 400.0));
                 let left_incr;
@@ -55,22 +55,22 @@ function constructAgent(agentConfig: AgentConfig): AIBase {
 }
 
 function main() {
-    const parties:{ _id: string, party: any }[]= loadJSON(process.argv[2]);
+    const parties: { _id: string, party: any }[] = loadJSON(process.argv[2]);
     const agentConfigs: AgentConfig[] = loadJSON(process.argv[3]);
     const players: Player[] = [];
     for (const agentConfig of agentConfigs) {
         const agent = constructAgent(agentConfig);
         for (const party of parties) {
-            players.push({id: `${agentConfig.id}+${party._id}`, agent, party: party.party});
+            players.push({ id: `${agentConfig.id}+${party._id}`, agent, party: party.party });
         }
     }
 
     console.time('all battles');
     const ratings = ratingBattle(players, 10);
     console.timeEnd('all battles');
-    const results: {id: string; rate: number}[] = [];
+    const results: { id: string; rate: number }[] = [];
     for (let i = 0; i < players.length; i++) {
-        results.push({id: players[i].id, rate: ratings[i]});
+        results.push({ id: players[i].id, rate: ratings[i] });
     }
     saveJSON(process.argv[4], results);
 }
