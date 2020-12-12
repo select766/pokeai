@@ -1,3 +1,4 @@
+import * as rfdc from 'rfdc';
 const sim = require('../../Pokemon-Showdown/.sim-dist');
 
 const Dex = sim.Dex;
@@ -14,6 +15,8 @@ export function invSideID(sideid: SideID): SideID {
 export function invSide(side: Side): Side {
     return (1 - side) as Side;
 }
+
+const cloner = rfdc();
 
 export class Sim {
     constructor(private battle: any) {
@@ -32,7 +35,7 @@ export class Sim {
     }
 
     clone(): Sim {
-        const battle = Battle.fromJSON(this.battle.toJSON());
+        const battle = Battle.fromJSON(cloner(this.battle.toJSON()));
         return new Sim(battle);
     }
 

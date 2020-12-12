@@ -3,7 +3,10 @@
   "version": "2.0.0",
   "description": "Develop ultimate AI Pokémon trainer",
   "main": "index.js",
-  "dependencies": {},
+  "dependencies": {
+    "@types/rfdc": "^1.1.0",
+    "rfdc": "^1.1.4"
+  },
   "devDependencies": {
     "@types/node": "^12.7.2",
     "typescript": "^3.9.7"
