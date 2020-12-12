@@ -1,4 +1,5 @@
-import { Side, SideID, sideIDs, Sim } from "./sim";
+import { BattleSearchLogEntry } from "./battleLogModel";
+import { SideID, Sim } from "./sim";
 
 export type ChoiceInfo = {
     key: string; // "move 1"
@@ -31,6 +32,16 @@ export function choiceToString(choiceInfo: ChoiceInfo): string {
         return choiceInfo.pokeInfo.details.split(',')[0];
     }
 }
+
+export interface SearchLogEmitter {
+    enabled: boolean;
+    emit: (obj: BattleSearchLogEntry) => void;
+}
+
+export const SearchLogEmitterVoid: SearchLogEmitter= {
+    enabled: false,
+    emit: () => {},
+};
 
 export class AIBase {
     constructor(options: {}) {
@@ -74,7 +85,7 @@ export class AIBase {
         return choices;
     }
 
-    go(sim: Sim, sideid: SideID): string | null {
+    go(sim: Sim, sideid: SideID, searchLogEmitter: SearchLogEmitter): string | null {
         const choices = this.enumChoices(sim.getRequest(sideid));
         if (choices.length > 0) {
             return choices[0].key;

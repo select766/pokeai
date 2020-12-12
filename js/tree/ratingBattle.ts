@@ -1,7 +1,8 @@
-
+import * as fs from 'fs';
 
 import { AIBase } from "./aiBase";
 import { ais } from "./ais";
+import { BattleLog } from './battleLogModel';
 import { argsort, rnorm } from "./mathUtil";
 import { playout } from "./playout";
 import { Sim } from "./sim";
@@ -19,7 +20,7 @@ interface AgentConfig {
     options: any;
 }
 
-function ratingBattle(players: Player[], matchCount: number): number[] {
+function ratingBattle(players: Player[], matchCount: number, logFile?: number): number[] {
     const rates: number[] = (new Array(players.length)).fill(1500);
 
     for (let i = 0; i < matchCount; i++) {
@@ -30,7 +31,7 @@ function ratingBattle(players: Player[], matchCount: number): number[] {
             const left = ranking[j];
             const right = ranking[j + 1];
             const sim = Sim.fromParty([players[left].party, players[right].party]);
-            const { winner } = playout(sim, [players[left].agent, players[right].agent]);
+            const { winner, log } = playout(sim, [players[left].agent, players[right].agent], !!logFile);
             if (winner) {
                 const left_winrate = 1.0 / (1.0 + 10.0 ** ((rates[right] - rates[left]) / 400.0));
                 let left_incr;
@@ -41,6 +42,17 @@ function ratingBattle(players: Player[], matchCount: number): number[] {
                 }
                 rates[left] += left_incr;
                 rates[right] -= left_incr;
+            }
+            if (logFile && log) {
+                const entry: BattleLog = {
+                    agents: {
+                        'p1': { player_id: players[left].id, party: players[left].party },
+                        'p2': { player_id: players[right].id, party: players[right].party }
+                    },
+                    events: log,
+                    end: { winner: winner || '' }
+                };
+                fs.writeSync(logFile, JSON.stringify(entry) + '\n', 0, 'utf-8');
             }
         }
     }
@@ -55,8 +67,9 @@ function constructAgent(agentConfig: AgentConfig): AIBase {
 }
 
 function main() {
-    const parties: { _id: string, party: any }[] = loadJSON(process.argv[2]);
-    const agentConfigs: AgentConfig[] = loadJSON(process.argv[3]);
+    const [, , partyFile, agentFile, battleCountStr, resultFile, logFilePath] = process.argv;
+    const parties: { _id: string, party: any }[] = loadJSON(partyFile);
+    const agentConfigs: AgentConfig[] = loadJSON(agentFile);
     const players: Player[] = [];
     for (const agentConfig of agentConfigs) {
         const agent = constructAgent(agentConfig);
@@ -64,15 +77,19 @@ function main() {
             players.push({ id: `${agentConfig.id}+${party._id}`, agent, party: party.party });
         }
     }
+    const logFile = logFilePath ? fs.openSync(logFilePath, 'a') : undefined;
 
     console.time('all battles');
-    const ratings = ratingBattle(players, 10);
+    const ratings = ratingBattle(players, Number(battleCountStr), logFile);
     console.timeEnd('all battles');
     const results: { id: string; rate: number }[] = [];
     for (let i = 0; i < players.length; i++) {
         results.push({ id: players[i].id, rate: ratings[i] });
     }
-    saveJSON(process.argv[4], results);
+    if (logFile) {
+        fs.closeSync(logFile);
+    }
+    saveJSON(resultFile, results);
 }
 
 main();

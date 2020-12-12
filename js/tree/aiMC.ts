@@ -3,7 +3,7 @@
 const sim = require('../../Pokemon-Showdown/.sim-dist');
 
 const PRNG = sim.PRNG;
-import { AIBase, choiceToString } from "./aibase";
+import { AIBase, choiceToString, SearchLogEmitter } from "./aibase";
 import { AIRandom2 } from "./aiRandom2";
 import { argsort } from "./mathUtil";
 import { playout } from "./playout";
@@ -19,7 +19,7 @@ export class AIMC extends AIBase {
         this.playoutCount = options.playoutCount;
     }
 
-    go(sim: Sim, sideid: SideID): string | null {
+    go(sim: Sim, sideid: SideID, searchLogEmitter: SearchLogEmitter): string | null {
         const choices = this.enumChoices(sim.getRequest(sideid));
         const playoutPolicy = new AIRandom2({ switchRatio: this.playoutSwitchRatio });
         if (choices.length > 0) {
@@ -37,8 +37,13 @@ export class AIMC extends AIBase {
                     }
                 }
             }
-            if (false) {
-                console.log(choices.map((c, i) => `${choiceToString(c)}=${(winCounts[i] / playoutPerAction * 100) | 0}%`));
+            if (searchLogEmitter.enabled) {
+                searchLogEmitter.emit({
+                    type: 'MC',
+                    payload: {
+                        winrates: choices.map((c, i) => ({ choice: c, winrate: (winCounts[i] / playoutPerAction) }))
+                    }
+                });
             }
             const bestIdx = argsort(winCounts)[winCounts.length - 1];
             return choices[bestIdx].key;
