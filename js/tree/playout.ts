@@ -1,5 +1,5 @@
 import { performance } from 'perf_hooks';
-import { AIBase, SearchLogEmitter, SearchLogEmitterVoid } from "./aibase";
+import { AIBase, SearchLogEmitter, SearchLogEmitterVoid } from "./aiBase";
 import { BattleEvent } from "./battleLogModel";
 import { nPlayers, SideID, sideIDs, Sim } from "./sim";
 

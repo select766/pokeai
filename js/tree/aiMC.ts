@@ -3,7 +3,7 @@
 const sim = require('../../Pokemon-Showdown/.sim-dist');
 
 const PRNG = sim.PRNG;
-import { AIBase, choiceToString, SearchLogEmitter } from "./aibase";
+import { AIBase, choiceToString, SearchLogEmitter } from "./aiBase";
 import { AIRandom2 } from "./aiRandom2";
 import { argsort } from "./mathUtil";
 import { playout } from "./playout";

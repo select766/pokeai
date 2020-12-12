@@ -1,7 +1,7 @@
 const sim = require('../../Pokemon-Showdown/.sim-dist');
 
 const PRNG = sim.PRNG;
-import { AIBase } from "./aibase";
+import { AIBase } from "./aiBase";
 import { SideID, Sim } from "./sim";
 
 
