@@ -21,6 +21,7 @@ export function BattleEventChoiceView({ event }: BattleEventChoiceViewProps): Re
       sidePokeStatus += ` ${key}${rank > 0 ? '+' : ''}${rank}`;
     }
   }
+  let firstMove = true;
   for (let i = 0; i < event.choice.possible_actions.length; i++) {
     const action = event.choice.possible_actions[i];
     const q_value = event.choice.q_func?.q_func[i]?.toFixed(2) || '';
@@ -29,9 +30,10 @@ export function BattleEventChoiceView({ event }: BattleEventChoiceViewProps): Re
       line1.push(<td key={action.simulator_key} className={action.simulator_key === event.choice.choice ? 'actualChoice' : ''}>{`${name2jp(action.poke)} ${q_value}`}</td>);
       line2.push(<td key={action.simulator_key}>{movesJp[0]},{movesJp[1]}<br />{movesJp[2]},{movesJp[3]}</td>);
     } else {
-      if (action.simulator_key === 'move 1') {
+      if (firstMove) { // move 1がdisabledの可能性があるため、simulator_key==='move 1'は不適切
         const n_moves = event.choice.possible_actions.filter((v) => !v.switch).length;
         line1.push(<td key={action.simulator_key} colSpan={n_moves}>{`${name2jp(action.poke)} ${sidePokeStatus}`}</td>);
+        firstMove = false;
       }
       line2.push(<td key={action.simulator_key} className={action.simulator_key === event.choice.choice ? 'actualChoice' : ''}>{`${name2jp(action.move)}`}<br />{q_value}</td>);
     }

@@ -23,6 +23,11 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
           // |switch|p2a: Azumarill|Azumarill, L50, M|206/206
           result.push(<li key={result.length} className={updateType}>{`交代 ${name2jp(elems[1].substring(0, 4))}${name2jp(elems[1].substring(5))}`}</li>);
           break;
+        case 'drag':
+          // |drag|p2a: Azumarill|Azumarill, L50, M|206/206
+          // 引きずり出された交代（ふきとばし）
+          result.push(<li key={result.length} className={updateType}>{`引きずり出された ${name2jp(elems[1].substring(0, 4))}${name2jp(elems[1].substring(5))}`}</li>);
+          break;
         case 'split':
           // 次の行は片方のプレイヤーにだけ見えるもので、現状不要
           updates.shift();
@@ -77,7 +82,7 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
           break;
         case '-heal':
           // |-heal|p1a: Gengar|124/166|[from] drain|[of] p2a: Lapras
-          result.push(<li key={result.length} className={updateType}>{`回復 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]}${elems[4]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`回復 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]}${elems[4] || ''}`}</li>);
           break;
         case '-miss':
           // |-miss|p1a: Electabuzz
@@ -85,7 +90,7 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
           break;
         case '-fail':
           // |-fail|p1a: Electabuzz|tox
-          result.push(<li key={result.length} className={updateType}>{`失敗 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`失敗 ${name2jp(elems[1].substring(5))} ${elems[2] || ''}`}</li>);
           break;
         case '-mustrecharge':
           // |-mustrecharge|p1a: Butterfree
@@ -93,7 +98,7 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
           break;
         case '-start':
           // |-start|p2a: Raichu|confusion|[silent]
-          result.push(<li key={result.length} className={updateType}>{`状態変化 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]}`}</li>);
+          result.push(<li key={result.length} className={updateType}>{`状態変化 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3] || ''}`}</li>);
           break;
         case '-prepare':
           // |-prepare|p2a: Togetic|Solar Beam|p1a: Lapras
@@ -103,6 +108,46 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
         case 'cant':
           // |cant|p2a: Golduck|frz
           result.push(<li key={result.length} className={updateType}>{`行動不能 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
+          break;
+        case '-activate':
+          // |-activate|p2a: Lapras|Substitute|[damage]
+          result.push(<li key={result.length} className={updateType}>{`発動 ${name2jp(elems[1].substring(5))}の${name2jp(elems[2])} ${elems[3] || ''}`}</li>);
+          break;
+        case '-end':
+          // |-end|p1a: Snorlax|Substitute
+          result.push(<li key={result.length} className={updateType}>{`状態変化終了 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
+          break;
+        case '-singleturn':
+          // |-singleturn|p1a: Snorlax|Protect
+          result.push(<li key={result.length} className={updateType}>{`ターン内状態変化 ${name2jp(elems[1].substring(5))} ${elems[2]}`}</li>);
+          break;
+        case '-ohko':
+          // |-ohko
+          result.push(<li key={result.length} className={updateType}>一撃必殺</li>);
+          break;
+        case '-enditem':
+          // |-enditem|p1a: Jumpluff|Miracle Berry|[eat]
+          result.push(<li key={result.length} className={updateType}>{`道具消費 ${name2jp(elems[1].substring(5))} ${elems[2]} ${elems[3] || ''}`}</li>);
+          break;
+        case '-weather':
+          // |-weather|Sandstorm|[upkeep]
+          result.push(<li key={result.length} className={updateType}>{`天候 ${elems[1]} ${elems[2] || ''}`}</li>);
+          break;
+        case '-setboost':
+          // |-setboost|p1a: Snorlax|atk|6|[from] move: Belly Drum
+          result.push(<li key={result.length} className={updateType}>{`ランク置換 ${name2jp(elems[1].substring(5))} ${elems[2]}${elems[3]} ${elems[4]}`}</li>);
+          break;
+        case '-sidestart':
+          // |-sidestart|p2: p2|Reflect
+          result.push(<li key={result.length} className={updateType}>{`場の状態 ${elems[1].substring(3)} ${elems[2]}`}</li>);
+          break;
+        case '-sideend':
+          // |-sidestart|p2: p2|Reflect
+          result.push(<li key={result.length} className={updateType}>{`場の状態終了 ${elems[1].substring(3)} ${elems[2]}`}</li>);
+          break;
+        case '-hint':
+          // |-hint|In Gen 2, Belly Drum boosts by 2 when it fails.
+          result.push(<li key={result.length} className={updateType}>{`ヒント ${elems[1]}`}</li>);
           break;
         case 'win':
           // |win|p2
@@ -119,6 +164,7 @@ export function BattleEventUpdateView({ event }: BattleEventUpdateViewProps): Re
         case 'debug':
           break;
         default:
+          result.push(<li key={result.length} className={updateType}>{elems.join('|')}</li>);
           console.warn(`Unhandled update '${update}'`);
           break;
       }
