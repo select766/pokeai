@@ -7,7 +7,7 @@ export interface PlayerViewProps {
 }
 
 export function PlayerView({ player }: PlayerViewProps): React.ReactElement {
-  return <div>
+  return <div className="playerView">
     <div>Player {player.player_id}</div>
     <PartyView party={player.party} />
   </div>
