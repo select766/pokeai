@@ -2,24 +2,24 @@
 パーティ同士を対戦させてレーティングを計算する
 パーティ数*trainer数のプレイヤーがいると想定して対戦
 """
+import argparse
 import json
 import logging
-import os
-import argparse
+from logging import getLogger
 from typing import List, Tuple
+
 import numpy as np
 import torch
 from bson import ObjectId
-from logging import getLogger
 
 from pokeai.ai.generic_move_model.trainer import Trainer
-from pokeai.ai.party_db import col_party, col_trainer, col_rate, pack_obj, unpack_obj
+from pokeai.ai.party_db import col_party, fs_checkpoint, col_rate, unpack_obj
 from pokeai.ai.random_policy import RandomPolicy
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.util import pickle_dump, pickle_load, json_load
+from pokeai.util import json_load
 
 logger = getLogger(__name__)
 
@@ -98,6 +98,19 @@ def rating_battle(parties, policies, player_ids, match_count: int, fixed_rates: 
     return rates.tolist(), log
 
 
+def load_trainer(trainer_id_with_battles: str) -> Trainer:
+    # trainer_id@battles 形式で指定されたモデルをロード
+    elems = trainer_id_with_battles.split("@")
+    if len(elems) == 1:
+        f = fs_checkpoint.get_last_version(elems[0])
+    elif len(elems) == 2:
+        f = fs_checkpoint.find_one({"filename": elems[0], "metadata": {"battles": int(elems[1])}})
+    else:
+        raise ValueError(f"Invalid trainer_id {trainer_id_with_battles}")
+    trainer = Trainer.load_state(unpack_obj(f.read()), resume=False)
+    return trainer
+
+
 def main():
     import logging
     parser = argparse.ArgumentParser()
@@ -139,8 +152,7 @@ def main():
         if trainer_id == "#random":
             policy = RandomPolicy()
         else:
-            trainer_doc = col_trainer.find_one({"_id": ObjectId(trainer_id)})
-            trainer = Trainer.load_state(unpack_obj(trainer_doc["trainer_packed"]))
+            trainer = load_trainer(trainer_id)
             policy = RLPolicy(trainer.get_val_agent(), SurrogateRewardConfigZero)
         src_policies[trainer_id] = policy
     parties = []

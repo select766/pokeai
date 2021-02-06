@@ -42,6 +42,8 @@ class Trainer:
         self.target_model.load_state_dict(self.model.state_dict())
         # replay bufferに追加された全ステップ数
         self.total_steps = 0
+        # replay bufferに追加された全バトル数。記録するがこのクラス内での学習自体には影響しない
+        self.total_battles = 0
         # 学習済みステップ数
         self.update_steps = 0
         # DQNの設定
@@ -60,24 +62,56 @@ class Trainer:
         self.target_update = dqn_params_with_default["target_update"]  # optimize回数ごとにtarget networkをupdate
         self.double_dqn = dqn_params_with_default["double_dqn"]
 
+        self.update_loss_history = []
+
     def _construct_model(self):
         # TODO: モデルクラスの選択
         return MLPModel(**self.model_params)
 
     def save_state(self, resume=False):
-        # 現状、get_val_agentが可能な最低限の情報を保存している
-        # TODO: optimizer, replay_bufferなども保存し、学習の再開も可能とする
-        assert resume is False
-        return {
-            "model": self.model.state_dict(),
-            "constructor_params": self.constructor_params,
-            "update_steps": self.update_steps
-        }
+        """
+        状態を、pickle可能なdictにして返す
+        :param resume: 学習の再開に必要な情報を含める。サイズが増大する。
+        :return:
+        """
+        if resume:
+            return {
+                "model": self.model.state_dict(),
+                "target_model": self.target_model.state_dict(),
+                "optimizer": self.optimizer.state_dict(),
+                "replay_buffer": self.replay_buffer,
+                "constructor_params": self.constructor_params,
+                "total_steps": self.total_steps,
+                "total_battles": self.total_battles,
+                "update_steps": self.update_steps,
+                "update_loss_history": self.update_loss_history,
+            }
+        else:
+            return {
+                "model": self.model.state_dict(),
+                "constructor_params": self.constructor_params,
+                "update_steps": self.update_steps,
+                "total_battles": self.total_battles,
+            }
 
     @classmethod
-    def load_state(cls, state):
+    def load_state(cls, state, resume=False) -> "Trainer":
+        """
+        save_stateで保存した情報を復元したインスタンスを生成する。
+        :param state:
+        :param resume: 学習の再開に必要な情報をロードする。
+        :return:
+        """
         trainer = cls(**state["constructor_params"])
         trainer.model.load_state_dict(state["model"])
+        trainer.update_steps = state["update_steps"]
+        if resume:
+            trainer.total_steps = state["total_steps"]
+            trainer.total_battles = state["total_battles"]
+            trainer.target_model.load_state_dict(state["target_model"])
+            trainer.optimizer.load_state_dict(state["optimizer"])
+            trainer.replay_buffer = state["replay_buffer"]
+            trainer.update_loss_history = state["update_loss_history"]
         return trainer
 
     def load_initial_model(self, state_dict):
@@ -149,6 +183,7 @@ class Trainer:
 
         # Compute Huber loss
         loss = F.smooth_l1_loss(state_action_values, expected_state_action_values.unsqueeze(1))
+        self.update_loss_history.append(float(loss))
 
         # Optimize the model
         self.optimizer.zero_grad()

@@ -1,17 +1,19 @@
-from typing import List, Optional, TypedDict, Dict
+from typing import List, TypedDict, Dict, Any
 import os
 import pickle
 import gzip
 from pymongo import MongoClient
 from bson import ObjectId
+import gridfs
 
 from pokeai.sim.party_generator import Party
 
-client = MongoClient()
+client = MongoClient(os.environ.get("POKEAI_PARTY_DB_HOST"))
 db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_4")]
 col_party = db["Party"]  # document type PartyDoc
 col_trainer = db["Trainer"]  # document type TrainerDoc
 col_rate = db["Rate"]  # document type RateDoc
+fs_checkpoint = gridfs.GridFS(db, collection="Checkpoint")  # filename=trainer_id
 
 
 class PartyDoc(TypedDict):
@@ -32,9 +34,9 @@ class RateDoc(TypedDict):
     rates: Dict[str, float]  # str(trainer_id)+'+'+str(party_id) => rate (平均1500)
 
 
-def pack_obj(obj):
+def pack_obj(obj: Any) -> bytes:
     return gzip.compress(pickle.dumps(obj))
 
 
-def unpack_obj(b: bytes):
+def unpack_obj(b: bytes) -> Any:
     return pickle.loads(gzip.decompress(b))
