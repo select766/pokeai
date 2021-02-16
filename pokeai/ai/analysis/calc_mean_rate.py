@@ -19,7 +19,8 @@ def get_mean_by_prefix(rates, prefix):
 
 
 def get_prefixes(rates):
-    return set(key.split("+")[0] for key in rates.keys())
+    # trainer_idで"xxx@10000"と"xxx@100000"を比較する場合があるため、"+"まで含めてprefixとする
+    return set(key.split("+")[0] + "+" for key in rates.keys())
 
 
 def main():
