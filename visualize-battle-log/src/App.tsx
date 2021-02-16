@@ -15,7 +15,7 @@ function App() {
   }, []);
   return (
     <div className="App">
-      <form onSubmit={onFileSubmit}>
+      <form onSubmit={onFileSubmit} className="printNone">
         JSON log: <input type="file" ref={fileRef} /><input type="submit" value="Submit" />
       </form>
       {battles.slice(0, 100).map((battle, i) => <BattleView key={i} battle={battle} />)}

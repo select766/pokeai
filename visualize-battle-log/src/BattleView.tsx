@@ -14,11 +14,11 @@ export function BattleView({ battle }: BattleProps): React.ReactElement {
     setOpened(!opened);
   }, [opened]);
 
-  return <div>
+  return <div className={`battleView ${opened ? 'opened' : 'closed'}`}>
     <div>
       {[battle.agents.p1, battle.agents.p2].map((player, i) => <PlayerView key={i} player={player} />)}
     </div>
-    <div>
+    <div className="printNone">
       <button type="button" onClick={onOpenClick}>↓展開</button>
     </div>
     {opened &&
@@ -31,7 +31,7 @@ export function BattleView({ battle }: BattleProps): React.ReactElement {
         </div>
       </div>
     }
-    <div>
+    <div className="printNone">
       <button type="button" onClick={onOpenClick}>↑展開</button>
     </div>
     <hr />
