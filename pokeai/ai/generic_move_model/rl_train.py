@@ -4,6 +4,7 @@
 """
 
 import argparse
+import os
 import random
 from typing import List, Tuple
 
@@ -110,6 +111,10 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.loglevel))
     train_params = yaml_load(args.train_param_file)
+    stop_file_path = args.train_param_file + ".stop"
+    if os.path.exists(stop_file_path):
+        print("stop file already exists!")
+        return
     trainer_id = ObjectId(train_params["trainer_id"])
     surrogate_reward_config = SurrogateRewardConfig(
         **dict(SurrogateRewardConfigDefaults, **train_params["surrogate_reward"]))
@@ -154,13 +159,17 @@ def main():
         update_rate(rates, match_pair, winner)
         if battle_idx % 1000 == 0:
             print("mean score", random_val(sim, trainer, parties, 100))
-        if battle_idx % train_params["checkpoint_per_battles"] == (train_params["checkpoint_per_battles"] - 1):
+        stop_file_exists = os.path.exists(stop_file_path)
+        if (battle_idx % train_params["checkpoint_per_battles"] == (
+                train_params["checkpoint_per_battles"] - 1)) or stop_file_exists:
             save_state_dict = trainer.save_state(resume=True)
             # trainerに含まれていないが再開に必要な情報を格納
             save_state_dict["_rl_train"] = {"match_pairs_queue": match_pairs_queue, "rates": rates}
             fs_checkpoint.put(pack_obj(save_state_dict), filename=str(trainer_id),
                               metadata={"battles": trainer.total_battles})
             del save_state_dict
+            if stop_file_exists:
+                break
 
 
 if __name__ == '__main__':
