@@ -3,18 +3,21 @@
 """
 
 import argparse
-from typing import List, Tuple
+from typing import List
 
 import numpy as np
 from bson import ObjectId
 from tqdm import tqdm
 
 from pokeai.ai.party_db import col_party
-from pokeai.ai.party_feature.party_evaluator_quick import PartyEvaluatorQuick, build_party_evaluator_quick_by_trainer_id
+from pokeai.ai.party_feature.party_evaluator_builder import build_party_evaluator_quick_by_trainer_id
+from pokeai.ai.party_feature.party_evaluator_quick import PartyEvaluatorQuick
 from pokeai.ai.party_feature.party_feature_extractor import PartyFeatureExtractor
 from pokeai.sim.party_generator import Party, PartyGenerator
 from pokeai.sim.random_party_generator import RandomPartyGenerator
-from pokeai.util import pickle_dump, yaml_load, yaml_dump, pickle_load
+
+# 3vs3ならPPも含まれるほうが自然であることに注意（デフォルトはこのままで、設定側で入れる）
+from pokeai.util import yaml_load
 
 WEIGHT_PARAMS_DEFAULT = {
     "party_feature_names": ["P", "M", "PM", "MM"],
@@ -67,28 +70,24 @@ def hillclimb(evaluator: FitnessEvaluator, party_generator: PartyGenerator, seed
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("trainer_id", help="評価関数として用いるQ関数")
-    parser.add_argument("dst_tags", help="生成パーティの保存タグ")
-    parser.add_argument("-r", default="default", help="regulation")
-    parser.add_argument("-n", type=int, default=100, help="生成パーティ数")
-    parser.add_argument("--generations", type=int, default=10, help="世代数")
-    parser.add_argument("--populations", type=int, default=100, help="1世代あたりの候補パーティ数")
-    parser.add_argument("--party_feature_penalty", type=float, default=WEIGHT_PARAMS_DEFAULT["party_feature_penalty"])
+    parser.add_argument("config", help="設定ファイル(yaml)")
+    parser.add_argument("--device", default="cuda:0", help="GPUを使う場合は'cuda:0', CPUの場合は'cpu'")
     args = parser.parse_args()
-    party_generator = RandomPartyGenerator(regulation=args.r, neighbor_poke_change_rate=0.1,
-                                           neighbor_item_change_rate=0.0)
+    config_file = yaml_load(args.config)
+    party_generator = RandomPartyGenerator(**config_file["random_party_generator"])
     evaluator = FitnessEvaluator(
-        build_party_evaluator_quick_by_trainer_id(ObjectId(args.trainer_id)),
+        build_party_evaluator_quick_by_trainer_id(config_file["trainer_id"], party_generator.party_size, args.device),
         party_generator._pokemons,  # 使用可能全ポケモンとの対面の平均を使う
-        {"party_feature_penalty": args.party_feature_penalty},
+        config_file["fitness_weight"],
     )
-    seed_parties = [party_generator.generate() for _ in range(args.n)]  # type: List[Party]
-    dst_tags = args.dst_tags.split(",")
+    seed_parties = [party_generator.generate() for _ in range(config_file["n"])]  # type: List[Party]
+    dst_tags = config_file["dst_tags"]
+    assert isinstance(dst_tags, list)
     generated_parties = hillclimb(evaluator=evaluator,
                                   party_generator=party_generator,
                                   seed_parties=seed_parties,
-                                  generations=args.generations,
-                                  populations=args.populations)
+                                  generations=config_file["generations"],
+                                  populations=config_file["populations"])
     parties_doc = [{'_id': ObjectId(), 'party': party, 'tags': dst_tags} for party in generated_parties]
     col_party.insert_many(parties_doc)
 

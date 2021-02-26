@@ -1,15 +1,13 @@
 # Q関数によるパーティ評価
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import torch
-from bson import ObjectId
 
 from pokeai.ai.battle_status import BattleStatus
+from pokeai.ai.common import PossibleAction
 from pokeai.ai.dex import dex
 from pokeai.ai.generic_move_model.agent import Agent
-from pokeai.ai.generic_move_model.trainer import Trainer
-from pokeai.ai.party_db import col_trainer, unpack_obj
 from pokeai.ai.rl_policy_observation import RLPolicyObservation
 from pokeai.sim.party_generator import Party
 
@@ -22,20 +20,10 @@ class PartyEvaluator:
     パーティ及び対面ポケモンを与えてQ値を計算する
     """
 
-    def __init__(self, agent: Agent):
+    def __init__(self, agent: Agent, party_size: int):
         self.agent = agent
-
-    def make_party(self, species: str, moves: List[str]) -> Party:
-        """
-        パーティを生成する。ポケモン1匹のみ。
-        :param species: ポケモンID 例: "nidoqueen"
-        :param moves: 技ID配列 例: ["thunderbolt", "fireblast", "bubblebeam", "firepunch"]
-        :return:
-        """
-        return [{"name": species, "species": species, "moves": moves, "ability": "No Ability",
-                 "evs": {"hp": 255, "atk": 255, "def": 255, "spa": 255, "spd": 255, "spe": 255},
-                 "ivs": {"hp": 30, "atk": 30, "def": 30, "spa": 30, "spd": 30, "spe": 30}, "item": "", "level": 55,
-                 "shiny": False, "gender": "M", "nature": ""}]
+        self.party_size = party_size
+        self.n_choices = 4 + self.party_size - 1
 
     def _make_request(self, party):
         return {'active': [
@@ -43,28 +31,49 @@ class PartyEvaluator:
                         'id': move, 'pp': 8, 'maxpp': 8, 'target': 'normal', 'disabled': False} for move in
                        party[0]["moves"]]}],
             'side': {'name': 'p1', 'id': 'p1', 'pokemon': [
-                {'ident': 'p1: ' + id2poke[party[0]["species"]], 'details': id2poke[party[0]["species"]] + ', L55, M',
-                 'condition': '215/215', 'active': True,
-                 'stats': {'atk': 100, 'def': 100, 'spa': 100, 'spd': 100, 'spe': 100}, 'moves': party[0]["moves"],
-                 'baseAbility': 'noability', 'item': '', 'pokeball': 'pokeball'}]}}
+                {'ident': 'p1: ' + id2poke[party[i]["species"]], 'details': id2poke[party[i]["species"]] + ', L55, M',
+                 'condition': '215/215', 'active': i == 0,
+                 'stats': {'atk': 100, 'def': 100, 'spa': 100, 'spd': 100, 'spe': 100}, 'moves': party[i]["moves"],
+                 'baseAbility': 'noability', 'item': '', 'pokeball': 'pokeball'} for i in range(self.party_size)]}}
 
     def _make_obs(self, party: Party, opponent_poke: str) -> RLPolicyObservation:
+        assert len(party) == self.party_size
         request = self._make_request(party)
         battle_status = BattleStatus("p1", party)
         for player in ["p1", "p2"]:
-            battle_status.side_statuses[player].total_pokes = 1
-            battle_status.side_statuses[player].remaining_pokes = 1
+            battle_status.side_statuses[player].total_pokes = self.party_size
+            battle_status.side_statuses[player].remaining_pokes = self.party_size
         # 最初に繰り出す
         battle_status.switch(f"p1a: {id2poke[party[0]['species']]}", f"{id2poke[party[0]['species']]}, L55, M",
                              "100/100")
         battle_status.switch(f"p2a: {id2poke[opponent_poke]}", f"{id2poke[opponent_poke]}, L55, M", "100/100")
-        obs = RLPolicyObservation(battle_status, request)
+        possible_actions: List[PossibleAction] = []
+        active_poke = party[0]
+        for i in range(len(active_poke["moves"])):
+            possible_actions.append(PossibleAction(simulator_key=f"move {i + 1}",
+                                                   poke=active_poke["species"],
+                                                   move=active_poke["moves"][i],
+                                                   switch=False,
+                                                   force_switch=False,
+                                                   allMoves=active_poke["moves"],
+                                                   item=active_poke["item"]
+                                                   ))
+        for i in range(1, self.party_size):
+            switch_poke = party[i]
+            possible_actions.append(PossibleAction(simulator_key=f"switch {i + 1}",
+                                                   poke=switch_poke["species"],
+                                                   move=None,
+                                                   switch=True,
+                                                   force_switch=False,
+                                                   allMoves=switch_poke["moves"],
+                                                   item=switch_poke["item"]))
+        obs = RLPolicyObservation(battle_status, request, possible_actions)
         return obs
 
-    def _make_obs_vector(self, party: Party, opponent_poke: str) -> np.ndarray:
+    def _make_obs_vector(self, party: Party, opponent_poke: str) -> Tuple[np.ndarray, np.ndarray]:
         obs = self._make_obs(party, opponent_poke)
         obs_vector, action_mask = self.agent._feature_extractor.transform(obs)
-        return obs_vector[:, 0:4]  # 技4つ分だけ抽出（交代部分削除）
+        return obs_vector, action_mask
 
     def calc_q_func(self, party: Party, opponent_poke: str) -> np.ndarray:
         """
@@ -74,20 +83,23 @@ class PartyEvaluator:
         :return: 各技に対応するq値
         """
         with torch.no_grad():
-            q_vector = self.agent._calc_q_vector(self._make_obs_vector(party, opponent_poke))
-        assert q_vector.shape == (4,)
+            obs_vector, action_mask = self._make_obs_vector(party, opponent_poke)
+            q_vector = self.agent._calc_q_vector(obs_vector)
+            q_vector[action_mask == 0] = -np.inf
+        assert q_vector.shape == (self.n_choices,)
         return q_vector
 
     def gather_best_q(self, party: Party, opponent_pokes: List[str]) -> np.ndarray:
-        obs_vector_batch = np.stack([self._make_obs_vector(party, opponent_poke) for opponent_poke in opponent_pokes])
+        obs_vectors = []
+        action_masks = []
+        for opponent_poke in opponent_pokes:
+            obs, act = self._make_obs_vector(party, opponent_poke)
+            obs_vectors.append(obs)
+            action_masks.append(act)
+        obs_vector_batch = np.stack(obs_vectors)
+        action_mask_batch = np.stack(action_masks)
         with torch.no_grad():
             q_vectors = self.agent._calc_q_vector_batch(obs_vector_batch)
-        assert q_vectors.shape == (len(opponent_pokes), 4)
+            q_vectors[action_mask_batch == 0] = -np.inf
+        assert q_vectors.shape == (len(opponent_pokes), self.n_choices)
         return np.max(q_vectors, axis=1)
-
-
-def build_party_evaluator_by_trainer_id(trainer_id: ObjectId) -> PartyEvaluator:
-    trainer_doc = col_trainer.find_one({"_id": trainer_id})
-    trainer = Trainer.load_state(unpack_obj(trainer_doc["trainer_packed"]))
-    agent = trainer.get_val_agent()
-    return PartyEvaluator(agent)

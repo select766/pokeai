@@ -15,12 +15,17 @@ class RandomPartyGenerator(PartyGenerator):
                  neighbor_item_change_rate: float = 0.1):
         self._validator = TeamValidator()
         self._pokedex = json_load(DATASET_DIR.joinpath('pokedex.json'))
+        self._lv55_pokemons = json_load(DATASET_DIR.joinpath('lv55_pokemons.json'))
         self._regulation = json_load(DATASET_DIR.joinpath('regulations', regulation, 'regulation.json'))
         self._learnsets = json_load(DATASET_DIR.joinpath('regulations', regulation, 'learnsets.json'))
         self._pokemons = json_load(DATASET_DIR.joinpath('regulations', regulation, 'pokemons.json'))
         self._items = json_load(DATASET_DIR.joinpath('regulations', regulation, 'items.json'))
         self.neighbor_poke_change_rate = neighbor_poke_change_rate
         self.neighbor_item_change_rate = neighbor_item_change_rate if len(self._items) > 0 else 0.0
+
+    @property
+    def party_size(self) -> int:
+        return len(self._regulation['levels'])
 
     def _single_random(self, level: int, species: Optional[str] = None) -> PartyPoke:
         # 1体ランダム個体を生成(validationしない)
@@ -46,17 +51,48 @@ class RandomPartyGenerator(PartyGenerator):
             'nature': ''
         }
 
+    def _shuffle_levels_for_species(self, species: List[str]):
+        """
+        種族のレベル制限に合うようにレベルをシャッフルする
+        :param species:
+        :return:
+        """
+        if self._regulation['levels'] == [55, 50, 50]:
+            # LV55, 50, 50で、LV55でしか存在できないポケモンがいるという状況に決め打ちの実装
+            # LV55専用ポケモンがいる場合、その箇所を55、残りを50
+            lv55_idxs = []
+            for i, sp in enumerate(species):
+                if sp in self._lv55_pokemons:
+                    lv55_idxs.append(i)
+            if len(lv55_idxs) > 1:
+                raise ValueError('More than one lv55-only pokemons')
+            elif len(lv55_idxs) == 1:
+                levels = [50, 50, 50]
+                levels[lv55_idxs[0]] = 55
+            else:
+                levels = self._regulation['levels'].copy()
+                random.shuffle(levels)
+            return levels
+        elif self._regulation['levels'] == [55]:
+            return [55]
+        else:
+            raise NotImplementedError('_shuffle_levels_for_species is not implemented for this levels')
+
     def generate(self, fix_species: Optional[List[str]] = None) -> Party:
         """
         ランダムなパーティを1つ生成する。
         :param fix_species: 使用するポケモンの種族を固定する場合、パーティのポケモン数分の種族名リスト。シャッフルせずに使用される。ex. ["gyarados", "dugtrio", "ninetales"]
         :return:
         """
-        levels = self._regulation['levels'].copy()
-        random.shuffle(levels)
+        if fix_species is not None:
+            levels = self._shuffle_levels_for_species(fix_species)
+        else:
+            levels = self._regulation['levels'].copy()
+            random.shuffle(levels)
         party: Party = []
         species: Set[str] = set()
         items: Set[str] = set()
+        abort_ctr = 0
         for level in levels:
             while True:
                 cand = self._single_random(level, fix_species[len(party)] if fix_species is not None else None)
@@ -65,6 +101,9 @@ class RandomPartyGenerator(PartyGenerator):
                 if (cand['species'] not in species) and ((cand['item'] == '') or (cand['item'] not in items)) and (
                         self._validator.validate([cand]) is None):
                     break
+                abort_ctr += 1
+                if abort_ctr > 100:
+                    raise ValueError('Failed to find a party which satisfies constraints')
             party.append(cand)
             species.add(cand['species'])
             items.add(cand['item'])

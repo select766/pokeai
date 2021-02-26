@@ -12,8 +12,8 @@ import numpy as np
 import torch
 from bson import ObjectId
 
-from pokeai.ai.generic_move_model.trainer import Trainer
-from pokeai.ai.party_db import col_party, fs_checkpoint, col_rate, unpack_obj
+from pokeai.ai.generic_move_model.trainer_loader import load_trainer
+from pokeai.ai.party_db import col_party, col_rate
 from pokeai.ai.random_policy import RandomPolicy
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero
@@ -97,18 +97,6 @@ def rating_battle(parties, policies, player_ids, match_count: int, fixed_rates: 
         logger.info(f"{i} rate mean diff: {abs_mean_diff}")
     return rates.tolist(), log
 
-
-def load_trainer(trainer_id_with_battles: str) -> Trainer:
-    # trainer_id@battles 形式で指定されたモデルをロード
-    elems = trainer_id_with_battles.split("@")
-    if len(elems) == 1:
-        f = fs_checkpoint.get_last_version(elems[0])
-    elif len(elems) == 2:
-        f = fs_checkpoint.find_one({"filename": elems[0], "metadata": {"battles": int(elems[1])}})
-    else:
-        raise ValueError(f"Invalid trainer_id {trainer_id_with_battles}")
-    trainer = Trainer.load_state(unpack_obj(f.read()), resume=False)
-    return trainer
 
 
 def main():
