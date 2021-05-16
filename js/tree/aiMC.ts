@@ -3,7 +3,7 @@
 const sim = require('../../Pokemon-Showdown/.sim-dist');
 
 const PRNG = sim.PRNG;
-import { AIBase, choiceToString, SearchLogEmitter } from "./aiBase";
+import { AIBase, choiceToString, enumChoices, SearchLogEmitter } from "./aiBase";
 import { AIRandom2 } from "./aiRandom2";
 import { argsort } from "./mathUtil";
 import { playout } from "./playout";
@@ -20,7 +20,7 @@ export class AIMC extends AIBase {
     }
 
     go(sim: Sim, sideid: SideID, searchLogEmitter: SearchLogEmitter): string | null {
-        const choices = this.enumChoices(sim.getRequest(sideid));
+        const choices = enumChoices(sim.getRequest(sideid));
         const playoutPolicy = new AIRandom2({ switchRatio: this.playoutSwitchRatio });
         if (choices.length > 0) {
             const playoutPerAction = Math.floor(this.playoutCount / choices.length);

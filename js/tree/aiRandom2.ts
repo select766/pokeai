@@ -1,7 +1,7 @@
 const sim = require('../../Pokemon-Showdown/.sim-dist');
 
 const PRNG = sim.PRNG;
-import { AIBase } from "./aiBase";
+import { AIBase, enumChoices } from "./aiBase";
 import { SideID, Sim } from "./sim";
 
 
@@ -13,7 +13,7 @@ export class AIRandom2 extends AIBase {
     }
 
     go(sim: Sim, sideid: SideID): string | null {
-        const choices = this.enumChoices(sim.getRequest(sideid));
+        const choices = enumChoices(sim.getRequest(sideid));
         if (choices.length > 0) {
             const prng = new PRNG();
             const choicesMove = choices.filter((v) => v.type === 'move');
