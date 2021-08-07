@@ -16,8 +16,8 @@ class SearchLogEmitterImpl implements SearchLogEmitter {
     enabled: boolean;
     entries: any[];
 
-    constructor() {
-        this.enabled = true;
+    constructor(public logLevel: number = 1) {
+        this.enabled = this.logLevel > 0;
         this.entries = [];
     }
 
@@ -26,11 +26,11 @@ class SearchLogEmitterImpl implements SearchLogEmitter {
     }
 }
 
-export function playout(sim: Sim, agents: AIBase[], getLog: boolean = false): PlayoutResult {
+export function playout(sim: Sim, agents: AIBase[], logLevel: number = 0): PlayoutResult {
     let totalChoices: [number, number] = [0, 0];
     let battleEvents: BattleEvent[] = [];
     let battleLogPos = 0;
-    const pushUpdate = getLog ? () => {
+    const pushUpdate = logLevel ? () => {
         const l = sim.getLog();
         battleEvents.push({
             type: 'update',
@@ -46,13 +46,13 @@ export function playout(sim: Sim, agents: AIBase[], getLog: boolean = false): Pl
         }
         const choices: (string | null)[] = [];
         for (let i = 0; i < nPlayers; i++) {
-            const emitter = getLog ? new SearchLogEmitterImpl() : SearchLogEmitterVoid;
+            const emitter = logLevel ? new SearchLogEmitterImpl(logLevel) : SearchLogEmitterVoid;
             const timeStart = performance.now();
             const choice = agents[i].go(sim, sideIDs[i], emitter);
             const searchTime = performance.now() - timeStart;
             if (choice) {
                 totalChoices[i]++;
-                if (getLog) {
+                if (logLevel) {
                     battleEvents.push({
                         type: 'choice',
                         choice: {

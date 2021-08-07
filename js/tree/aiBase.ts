@@ -33,13 +33,26 @@ export function choiceToString(choiceInfo: ChoiceInfo): string {
     }
 }
 
+export const SearchLogLevel = {
+    DISABLED: 0,
+    INFO: 1,
+    VERBOSE: 2,
+};
+
 export interface SearchLogEmitter {
     enabled: boolean;
+    /**
+     * 0: disabled
+     * 1: info
+     * 2: verbose
+     */
+    logLevel: number;
     emit: (obj: BattleSearchLogEntry) => void;
 }
 
-export const SearchLogEmitterVoid: SearchLogEmitter= {
+export const SearchLogEmitterVoid: SearchLogEmitter = {
     enabled: false,
+    logLevel: 0,
     emit: () => {},
 };
 
