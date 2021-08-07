@@ -1,4 +1,6 @@
 import * as fs from 'fs';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
 import { AIBase } from "./aiBase";
 import { ais } from "./ais";
@@ -20,7 +22,7 @@ interface AgentConfig {
     options: any;
 }
 
-function ratingBattle(players: Player[], matchCount: number, logFile?: number): number[] {
+function ratingBattle(players: Player[], matchCount: number, logFile?: number, logLevel?: number): number[] {
     const rates: number[] = (new Array(players.length)).fill(1500);
 
     for (let i = 0; i < matchCount; i++) {
@@ -31,7 +33,7 @@ function ratingBattle(players: Player[], matchCount: number, logFile?: number): 
             const left = ranking[j];
             const right = ranking[j + 1];
             const sim = Sim.fromParty([players[left].party, players[right].party]);
-            const { winner, log } = playout(sim, [players[left].agent, players[right].agent], !!logFile);
+            const { winner, log } = playout(sim, [players[left].agent, players[right].agent], logLevel);
             if (winner) {
                 const left_winrate = 1.0 / (1.0 + 10.0 ** ((rates[right] - rates[left]) / 400.0));
                 let left_incr;
@@ -66,8 +68,18 @@ function constructAgent(agentConfig: AgentConfig): AIBase {
     return new ctor(agentConfig.options);
 }
 
-function main() {
-    const [, , partyFile, agentFile, battleCountStr, resultFile, logFilePath] = process.argv;
+async function main() {
+    const argv = await yargs(hideBin(process.argv))
+        .demandCommand(3)
+        .number("battle")
+        .default("battle", 10)
+        .count("verbose")
+        .argv;
+    const [partyFile, agentFile, resultFile] = argv._ as string[];
+    const battleCount = argv.battle;
+    const logFilePath = argv.log as string | undefined;
+    const logLevel = logFilePath ? argv.verbose + 1 : 0;
+
     const parties: { _id: string, party: any }[] = loadJSON(partyFile);
     const agentConfigs: AgentConfig[] = loadJSON(agentFile);
     const players: Player[] = [];
@@ -80,7 +92,7 @@ function main() {
     const logFile = logFilePath ? fs.openSync(logFilePath, 'a') : undefined;
 
     console.time('all battles');
-    const ratings = ratingBattle(players, Number(battleCountStr), logFile);
+    const ratings = ratingBattle(players, battleCount, logFile, logLevel);
     console.timeEnd('all battles');
     const results: { id: string; rate: number }[] = [];
     for (let i = 0; i < players.length; i++) {

@@ -5,7 +5,9 @@
   "main": "index.js",
   "dependencies": {
     "@types/rfdc": "^1.1.0",
-    "rfdc": "^1.1.4"
+    "@types/yargs": "^17.0.2",
+    "rfdc": "^1.1.4",
+    "yargs": "^17.1.0"
   },
   "devDependencies": {
     "@types/node": "^12.7.2",

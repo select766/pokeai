@@ -2,6 +2,8 @@
 import * as fs from "fs";
 import * as cluster from "cluster";
 import * as os from "os";
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
 
 import { AIBase } from "./aiBase";
 import { ais } from "./ais";
@@ -28,7 +30,7 @@ interface JobRequest {
   rightPlayer: Player;
   left: number;
   right: number;
-  getLog: boolean;
+  logLevel: number;
 }
 
 interface JobResponse {
@@ -91,7 +93,7 @@ function jobFunction(data: JobRequest): JobResponse {
       constructAgent(data.leftPlayer.agentConfig),
       constructAgent(data.rightPlayer.agentConfig),
     ],
-    data.getLog
+    data.logLevel
   );
   return { winner, log, left: data.left, right: data.right };
 }
@@ -107,7 +109,8 @@ async function ratingBattle(
   workers: cluster.Worker[],
   players: Player[],
   matchCount: number,
-  logFile?: number
+  logFile: number | undefined,
+  logLevel: number,
 ): Promise<number[]> {
   const rates: number[] = new Array(players.length).fill(1500);
 
@@ -124,7 +127,7 @@ async function ratingBattle(
         rightPlayer: players[right],
         left,
         right,
-        getLog: !!logFile,
+        logLevel,
       });
     }
     const jobResponses: JobResponse[] = await runTasks(jobRequests, workers);
@@ -164,8 +167,16 @@ function constructAgent(agentConfig: AgentConfig): AIBase {
 }
 
 async function main() {
-  const [, , partyFile, agentFile, battleCountStr, resultFile, logFilePath] =
-    process.argv;
+  const argv = await yargs(hideBin(process.argv))
+      .demandCommand(3)
+      .number("battle")
+      .default("battle", 100)
+      .count("verbose")
+      .argv;
+  const [partyFile, agentFile, resultFile] = argv._ as string[];
+  const battleCount = argv.battle;
+  const logFilePath = argv.log as string | undefined;
+  const logLevel = logFilePath ? argv.verbose + 1 : 0;
   const parties: { _id: string; party: any }[] = loadJSON(partyFile);
   const agentConfigs: AgentConfig[] = loadJSON(agentFile);
   const players: Player[] = [];
@@ -186,8 +197,9 @@ async function main() {
   const ratings = await ratingBattle(
     workers,
     players,
-    Number(battleCountStr),
-    logFile
+    battleCount,
+    logFile,
+    logLevel,
   );
   console.timeEnd("all battles");
   const results: { id: string; rate: number }[] = [];
