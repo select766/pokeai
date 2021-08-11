@@ -5,7 +5,7 @@
 */
 
 const sim = require('../../Pokemon-Showdown/.sim-dist');
-const mdex = new sim.Dex.ModdedDex('gen2');
+const mdex = new sim.Dex.ModdedDex('gen1');
 const pokemons = require('../../data/dataset/all_pokemons.json');
 
 const dex = {};

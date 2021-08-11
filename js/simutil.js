@@ -6,7 +6,7 @@ const Dex = sim.Dex;
 const methods = {};
 
 methods['validateTeam'] = (() => {
-    const tv = new sim.TeamValidator('gen2customgame');
+    const tv = new sim.TeamValidator('gen1customgame');
     tv.ruleTable.set('-illegal', '')//覚えられない技の検証を行う設定
 
     /*

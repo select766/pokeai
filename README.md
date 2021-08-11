@@ -24,7 +24,7 @@ pip install -r requirements.txt
 python3 setup.py develop
 ```
 
-mongodb 4.xが必要。コードを実行することで、デフォルトでは`pokeai_4`データベースを生成する。
+mongodb 4.xが必要。コードを実行することで、デフォルトでは`pokeai_gen1`データベースを生成する。
 
 # 基本構成
 

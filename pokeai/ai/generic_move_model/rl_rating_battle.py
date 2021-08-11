@@ -98,9 +98,23 @@ def rating_battle(parties, policies, player_ids, match_count: int, fixed_rates: 
     return rates.tolist(), log
 
 
+def config_logger(loglevel: str, filename: str):
+    import logging
+    # シミュレータから来る"-hint"の中の説明文で"Pokémon"という非ascii文字が含まれる場合があり、basicConfigだとエラーとなる
+    # UnicodeEncodeError: 'cp932' codec can't encode character '\xe9' in position 172: illegal multibyte sequence
+    # python3.9ならencoding引数が使える
+    # logging.basicConfig(level=getattr(logging, args.loglevel), filename=args.log)
+    if filename:
+        root_logger = logging.getLogger()
+        root_logger.setLevel(getattr(logging, loglevel))
+        handler = logging.FileHandler(filename, "a", "utf-8")
+        handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+        root_logger.addHandler(handler)
+    else:
+        logging.basicConfig(level=getattr(logging, loglevel))
+
 
 def main():
-    import logging
     parser = argparse.ArgumentParser()
     parser.add_argument("trainer_ids", help="trainerの保存idか'#random'(カンマ区切り)")
     parser.add_argument("party_tags", help="学習対象のパーティのタグ(カンマ区切り)")
@@ -111,7 +125,7 @@ def main():
     parser.add_argument("--log", help="ログファイルパス")
     parser.add_argument("--rate_id")
     args = parser.parse_args()
-    logging.basicConfig(level=getattr(logging, args.loglevel), filename=args.log)
+    config_logger(args.loglevel, args.log)
     rate_id = ObjectId(args.rate_id)  # Noneならランダム生成
     print(f"rate_id: {rate_id}")
     logger.info(f"rate_id: {rate_id}")

@@ -11,13 +11,13 @@ const randomBattle = () => {
         const streams = getPlayerStreams(new BattleStream());
 
         const spec = {
-            formatid: "gen2customgame",
+            formatid: "gen1customgame",
         };
         const parties = [];
         const partyspecs = [];
         for (let i = 0; i < 2; i++) {
 
-            const party = Dex.generateTeam('gen2customgame').slice(0, 3);
+            const party = Dex.generateTeam('gen1customgame').slice(0, 3);
             const partyspec = {
                 name: '' + i,
                 team: Dex.packTeam(party),

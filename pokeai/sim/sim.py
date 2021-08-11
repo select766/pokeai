@@ -144,7 +144,7 @@ class Sim:
     def _writeStart(self):
         if self.parties is None:
             raise Exception('parties not set')
-        spec = {'formatid': 'gen2customgame'}
+        spec = {'formatid': 'gen1customgame'}
         self._writeChunk([
             f'>start {json.dumps(spec)}',
             f'>player p1 {json.dumps(self._makePartySpec("p1", self.parties[0]))}',

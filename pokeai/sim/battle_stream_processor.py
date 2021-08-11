@@ -52,6 +52,7 @@ class BattleStreamProcessor:
                    '-ohko',  # いちげきひっさつ
                    '-item',  # アイテムが開示される
                    '-enditem',  # アイテムが消費される
+                   '-message',  # 技の失敗の理由等
                    # |move|p1a: Xatu|Solar Beam||[still]
                    # |-prepare|p1a: Xatu|Solar Beam|p2a: Skiploom
                    # |-anim|p1a: Xatu|Solar Beam|p2a: Skiploom
@@ -89,6 +90,7 @@ class BattleStreamProcessor:
             '-sideend': self._handle_sideend,
             'faint': self._handle_faint,
             '-weather': self._handle_weather,
+            '-transform': self._handle_transform,
         }
 
     def set_policy(self, policy: "ActionPolicy"):
@@ -356,6 +358,13 @@ class BattleStreamProcessor:
         self.battle_status.weather = msgargs[0]
         return None
 
+    def _handle_transform(self, msgargs: List[str]) -> Optional[str]:
+        # 「へんしん」の発生
+        # |move|p2a: Mew|Transform|p1a: Rattata
+        # |-transform|p2a: Mew|p1a: Rattata
+        # へんしん後も、ポケモン名は変わらない
+        # TODO: パーティ情報の書き換え
+        return None
 
 """
 ほろびのうたの挙動

@@ -9,7 +9,7 @@ import gridfs
 from pokeai.sim.party_generator import Party
 
 client = MongoClient(os.environ.get("POKEAI_PARTY_DB_HOST"))
-db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_4")]
+db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_gen1")]
 col_party = db["Party"]  # document type PartyDoc
 col_trainer = db["Trainer"]  # document type TrainerDoc
 col_rate = db["Rate"]  # document type RateDoc
