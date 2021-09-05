@@ -5,18 +5,19 @@
 const sim = require('../../Pokemon-Showdown/.sim-dist');
 
 const PRNG = sim.PRNG;
-import { AIBase, choiceToString, enumChoices, SearchLogEmitter } from "./aiBase";
+import { AIBase, enumChoices, SearchLogEmitter, SearchLogLevel } from "./aiBase";
 import { AIRandom2 } from "./aiRandom2";
-import { argsort } from "./mathUtil";
 import { playout } from "./playout";
 import { invSideID, SideID, Sim } from "./sim";
 import { assertNonNull } from "./util";
 
+type MoveOrNull = string | null;
+
 class MCTSNode {
     winCounts: {[sideid in SideID]: number};
     numRollouts: number;
-    children: Map<string|null, MCTSNode>;
-    unvisitedMoves: (string|null)[];
+    children: Map<MoveOrNull, MCTSNode>;
+    unvisitedMoves: MoveOrNull[];
     isTerminal: boolean;
     winnerIfTerminal?: SideID;
     constructor(public prng: any, public gameState: Sim, public sideid: SideID, public opponentMove?: string | null) {
@@ -43,7 +44,7 @@ class MCTSNode {
         
     }
 
-    addRandomChild(): MCTSNode {
+    popRandomUnvisitedMove(): MoveOrNull {
         const unvisitedLength = this.unvisitedMoves.length;
         if (unvisitedLength === 0) {
             throw new Error('No unvisited moves');
@@ -51,6 +52,10 @@ class MCTSNode {
         const index = unvisitedLength === 1 ? 0 : this.prng.next(unvisitedLength);
         const move = this.unvisitedMoves[index];
         this.unvisitedMoves.splice(index, 1);
+        return move;
+    }
+
+    addChild(move: MoveOrNull): MCTSNode {
         // moveを適用した後の状態を生成
         // シミュレータは決定論的に動作するという仮定
         let newNode: MCTSNode;
@@ -67,6 +72,12 @@ class MCTSNode {
         }
         this.children.set(move, newNode);
         return newNode;
+    }
+
+    addRandomChild(): [MoveOrNull, MCTSNode] {
+        const move = this.popRandomUnvisitedMove();
+        const newNode = this.addChild(move);
+        return [move, newNode];
     }
 
     canAddChild(): boolean {
@@ -88,6 +99,33 @@ function uctScore(parentRollouts: number, childRollouts: number, winPct: number,
     return winPct + temperature * exploration;
 }
 
+const compressionWinnerTable = {
+    p1: '1',
+    p2: '2',
+};
+
+const compressionMoveTable: {[index: string]: string} = {
+    'move 1': 'A',
+    'move 2': 'B',
+    'move 3': 'C',
+    'move 4': 'D',
+    'switch 1': 'a',
+    'switch 2': 'b',
+    'switch 3': 'c',
+    'switch 4': 'd',
+    'switch 5': 'e',
+    'switch 6': 'f',
+    null: '-',
+};
+
+function compressHistoryEntry(selectionPath: MoveOrNull[], winner: SideID): string {
+    let s = compressionWinnerTable[winner];
+    for (const m of selectionPath) {
+        s += compressionMoveTable[m as string]; // nullを与えた場合"null"というキーとみなされる
+    }
+    return s;
+}
+
 export class AIMCTS extends AIBase {
     playoutSwitchRatio: number;
     playoutCount: number;
@@ -99,30 +137,38 @@ export class AIMCTS extends AIBase {
         this.temperature = assertNonNull(options.temperature);
     }
 
-    private selectChild(node: MCTSNode): MCTSNode {
+    private selectChild(node: MCTSNode): [MoveOrNull, MCTSNode] {
         let totalRollouts = 0;
         for (const child of node.children.values()) {
             totalRollouts += child.numRollouts;
         }
         let bestScore = -1;
         let bestNode: MCTSNode | undefined;
-        for (const child of node.children.values()) {
+        let bestMove: MoveOrNull;
+        for (const [move, child] of node.children.entries()) {
             // (childではなく)nodeからみた勝率が高いものを選ぶ
             const score = uctScore(totalRollouts, child.numRollouts, child.winningPct(node.sideid), this.temperature);
             if (score > bestScore) {
                 bestScore = score;
                 bestNode = child;
+                bestMove = move;
             }
         }
         if (!bestNode) {
             throw new Error('selectChild for node without children');
         }
-        return bestNode;
+        return [bestMove!, bestNode];
     }
 
     go(sim: Sim, sideid: SideID, searchLogEmitter: SearchLogEmitter): string | null {
         const root = new MCTSNode(new PRNG(), sim, sideid, undefined);
         const playoutPolicy = new AIRandom2({ switchRatio: this.playoutSwitchRatio });
+        const searchHistory: any = {};
+        const saveHistory = searchLogEmitter.logLevel >= SearchLogLevel.VERBOSE;
+        if (saveHistory) {
+            searchHistory.sim = sim.serialize();
+            searchHistory.playouts = [];
+        }
 
         if (root.unvisitedMoves.length <= 1) {
             // 選択肢がない場合は探索しない
@@ -132,15 +178,20 @@ export class AIMCTS extends AIBase {
         for (let i = 0; i < this.playoutCount; i++) {
             let backupNodes: MCTSNode[] = [];
             let node = root;
+            const selectionPath: MoveOrNull[] = [];
             backupNodes.push(node);
             while ((!node.canAddChild()) && (!node.isTerminal)) {
-                node = this.selectChild(node);
+                let selectedMove: MoveOrNull;
+                [selectedMove, node] = this.selectChild(node);
                 backupNodes.push(node);
+                selectionPath.push(selectedMove);
             }
 
             if (node.canAddChild()) {
-                node = node.addRandomChild();
+                let randomMove: MoveOrNull;
+                [randomMove, node] = node.addRandomChild();
                 backupNodes.push(node);
+                selectionPath.push(randomMove);
             }
 
             let winner: SideID;
@@ -162,6 +213,10 @@ export class AIMCTS extends AIBase {
             for(let i = backupNodes.length-1; i >= 0; i--) {
                 backupNodes[i].recordWin(winner);
             }
+
+            if (saveHistory) {
+                searchHistory.playouts.push(compressHistoryEntry(selectionPath, winner));
+            }
         }
 
         let bestMove: string | null = null;
@@ -175,6 +230,12 @@ export class AIMCTS extends AIBase {
         }
         if (searchLogEmitter.enabled) {
             const choices = enumChoices(sim.getRequest(sideid));
+            if (saveHistory) {
+                searchLogEmitter.emit({
+                    type: 'MCTSSearchHistory',
+                    payload: { searchHistory },
+                });
+            }
             searchLogEmitter.emit({
                 type: 'MC',
                 payload: {

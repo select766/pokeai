@@ -39,6 +39,17 @@ export class Sim {
         return new Sim(battle);
     }
 
+    serialize(): any {
+        return cloner(this.battle.toJSON());
+    }
+
+    static deserialize(obj: any): Sim {
+        // Battle.fromJSONに与えられたオブジェクトの内容はシミュレータ動作で変化する
+        // objを使いまわした場合を想定して念のためclonerを介在させる
+        const battle = Battle.fromJSON(cloner(obj));
+        return new Sim(battle);
+    }
+
     choose(choices: (string | null)[]): void {
         for (let i = 0; i < nPlayers; i++) {
             const choice = choices[i];
