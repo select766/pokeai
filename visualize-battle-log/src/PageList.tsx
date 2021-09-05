@@ -5,6 +5,9 @@ export function PageList() {
     <div>
       <ul>
         <li>
+          <Link to="/mcts">MCTS log visualizer</Link>
+        </li>
+        <li>
           <Link to="/rl">RL log visualizer</Link>
         </li>
       </ul>
