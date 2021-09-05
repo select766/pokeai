@@ -117,7 +117,7 @@ export type BattleEventChoice = {
     // };
     // battle_status: BattleStatus;
     request: BattleRequest;
-    choice: string;
+    choice: string | null; // nullは、行動選択が不要な場合（相手のポケモンが瀕死となり交代先を選んでいるとき発生）
     searchLog?: BattleSearchLogEntry[];
     searchTime?: number;
   }

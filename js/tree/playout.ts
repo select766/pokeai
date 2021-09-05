@@ -52,18 +52,18 @@ export function playout(sim: Sim, agents: AIBase[], logLevel: number = 0): Playo
             const searchTime = performance.now() - timeStart;
             if (choice) {
                 totalChoices[i]++;
-                if (logLevel) {
-                    battleEvents.push({
-                        type: 'choice',
-                        choice: {
-                            player: sideIDs[i],
-                            request: sim.getRequest(sideIDs[i]),
-                            choice,
-                            searchLog: (emitter as SearchLogEmitterImpl).entries,
-                            searchTime,
-                        }
-                    });
-                }
+            }
+            if (logLevel) {
+                battleEvents.push({
+                    type: 'choice',
+                    choice: {
+                        player: sideIDs[i],
+                        request: sim.getRequest(sideIDs[i]),
+                        choice,
+                        searchLog: (emitter as SearchLogEmitterImpl).entries,
+                        searchTime,
+                    }
+                });
             }
             choices.push(choice);
         }
