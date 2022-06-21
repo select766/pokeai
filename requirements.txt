@@ -14,7 +14,7 @@ colorlog==4.2.1           # via optuna
 joblib==0.14.0            # via optuna
 mako==1.1.3               # via alembic
 markupsafe==1.1.1         # via mako
-numpy==1.17.4             # via cmaes, optuna, pokeai (setup.py), scipy
+numpy==1.22.0             # via cmaes, optuna, pokeai (setup.py), scipy
 optuna==2.1.0             # via pokeai (setup.py)
 packaging==20.4           # via optuna
 pbr==5.5.0                # via cliff, stevedore
