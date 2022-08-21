@@ -18,7 +18,7 @@ from pokeai.ai.random_policy import RandomPolicy
 from pokeai.ai.rl_policy import RLPolicy
 from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
-from pokeai.sim.sim import Sim
+from pokeai.sim.simv1 import SimV1
 from pokeai.util import json_load
 
 logger = getLogger(__name__)
@@ -50,7 +50,7 @@ def rating_battle(parties, policies, player_ids, match_count: int, fixed_rates: 
     """
     assert len(parties) == len(policies)
     assert len(fixed_rates) == len(parties)
-    sim = Sim()
+    sim = SimV1()
 
     # レート初期値設定
     rates = np.full((len(parties),), 1500.0)

@@ -21,7 +21,7 @@ from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero, Surroga
     SurrogateRewardConfigDefaults
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.party_generator import Party
-from pokeai.sim.sim import Sim
+from pokeai.sim.simv1 import SimV1
 from pokeai.util import yaml_load
 
 
@@ -150,7 +150,7 @@ def main():
             "train_params": train_params,
             "tags": tags,
         })
-    sim = Sim()
+    sim = SimV1()
     for battle_idx in tqdm(range(trainer.total_battles, train_params["battles"])):
         if len(match_pairs_queue) == 0:
             match_pairs_queue = make_match_pairs(rates, train_params["match_config"]["random_std"])

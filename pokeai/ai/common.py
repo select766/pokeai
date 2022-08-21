@@ -29,7 +29,7 @@ def rename_special_move_id_side(id: str) -> str:
     return id
 
 
-def get_possible_actions(battle_status: BattleStatus, request: dict) -> List[PossibleAction]:
+def get_possible_actions(request: dict) -> List[PossibleAction]:
     """
     取れる行動を表すオブジェクト列を返す
     :param battle_status: プレイヤー側のバトル状態
