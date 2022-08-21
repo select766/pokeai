@@ -1,6 +1,9 @@
 import json
 import random
-from pokeai.sim.sim import Sim
+from typing import Optional
+from pokeai.ai.observation_converter_raw import ObservationConverterRaw
+from pokeai.sim.sim import SimObservation
+from pokeai.sim.train_env import TrainEnv, TrainSideStaticEnv, TrainSideStaticEnvBattleConfiguration
 from pokeai.ai.common import get_possible_actions
 
 def get_parties():
@@ -203,23 +206,56 @@ def get_parties():
 """)
     return [party1, party2]
 
-def test_sim_step_random_moves():
-    random.seed(1) # 乱数を固定しても、シミュレータ側がランダムな挙動をする
-    for _ in range(10):
-        sim = Sim()
-        obs_with_infos = sim.start(get_parties())
-        # 例外を起こさず無限ループもしなければOK
+
+def random_action(obs: SimObservation) -> Optional[str]:
+    reqevent = obs.battle_events[-1]
+    if reqevent.action_type in ["turn_start", "force_switch"]:
+        pas = get_possible_actions(reqevent.request)
+        c = random.choice(pas)
+        return c.simulator_key
+    else:
+        # 行動選択が不要な状況(相手の技/交代選択待ち)
+        return None
+
+def test_train_env_step_random_moves():
+    def party_pair_generator():
         while True:
-            actions = []
-            for i in [0, 1]:
-                reqevent = obs_with_infos[i][0].battle_events[-1]
-                if reqevent.action_type in ["turn_start", "force_switch"]:
-                    pas = get_possible_actions(reqevent.request)
-                    c = random.choice(pas)
-                    actions.append(c.simulator_key)
-                else:
-                    # 行動選択が不要な状況(相手の技/交代選択待ち)
-                    actions.append(None)
-            obs_with_infos = sim.step(actions)
-            if obs_with_infos[0][0].is_end:
-                break
+            yield get_parties()
+    random.seed(1) # 乱数を固定しても、シミュレータ側がランダムな挙動をする
+    env = TrainEnv(n_envs=2,party_pair_generator=party_pair_generator(),observation_converter_factory=ObservationConverterRaw)
+
+    obss = env.reset()
+    new_battles = 0
+    for turn in range(210):
+        # 例外を起こさず無限ループもしなければOK
+        actions = []
+        for i in range(len(obss)):
+            actions.append(random_action(obss[i]))
+        obss, rewards, dones, infos = env.step(actions)
+        for done in dones:
+            if done:
+                new_battles += 1
+    # 最大100ターン(強制交代があっても観測200回)でバトルが終わるので、2バトル並列、4つ観測があれば新しいバトルが4回以上始まるはず
+    assert new_battles >= 4
+
+def test_train_side_static_env_step_random_moves():
+    def battle_configuration_generator():
+        while True:
+            yield TrainSideStaticEnvBattleConfiguration(party_pair=get_parties(), static_observation_converter=ObservationConverterRaw(), static_policy=random_action)
+    random.seed(1) # 乱数を固定しても、シミュレータ側がランダムな挙動をする
+    env = TrainSideStaticEnv(n_envs=2,battle_configuration_generator=battle_configuration_generator(),observation_converter_factory=ObservationConverterRaw)
+
+    obss = env.reset()
+    new_battles = 0
+    for turn in range(210):
+        # 例外を起こさず無限ループもしなければOK
+        actions = []
+        assert len(obss) == 2
+        for i in range(len(obss)):
+            actions.append(random_action(obss[i]))
+        obss, rewards, dones, infos = env.step(actions)
+        for done in dones:
+            if done:
+                new_battles += 1
+    # 最大100ターン(強制交代があっても観測200回)でバトルが終わるので、2バトル並列、2つ観測があれば新しいバトルが4回以上始まるはず
+    assert new_battles >= 2

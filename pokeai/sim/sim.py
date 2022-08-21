@@ -1,11 +1,10 @@
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Tuple
 import json
 import re
 import uuid
 from logging import getLogger
-
+from pokeai.sim.model import Party
 from pokeai.sim.sim_proxy import SimProxy, sim_proxy
-from pokeai.sim.party_generator import Party
 from pokeai.sim.simutil import sim_util
 from pokeai.util import side2idx
 
@@ -32,6 +31,10 @@ class SimObservation(NamedTuple):
     battle_events: List[SimBattleEvent]
     is_end: bool = False
     winner: Optional[str] = None
+
+class SimExtraInfo(NamedTuple):
+    battle_id: str
+    terminal_observation: Optional[object] = None
 
 class SideContext:
     side: str
@@ -118,7 +121,7 @@ class Sim:
         logger.debug("writeChunk " + json.dumps('\n'.join(commands)))
         self._proxy.write(self._proxy_simid, '\n'.join(commands))
 
-    def start(self, parties: List[Party]) -> List[SimObservation]:
+    def start(self, parties: List[Party]) -> List[Tuple[SimObservation, SimExtraInfo]]:
         spec = {'formatid': 'gen2customgame'}
         self._write_chunk([
             f'>start {json.dumps(spec)}',
@@ -128,14 +131,14 @@ class Sim:
         self._side_contexts = [SideContext('p1', parties[0]), SideContext('p2', parties[1])]
         return self._proceed_until_request()
 
-    def step(self, actions: List[Optional[str]]) -> List[SimObservation]:
+    def step(self, actions: List[Optional[str]]) -> List[Tuple[SimObservation, SimExtraInfo]]:
         # 両プレイヤーの行動を選択し、次の行動選択が必要となるタイミングまでシミュレータを進める。
         for i, side in enumerate(['p1', 'p2']):
             if actions[i] is not None:
                 self._write_chunk([f'>{side} {actions[i]}'])
         return self._proceed_until_request()
 
-    def _proceed_until_request(self) -> List[SimObservation]:
+    def _proceed_until_request(self) -> List[Tuple[SimObservation, SimExtraInfo]]:
         sent_forcetie = False
         while True:
             chunk_type, chunk_data = self._proxy.read(self._proxy_simid).split('\n', 1)
@@ -152,7 +155,10 @@ class Sim:
             try:
                 obses = self._process_chunk(chunk_type, chunk_data, sent_forcetie)
                 if obses is not None:
-                    return obses
+                    obs_with_infos = []
+                    for i in range(2):
+                        obs_with_infos.append((obses[i], SimExtraInfo(battle_id=self.battle_id)))
+                    return obs_with_infos
             except Exception as ex:
                 raise ValueError(f"Exception on processing chunk {chunk_type},{chunk_data}", ex)
 

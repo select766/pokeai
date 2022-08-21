@@ -1,6 +1,9 @@
 import json
 import random
-from pokeai.sim.sim import Sim
+from typing import Optional
+from pokeai.ai.observation_converter_raw import ObservationConverterRaw
+from pokeai.sim.sim import SimObservation
+from pokeai.sim.single_env import SingleEnv
 from pokeai.ai.common import get_possible_actions
 
 def get_parties():
@@ -203,23 +206,27 @@ def get_parties():
 """)
     return [party1, party2]
 
-def test_sim_step_random_moves():
+
+def random_action(obs: SimObservation) -> Optional[str]:
+    reqevent = obs.battle_events[-1]
+    if reqevent.action_type in ["turn_start", "force_switch"]:
+        pas = get_possible_actions(reqevent.request)
+        c = random.choice(pas)
+        return c.simulator_key
+    else:
+        # 行動選択が不要な状況(相手の技/交代選択待ち)
+        return None
+
+def test_single_env_step_random_moves():
     random.seed(1) # 乱数を固定しても、シミュレータ側がランダムな挙動をする
     for _ in range(10):
-        sim = Sim()
-        obs_with_infos = sim.start(get_parties())
+        env = SingleEnv(parties=get_parties(), observation_converters=[ObservationConverterRaw(), ObservationConverterRaw()])
+        obses = env.reset()
         # 例外を起こさず無限ループもしなければOK
         while True:
             actions = []
             for i in [0, 1]:
-                reqevent = obs_with_infos[i][0].battle_events[-1]
-                if reqevent.action_type in ["turn_start", "force_switch"]:
-                    pas = get_possible_actions(reqevent.request)
-                    c = random.choice(pas)
-                    actions.append(c.simulator_key)
-                else:
-                    # 行動選択が不要な状況(相手の技/交代選択待ち)
-                    actions.append(None)
-            obs_with_infos = sim.step(actions)
-            if obs_with_infos[0][0].is_end:
+                actions.append(random_action(obses[i]))
+            obses, rewards, dones, infos = env.step(actions)
+            if dones[0]:
                 break

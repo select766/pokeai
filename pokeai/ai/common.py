@@ -1,6 +1,4 @@
 from typing import List, NamedTuple, Optional
-
-from pokeai.ai.battle_status import BattleStatus
 from pokeai.ai.dex import dex
 
 

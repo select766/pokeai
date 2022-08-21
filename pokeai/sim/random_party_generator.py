@@ -1,8 +1,9 @@
 import copy
 import random
 from typing import Set, Optional, List
+from pokeai.sim.model import Party, PartyPoke
 
-from pokeai.sim.party_generator import PartyGenerator, Party, PartyPoke
+from pokeai.sim.party_generator import PartyGenerator
 from pokeai.util import DATASET_DIR
 from pokeai.sim.team_validator import TeamValidator
 from pokeai.util import json_load
