@@ -14,7 +14,7 @@
         "bodyslam",
 */
 
-const sim = require('../../Pokemon-Showdown/.sim-dist');
+const sim = require('../../Pokemon-Showdown/dist/sim');
 const mdex = new sim.Dex.ModdedDex('gen2');
 const pokemons = require('../../data/dataset/all_pokemons.json');
 

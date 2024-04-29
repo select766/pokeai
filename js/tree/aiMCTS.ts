@@ -2,7 +2,7 @@
 // MCTSコアの実装は
 // 「囲碁ディープラーニングプログラミング」 Max Pumperla, Kevin Ferguson 著、山岡忠夫訳を参考
 
-const sim = require('../../Pokemon-Showdown/.sim-dist');
+const sim = require('../../Pokemon-Showdown/dist/sim');
 
 const PRNG = sim.PRNG;
 import { AIBase, enumChoices, SearchLogEmitter, SearchLogLevel } from "./aiBase";

@@ -1,5 +1,5 @@
 import * as rfdc from 'rfdc';
-const sim = require('../../Pokemon-Showdown/.sim-dist');
+const sim = require('../../Pokemon-Showdown/dist/sim');
 
 const Dex = sim.Dex;
 const Battle = sim.Battle;

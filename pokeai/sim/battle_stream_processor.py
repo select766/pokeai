@@ -60,6 +60,7 @@ class BattleStreamProcessor:
                    'cant',  # 麻痺などで行動ができない
                    'win',  # 勝敗決定(勝者の取得は別途endメッセージで行う)
                    'tie',  # 引き分け(forcetieで発生)
+                   't:',  # timestamp
                    ]
 
     def __init__(self):

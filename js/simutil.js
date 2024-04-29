@@ -1,8 +1,9 @@
 // シミュレータの付属機能を呼び出しpythonと仲介するユーティリティ
 // jsonシリアライズして送受信
 
-const sim = require('../Pokemon-Showdown/.sim-dist');
+const sim = require('../Pokemon-Showdown/dist/sim');
 const Dex = sim.Dex;
+const Teams = sim.Teams;
 const methods = {};
 
 methods['validateTeam'] = (() => {
@@ -37,7 +38,7 @@ methods['validateTeam'] = (() => {
 
 methods['packTeam'] = (() => {
     return async (params) => {
-        return Dex.packTeam(params['party']);
+        return Teams.pack(params['party']);
     };
 })();
 

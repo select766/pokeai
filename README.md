@@ -9,7 +9,10 @@ PokéAI(ポケエーアイ)は、ポケモンバトルの戦略を人工知能�
 初代ルールのシミュレータ実装とAI -> [book-201904](https://github.com/select766/pokeai/tree/book-201904)
 
 # setup
-node v10.x が必要。
+
+**現在改修中で整合性が取れていません。過去のタグを利用してください。**
+
+node v20.x が必要。
 
 ```
 git submodule update -i
@@ -17,7 +20,7 @@ cd Pokemon-Showdown
 npm run build
 ```
 
-python 3.8が必要。
+python 3.11が必要。
 
 ```
 pip install -r requirements.txt

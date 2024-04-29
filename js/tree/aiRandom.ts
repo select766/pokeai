@@ -1,4 +1,4 @@
-const sim = require('../../Pokemon-Showdown/.sim-dist');
+const sim = require('../../Pokemon-Showdown/dist/sim');
 
 const PRNG = sim.PRNG;
 import { AIBase, enumChoices } from "./aiBase";

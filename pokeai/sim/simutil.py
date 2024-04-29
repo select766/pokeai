@@ -5,8 +5,7 @@ from pokeai.util import ROOT_DIR
 
 class SimUtilError(Exception):
     def __init__(self, obj):
-        super().__init__()
-        self.obj = obj
+        super().__init__(obj)
 
 
 class SimUtil:

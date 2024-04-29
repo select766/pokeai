@@ -1,9 +1,9 @@
-const bs = require('../Pokemon-Showdown/.sim-dist/battle-stream');
+const bs = require('../Pokemon-Showdown/dist/sim/battle-stream');
 const BattleStream = bs.BattleStream;
 const getPlayerStreams = bs.getPlayerStreams;
-const dex = require('../Pokemon-Showdown/.sim-dist/dex');
+const dex = require('../Pokemon-Showdown/dist/sim/dex');
 const Dex = dex.Dex;
-const randomplayerai = require('../Pokemon-Showdown/.sim-dist/tools/random-player-ai');
+const randomplayerai = require('../Pokemon-Showdown/dist/sim/tools/random-player-ai');
 const RandomPlayerAI = randomplayerai.RandomPlayerAI;
 
 const randomBattle = () => {

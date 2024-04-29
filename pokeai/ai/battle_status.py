@@ -31,8 +31,8 @@ def _parse_details(details: str) -> Tuple[str, int, str]:
     :param details: 種族名・レベル・性別情報　例:'Ninetales, L50, M'
     :return:
     """
-    # 例外的な種族名 'Nidoran-F', 'Porygon2', 'Mr. Mime', "Farfetch'd"
-    m = re.match('^([A-Za-z-]+|Porygon2|Mr\\. Mime|Farfetch\'d), L(\\d+)(?:, (M|F|N))?$', details)
+    # 例外的な種族名 'Nidoran-F', 'Porygon2', 'Mr. Mime', "Farfetch’d"
+    m = re.match('^([A-Za-z-]+|Porygon2|Mr\\. Mime|Farfetch’d), L(\\d+)(?:, (M|F|N))?$', details)
     assert m is not None, f"DETAILS '{details}' cannot be parsed."
     # 性別不明だとm[3]はNone
     return m[1], int(m[2]), m[3] or 'N'

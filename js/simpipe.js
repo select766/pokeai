@@ -1,7 +1,7 @@
 // 標準入出力によるプロセス間通信によりシミュレータを公開
 // chunk単位をjsonシリアライズして1行で送受信
 
-const bs = require('../Pokemon-Showdown/.sim-dist/battle-stream');
+const bs = require('../Pokemon-Showdown/dist/sim/battle-stream');
 const BattleStream = bs.BattleStream;
 
 // keepAlive: 複数回バトルを行えるようにする(デフォルトではバトルが終了するとストリームが閉じられる)

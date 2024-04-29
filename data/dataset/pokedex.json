@@ -20759,7 +20759,7 @@
   },
   "farfetchd": {
     "exists": true,
-    "name": "Farfetch'd",
+    "name": "Farfetch’d",
     "baseStats": {
       "hp": 52,
       "atk": 65,
@@ -20769,7 +20769,7 @@
       "spe": 60
     },
     "num": 83,
-    "species": "Farfetch'd",
+    "species": "Farfetch’d",
     "types": [
       "Normal",
       "Flying"
@@ -21038,7 +21038,7 @@
     "affectsFainted": false,
     "sourceEffect": "",
     "speciesid": "farfetchd",
-    "baseSpecies": "Farfetch'd",
+    "baseSpecies": "Farfetch’d",
     "forme": "",
     "formeLetter": "",
     "spriteid": "farfetchd",
