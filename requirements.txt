@@ -19,7 +19,7 @@ optuna==2.1.0             # via pokeai (setup.py)
 packaging==20.4           # via optuna
 pbr==5.5.0                # via cliff, stevedore
 prettytable==0.7.2        # via cliff
-pymongo==3.9.0            # via pokeai (setup.py)
+pymongo==4.6.3            # via pokeai (setup.py)
 pyparsing==2.4.5          # via cliff, packaging
 pyperclip==1.8.0          # via cmd2
 pyreadline==2.1           # via cmd2
