@@ -22,7 +22,7 @@ from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero, Surroga
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.party_generator import Party
 from pokeai.sim.sim import Sim
-from pokeai.util import yaml_load
+from pokeai.util import setup_logging, yaml_load
 
 
 def battle_once(sim, trainer: Trainer, target_parties: List[Party]) -> float:
@@ -109,7 +109,7 @@ def main():
     parser.add_argument("--loglevel", help="ログ出力(stderr)のレベル", choices=["INFO", "WARNING", "DEBUG"],
                         default="INFO")
     args = parser.parse_args()
-    logging.basicConfig(level=getattr(logging, args.loglevel))
+    setup_logging(args.loglevel)
     train_params = yaml_load(args.train_param_file)
     stop_file_path = args.train_param_file + ".stop"
     if os.path.exists(stop_file_path):

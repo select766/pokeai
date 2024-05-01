@@ -19,7 +19,7 @@ from pokeai.ai.rl_policy import RLPolicy
 from pokeai.ai.surrogate_reward_config import SurrogateRewardConfigZero
 from pokeai.sim.battle_stream_processor import BattleStreamProcessor
 from pokeai.sim.sim import Sim
-from pokeai.util import json_load
+from pokeai.util import json_load, setup_logging
 
 logger = getLogger(__name__)
 
@@ -93,6 +93,11 @@ def rating_battle(parties, policies, player_ids, match_count: int, fixed_rates: 
                     rates[right] -= left_incr
             log.append([left, right, winner])
             logger.debug(f"match end: winner: {winner}")
+            logger.debug(f"match result: " + json.dumps({
+                "player_ids": [player_ids[left], player_ids[right]],
+                "winner": winner,
+                "rates": [rates[left], rates[right]],
+            }))
         abs_mean_diff = np.mean(np.abs(rates - 1500.0))
         logger.info(f"{i} rate mean diff: {abs_mean_diff}")
     return rates.tolist(), log
@@ -111,7 +116,7 @@ def main():
     parser.add_argument("--log", help="ログファイルパス")
     parser.add_argument("--rate_id")
     args = parser.parse_args()
-    logging.basicConfig(level=getattr(logging, args.loglevel), filename=args.log)
+    setup_logging(args.loglevel, filename=args.log)
     rate_id = ObjectId(args.rate_id)  # Noneならランダム生成
     print(f"rate_id: {rate_id}")
     logger.info(f"rate_id: {rate_id}")
@@ -152,13 +157,14 @@ def main():
     fixed_rates = [0.0] * len(parties)  # 未使用
     rates, log = rating_battle(parties, policies, player_ids, args.match_count, fixed_rates=fixed_rates)
     print(f"rate_id: {rate_id}")
+    # logが大きくなりすぎてmongodbのサイズ制限に抵触することがあるため保存を中止
     col_rate.insert_one({
         "_id": rate_id,
         "player_ids": player_ids,
         "rates": {str(player_id): rate for player_id, rate in zip(player_ids, rates)},
-        "log_entry_format": "[player1_index (in player ids), player2_index (in player ids), "
-                            "winner (0 for player 1, 1 for player 2, -1 for draw)]",
-        "log": log,
+        # "log_entry_format": "[player1_index (in player ids), player2_index (in player ids), "
+        #                     "winner (0 for player 1, 1 for player 2, -1 for draw)]",
+        # "log": log,
     })
 
 

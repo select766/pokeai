@@ -4,7 +4,7 @@ import base64
 import gzip
 import yaml
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 ROOT_DIR = Path(__file__).resolve().parents[1]  # type: Path
 DATASET_DIR = ROOT_DIR.joinpath('data', 'dataset')  # type:Path
@@ -53,6 +53,17 @@ def pickle_base64_dumps(obj) -> str:
     :return:
     """
     return base64.b64encode(pickle.dumps(obj)).decode("ascii")
+
+
+def setup_logging(level: Union[str, int] = 'INFO', filename: Optional[str] = None):
+    import logging
+    if isinstance(level, str):
+        level_obj = getattr(logging, level)
+    else:
+        level_obj = level
+    # Windowsの場合、ファイル出力時のデフォルトがcp932になるため、utf-8に変更
+    encoding = 'utf-8' if filename else None
+    logging.basicConfig(level=level_obj, filename=filename, encoding=encoding)
 
 
 def pickle_base64_loads(s: str):
