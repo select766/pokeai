@@ -46,8 +46,8 @@ class Sim:
         self.proc.stdin.flush()
 
     def _readChunk(self) -> List[str]:
-        line = self.proc.stdout.readline()
-        logger.debug("readChunk " + line)
+        line = self.proc.stdout.readline() # 末尾に改行コードが入る
+        logger.debug("readChunk " + line.rstrip())
         rawstr = json.loads(line)
         return rawstr.split('\n', 1)  # 最初の1要素(update, endなど)のみ分離
 
