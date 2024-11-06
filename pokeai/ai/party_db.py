@@ -5,8 +5,11 @@ import gzip
 from pymongo import MongoClient
 from bson import ObjectId
 import gridfs
+from dotenv import load_dotenv
 
 from pokeai.sim.party_generator import Party
+
+load_dotenv()
 
 client = MongoClient(os.environ.get("POKEAI_PARTY_DB_HOST"))
 db = client[os.environ.get("POKEAI_PARTY_DB_NAME", "pokeai_4")]

@@ -20,14 +20,20 @@ cd Pokemon-Showdown
 npm run build
 ```
 
-python 3.11が必要。
+python 3.11+poetryが必要。
 
 ```
-pip install -r requirements.txt
-python3 setup.py develop
+poetry install
 ```
 
 mongodb 4.xが必要。コードを実行することで、デフォルトでは`pokeai_4`データベースを生成する。
+
+`.env` ファイルを作成。
+
+```
+POKEAI_PARTY_DB_HOST=<mongodbが動作しているマシンのIPアドレス>
+POKEAI_PARTY_DB_NAME=<mongodbのデータベース名(defaultは"pokeai_4")>
+```
 
 # 基本構成
 

@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "pokeai"
+version = "0.1.0"
+description = ""
+authors = ["select766 <select766@outlook.jp>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+tqdm = "^4.66.6"
+optuna = "3.6.1"
+pymongo = "^4.10.1"
+PyYAML = "^6.0.2"
+torch = {version = "^2.5.1+cpu", source = "pytorch_cpu"}
+python-dotenv = "^1.0.1"
+
+[tool.poetry.group.dev.dependencies]
+jupyterlab = "^4.3.0"
+
+
+[[tool.poetry.source]]
+name = "pytorch_cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
