@@ -38,17 +38,17 @@ def demo():
         [{**fill,
           "species": "tyranitar",
           "moves": ['leer'],
-          "gender": "F",  # 個体値と性別の不一致はエラー
+          "gender": "F",  # 個体値と性別の不一致はエラー 'XXX (Tyranitar) must be at least level 55 to be evolved.'
           }],
         [{**fill,
           "species": "tyranitar",
           "moves": ['leer'],
-          "level": 50,  # LV50のバンギラスは存在しないのでエラー
+          "level": 50,  # LV50のバンギラスは存在しないのでエラー 'XXX (Tyranitar) must be at least level 55 to be evolved.'
           }],
         [{**fill,
           "species": "moltres",  # ファイヤー
           "moves": ['leer'],
-          "level": 50,  # LV50ではにらみつけるを覚えないのでエラー
+          "level": 50,  # LV50ではにらみつけるを覚えないのでエラー "XXX (Moltres)'s move Leer is learned at level 51."
           }],
         [{**fill,
           "species": "moltres",  # ファイヤー
@@ -65,7 +65,7 @@ def demo():
           }],
         [{**fill,
           "species": "bulbasaur",  # フシギダネ
-          "moves": ['safeguard', 'swordsdance'],  # 第1世代に存在しない卵技と第1世代限定技マシンの両立不可でエラー
+          "moves": ['safeguard', 'swordsdance'],  # 第1世代に存在しない卵技と第1世代限定技マシンの両立不可でエラー "XXX (Bulbasaur)'s moves Safeguard, Swords Dance are incompatible."
           }],
         [{**fill,
           "species": "bulbasaur",  # フシギダネ
@@ -77,7 +77,7 @@ def demo():
           }],
         [{**fill,
           "species": "cubone",  # カラカラ
-          "moves": ['perishsong', 'swordsdance'],  # 卵技ほろびのうた・つるぎのまい=>同時遺伝経路がない
+          "moves": ['perishsong', 'swordsdance'],  # 卵技ほろびのうた・つるぎのまい=>同時遺伝経路がない "XXX (Cubone) can't get its egg move combination (perishsong, swordsdance) from any possible father.", '(Is this incorrect? If so, post the chainbreeding instructions in Bug Reports)'
           }],
         [{**fill,
           "species": "espeon",  # エーフィ
@@ -100,7 +100,12 @@ def demo():
           }],
         [{**fill,
           "species": "blissey",  # ハピナス
-          "moves": ['hiddenpowerice'],  # めざめるパワー（タイプ特定あり）: OK
+          "moves": ['hiddenpowerice'],  # めざめるパワー（タイプ特定あり）: 個体値との矛盾はダメ, 'XXX has Hidden Power Ice, but its IVs are for Hidden Power Dark.'
+          "gender": "F"
+          }],
+        [{**fill,
+          "species": "blissey",  # ハピナス
+          "moves": ['hiddenpowerdark'],  # めざめるパワー（タイプ特定あり）: 最大個体値なら悪
           "gender": "F"
           }],
     ]

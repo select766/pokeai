@@ -8,7 +8,9 @@ const methods = {};
 
 methods['validateTeam'] = (() => {
     const tv = new sim.TeamValidator('gen2customgame');
-    tv.ruleTable.set('-illegal', '')//覚えられない技の検証を行う設定
+    tv.ruleTable.set('obtainablemoves', '')//覚えられない技の検証を行う設定
+    tv.ruleTable.set('-nonexistent', '')//個体値と性別の矛盾チェック
+    tv.ruleTable.set('obtainablemisc', '')//進化レベルの矛盾チェック
 
     /*
     party:
