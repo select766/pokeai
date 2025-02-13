@@ -14,9 +14,11 @@ pymongo = "^4.10.1"
 PyYAML = "^6.0.2"
 torch = {version = "^2.5.1+cpu", source = "pytorch_cpu"}
 python-dotenv = "^1.0.1"
+nashpy = "^0.0.41"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^4.3.0"
+matplotlib = "^3.9.2"
 
 
 [[tool.poetry.source]]
