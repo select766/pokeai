@@ -21,7 +21,7 @@ class RandomPartyGenerator(PartyGenerator):
         self._pokemons = json_load(DATASET_DIR.joinpath('regulations', regulation, 'pokemons.json'))
         self._items = json_load(DATASET_DIR.joinpath('regulations', regulation, 'items.json'))
         self.neighbor_poke_change_rate = neighbor_poke_change_rate
-        self.neighbor_item_change_rate = neighbor_item_change_rate if len(self._items) > 0 else 0.0
+        self.neighbor_item_change_rate = neighbor_item_change_rate if len(self._items) > 1 else 0.0
 
     @property
     def party_size(self) -> int:
@@ -136,7 +136,8 @@ class RandomPartyGenerator(PartyGenerator):
             change_poke = new_party[change_idx]
             if self.neighbor_item_change_rate > rnd:
                 # アイテムの変更
-                items = {poke['item'] for i, poke in enumerate(new_party) if i != change_idx}  # 他のポケモンが持っているアイテム
+                # アイテム無し("")は重複してもよい
+                items = {poke['item'] for i, poke in enumerate(new_party) if i != change_idx and poke['item' != '']}  # 他のポケモンが持っているアイテム
                 cur_item = change_poke['item']
                 while True:
                     new_item = random.choice(self._items)

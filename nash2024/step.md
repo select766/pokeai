@@ -9,3 +9,19 @@ python export_top_rate_party.py 672b539e2fb3394b4a0b8ed0 "nash2024/data/random_t
 # レートの高いパーティを総当たりで対戦させる
 python -m pokeai.ai.generic_move_model.rl_rating_battle "" "" --player_ids_file nash2024/data/random_top_100.json --match_count 9900 --match_algorithm round_robin --match_results_dir nash2024/data/ --rate_id 672b5e0f89c3cd9202fe28b4
 ```
+
+パーティ勝敗データセット作成
+
+```bash
+python -m pokeai.ai.selection.generate_party_match_dataset data/party_match_dataset_train_n1m_m1.jsonl -r finalgoodmove1vs1 -m 1 -n 1000000
+python -m pokeai.ai.selection.generate_party_match_dataset data/party_match_dataset_val_n1k_m100.jsonl -r finalgoodmove1vs1 -m 100 -n 1000
+python -m pokeai.ai.selection.generate_party_match_dataset data/party_match_dataset_test_n1k_m100.jsonl -r finalgoodmove1vs1 -m 100 -n 1000
+# 特徴量の準備
+python -m pokeai.ai.selection.party_match_dataset_feat_prepare -r finalgoodmove1vs1 data/party_match_feat_mapping_finalgoodmove1vs1.json
+for f in data/party_match_dataset_*.jsonl; do python party_match_dataset_feat.py ${f%.*}.pth $f data/party_match_feat_mapping_finalgoodmove1vs1.json ; done
+
+# 学習
+python pokeai.ai.selection.party_match_train data/party_match_dataset_train_n1m_m1.pth data/party_match_dataset_val_n1k_m100.pth data/train1
+
+PYTHONUNBUFFERED=1 python -m pokeai.ai.selection.do_loop_baseline data/do_loop_baseline_02.pkl -r finalgoodmove3vs3lv55all --feat_map data/party_match_feat_mapping_finalgoodmove1vs1.json --model data/train1/model_final.pth --hill_climb_iterations 100 --neighbor_iterations 100 --num_cycles 100 | tee -a data/do_loop_baseline_02.log
+```
