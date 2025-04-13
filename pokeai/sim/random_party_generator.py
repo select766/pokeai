@@ -12,7 +12,8 @@ class RandomPartyGenerator(PartyGenerator):
     def __init__(self,
                  regulation: str = "default",
                  neighbor_poke_change_rate: float = 0.1,
-                 neighbor_item_change_rate: float = 0.1):
+                 neighbor_item_change_rate: float = 0.1,
+                 move_count_probability: list[float] = None):
         self._validator = TeamValidator()
         self._pokedex = json_load(DATASET_DIR.joinpath('pokedex.json'))
         self._lv55_pokemons = json_load(DATASET_DIR.joinpath('lv55_pokemons.json'))
@@ -22,6 +23,7 @@ class RandomPartyGenerator(PartyGenerator):
         self._items = json_load(DATASET_DIR.joinpath('regulations', regulation, 'items.json'))
         self.neighbor_poke_change_rate = neighbor_poke_change_rate
         self.neighbor_item_change_rate = neighbor_item_change_rate if len(self._items) > 1 else 0.0
+        self.move_count_probability = move_count_probability
 
     @property
     def party_size(self) -> int:
@@ -35,7 +37,14 @@ class RandomPartyGenerator(PartyGenerator):
         # 性別固定でなければ、攻撃個体値maxはオスとなる
         gender = self._pokedex[species]['gender'] or 'M'
         available_moves = self._learnsets[species]
-        moves = random.sample(available_moves, min(4, len(available_moves)))
+        move_count = min(4, len(available_moves))
+        # 技数の確率分布を考慮して、技数を決定
+        if self.move_count_probability is not None:
+            # move_count_probabilityは技数の確率分布を表すリスト
+            # 例: [0.1, 0.3, 0.4, 0.2] -> 技数1の確率10%、技数2の確率30%、技数3の確率40%、技数4の確率20%
+            # ただし、len(available_moves) を最大値とする
+            move_count = random.choices(list(range(1, move_count + 1)), weights=self.move_count_probability[:move_count])[0]
+        moves = random.sample(available_moves, move_count)
         item = random.choice(self._items) if len(self._items) > 0 else ''  # アイテムなしを選ぶにはitems.jsonに''のエントリを挿入
         return {
             'name': species,

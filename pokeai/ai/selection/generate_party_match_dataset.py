@@ -16,10 +16,11 @@ def main():
     parser.add_argument("-n", type=int, default=100, help="パーティの組み合わせの数")
     parser.add_argument("-m", type=int, default=1, help="1つの組み合わせに対して何回対戦を行うか")
     parser.add_argument("-r", default="default", help="regulation")
+    parser.add_argument("--move_count_variation", action="store_true", help="技の数をランダムに変化させる")
     args = parser.parse_args()
 
     policies = [RandomPolicy() for _ in range(2)]
-    gen = RandomPartyGenerator(regulation=args.r)
+    gen = RandomPartyGenerator(regulation=args.r, move_count_probability=[0.1, 0.2, 0.3, 0.4] if args.move_count_variation else None)
     sim = Sim()
 
     with open(args.output, "w") as f:
