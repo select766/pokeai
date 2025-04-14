@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 import torch
 from pokeai.ai.selection.party_match_model import PartyMatchModel
+from pokeai.util import json_load
 
 def load_dataset(feat_path):
     """
@@ -19,15 +20,28 @@ def load_dataset(feat_path):
     # to tensordataset
     return torch.utils.data.TensorDataset(feats, payoffs)
 
+def get_n_vocab_from_mapping(mapping):
+    """
+    マッピングから語彙数を取得する
+    :param mapping: マッピング
+    :return: 語彙数
+    """
+    n_vocab = 0
+    for d in mapping.values(): # poke, move
+        n_vocab = max(n_vocab, max(d.values()) + 1)
+    return n_vocab
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("train_feat")
     parser.add_argument("val_feat")
     parser.add_argument("work_dir")
+    parser.add_argument("--feat_map", required=True, help="mapping path (json)")
     args = parser.parse_args()
 
     train_dataset = load_dataset(args.train_feat)
     val_dataset = load_dataset(args.val_feat)
+    n_vocab = get_n_vocab_from_mapping(json_load(args.feat_map)["mapping"])
 
     work_dir = Path(args.work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -35,7 +49,7 @@ def main():
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=32, shuffle=False)
     # モデルの定義
-    model = PartyMatchModel()
+    model = PartyMatchModel(n_vocab=n_vocab)
     # optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     # loss function

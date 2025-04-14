@@ -60,10 +60,9 @@ class PartyMatchPayoffModel(nn.Module):
         return h
 
 class PartyMatchModel(nn.Module):
-    def __init__(self, embed_dim: int = 128, mlp_layers: int = 3, mlp_hidden_dim: int = 64):
+    def __init__(self, n_vocab: int, embed_dim: int = 128, mlp_layers: int = 3, mlp_hidden_dim: int = 64):
         super(PartyMatchModel, self).__init__()
-        # 181はポケモン+技の数（本当はメタデータを取得したい）
-        self.feat_model = PartyMatchFeatModel(num_embeddings=181, output_dim=embed_dim)
+        self.feat_model = PartyMatchFeatModel(num_embeddings=n_vocab, output_dim=embed_dim)
         self.payoff_model = PartyMatchPayoffModel(input_dim=embed_dim, n_layers=mlp_layers, hidden_dim=mlp_hidden_dim)
     
     def forward(self, x, y):

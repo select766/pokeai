@@ -13,6 +13,8 @@ class RandomPartyGenerator(PartyGenerator):
                  regulation: str = "default",
                  neighbor_poke_change_rate: float = 0.1,
                  neighbor_item_change_rate: float = 0.1,
+                 neighbor_move_remove_rate: float = 0.0,
+                 neighbor_move_add_rate: float = 0.0,
                  move_count_probability: list[float] = None):
         self._validator = TeamValidator()
         self._pokedex = json_load(DATASET_DIR.joinpath('pokedex.json'))
@@ -23,6 +25,8 @@ class RandomPartyGenerator(PartyGenerator):
         self._items = json_load(DATASET_DIR.joinpath('regulations', regulation, 'items.json'))
         self.neighbor_poke_change_rate = neighbor_poke_change_rate
         self.neighbor_item_change_rate = neighbor_item_change_rate if len(self._items) > 1 else 0.0
+        self.neighbor_move_remove_rate = neighbor_move_remove_rate
+        self.neighbor_move_add_rate = neighbor_move_add_rate
         self.move_count_probability = move_count_probability
 
     @property
@@ -131,7 +135,16 @@ class RandomPartyGenerator(PartyGenerator):
         new_party = copy.deepcopy(party)
         change_idx = random.randrange(len(new_party))  # 変更するポケモンのindex
         rnd = random.random()
-        if self.neighbor_poke_change_rate > rnd:
+        mode = None
+        rnd -= self.neighbor_poke_change_rate
+        if rnd < 0:
+            mode = "poke"
+        rnd -= self.neighbor_item_change_rate
+        if rnd < 0 and mode is None:
+            mode = "item"
+        if mode is None:
+            mode = "move"
+        if mode == "poke":
             # ポケモンを変更
             species = {poke['species'] for i, poke in enumerate(new_party) if i != change_idx}
             while True:
@@ -140,35 +153,51 @@ class RandomPartyGenerator(PartyGenerator):
                 if (cand['species'] not in species) and (self._validator.validate([cand]) is None):
                     break
             new_party[change_idx] = cand
-        else:
-            rnd -= self.neighbor_poke_change_rate
+        elif mode == "item":
             change_poke = new_party[change_idx]
-            if self.neighbor_item_change_rate > rnd:
-                # アイテムの変更
-                # アイテム無し("")は重複してもよい
-                items = {poke['item'] for i, poke in enumerate(new_party) if i != change_idx and poke['item' != '']}  # 他のポケモンが持っているアイテム
-                cur_item = change_poke['item']
-                while True:
-                    new_item = random.choice(self._items)
-                    if new_item != cur_item and new_item not in items:
-                        change_poke['item'] = new_item
-                        break
-            else:
-                # 技を変更
-                available_moves = self._learnsets[change_poke['species']]
-                current_moves = change_poke['moves'].copy()
-                if len(available_moves) > 4:  # 覚えられる技が4つ以下なら選択の余地なし
-                    for i in range(100):  # 技は4つより多いものの、両立不可によりどうしても変更できない場合の無限ループ回避
+            # アイテムの変更
+            # アイテム無し("")は重複してもよい
+            items = {poke['item'] for i, poke in enumerate(new_party) if i != change_idx and poke['item' != '']}  # 他のポケモンが持っているアイテム
+            cur_item = change_poke['item']
+            while True:
+                new_item = random.choice(self._items)
+                if new_item != cur_item and new_item not in items:
+                    change_poke['item'] = new_item
+                    break
+        else:
+            # 技を変更
+            change_poke = new_party[change_idx]
+            available_moves = self._learnsets[change_poke['species']]
+            orig_moves = change_poke['moves'].copy()
+
+            # 覚えられる技が1つだけの場合は変更できないため、そのまま出力
+            if len(available_moves) > 1:
+                for i in range(100):  # 両立不可によりどうしても変更できない場合の無限ループ回避
+                    current_moves = orig_moves.copy()
+                    if random.random() < self.neighbor_move_remove_rate and len(current_moves) > 1:
+                        # 技を1つ削除
+                        remove_move_idx = random.randrange(len(current_moves))
+                        current_moves.pop(remove_move_idx)
+                    elif random.random() < self.neighbor_move_add_rate and len(current_moves) < 4:
+                        # 技を1つ追加
+                        add_move = random.choice(available_moves)
+                        if add_move in current_moves:
+                            continue
+                        current_moves.append(add_move)
+                    else:
+                        # 技を変更
+                        # 変更する技のindexをランダムに決定
                         change_move_idx = random.randrange(len(current_moves))
                         new_move = random.choice(available_moves)
                         if new_move in current_moves:
                             continue
-                        change_poke['moves'][change_move_idx] = new_move
-                        # 両立不可などの理由でダメな場合を弾く
-                        if self._validator.validate([change_poke]) is None:
-                            break
-                        # 変えた技を元に戻す
-                        change_poke['moves'][change_move_idx] = current_moves[change_move_idx]
+                        current_moves[change_move_idx] = new_move
+                    change_poke['moves'] = current_moves
+                    # 両立不可などの理由でダメな場合を弾く
+                    if self._validator.validate([change_poke]) is None:
+                        break
+
+                    change_poke['moves'] = orig_moves
         val_error = self._validator.validate(new_party)
         if val_error:
             # 単体ではOKの個体の組み合わせでエラーになることは想定していない

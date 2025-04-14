@@ -11,6 +11,7 @@ import torch
 import nashpy
 from pokeai.ai.selection.party_match_dataset_feat import get_party_feat
 from pokeai.ai.selection.party_match_model import PartyMatchModel
+from pokeai.ai.selection.party_match_train import get_n_vocab_from_mapping
 from pokeai.sim.party_generator import Party, PartyGenerator
 from pokeai.sim.random_party_generator import RandomPartyGenerator
 from pokeai.util import json_load, pickle_dump
@@ -102,10 +103,10 @@ def generate_best_party(party_set: list[Party], party_set_mixed_strategy: np.nda
 
 class PartyEvaluator:
     def __init__(self, feat_map_path: str, model_path: str):
-        self.model = PartyMatchModel()
+        self.mapping = json_load(feat_map_path)["mapping"]
+        self.model = PartyMatchModel(n_vocab=get_n_vocab_from_mapping(self.mapping))
         self.model.load_state_dict(torch.load(model_path, weights_only=True))
         self.model.eval()
-        self.mapping = json_load(feat_map_path)["mapping"]
     
     def __call__(self, party1: Party, party2: Party) -> float:
         """
@@ -141,8 +142,12 @@ def main():
     parser.add_argument("--hill_climb_iterations", type=int, default=10, help="number of hill climbing iterations")
     parser.add_argument("--neighbor_iterations", type=int, default=10, help="number of neighbor iterations")
     parser.add_argument("--num_cycles", type=int, default=100, help="number of cycles")
+    parser.add_argument("--move_count_variation", action="store_true", help="技の数をランダムに変化させる")
     args = parser.parse_args()
-    gen = RandomPartyGenerator(regulation=args.r)
+    if args.move_count_variation:
+        gen = RandomPartyGenerator(regulation=args.r, move_count_probability=[0.1, 0.2, 0.3, 0.4], neighbor_move_add_rate=0.1, neighbor_move_remove_rate=0.1)
+    else:
+        gen = RandomPartyGenerator(regulation=args.r)
 
     model = PartyEvaluator(args.feat_map, args.model)
 

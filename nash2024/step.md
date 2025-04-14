@@ -21,7 +21,19 @@ python -m pokeai.ai.selection.party_match_dataset_feat_prepare -r finalgoodmove1
 for f in data/party_match_dataset_*.jsonl; do python party_match_dataset_feat.py ${f%.*}.pth $f data/party_match_feat_mapping_finalgoodmove1vs1.json ; done
 
 # 学習
-python pokeai.ai.selection.party_match_train data/party_match_dataset_train_n1m_m1.pth data/party_match_dataset_val_n1k_m100.pth data/train1
+python -m pokeai.ai.selection.party_match_train data/party_match_dataset_train_n1m_m1.pth data/party_match_dataset_val_n1k_m100.pth data/train1 --feat_map data/party_match_feat_mapping_finalgoodmove1vs1.json
 
 PYTHONUNBUFFERED=1 python -m pokeai.ai.selection.do_loop_baseline data/do_loop_baseline_02.pkl -r finalgoodmove3vs3lv55all --feat_map data/party_match_feat_mapping_finalgoodmove1vs1.json --model data/train1/model_final.pth --hill_climb_iterations 100 --neighbor_iterations 100 --num_cycles 100 | tee -a data/do_loop_baseline_02.log
+```
+
+
+```bash
+python -m pokeai.ai.selection.generate_party_match_dataset data/party_match_dataset_final1vs1_mcv_val_n1k_m100.jsonl -r finalgoodmove1vs1 --move_count_variation -m 100 -n 1000
+python -m pokeai.ai.selection.generate_party_match_dataset data/party_match_dataset_final1vs1_mcv_test_n1k_m100.jsonl -r finalgoodmove1vs1 --move_count_variation -m 100 -n 1000
+python -m pokeai.ai.selection.generate_party_match_dataset data/party_match_dataset_final1vs1_mcv_train_n1m_m1.jsonl -r finalgoodmove1vs1 --move_count_variation -m 1 -n 1000000
+python -m pokeai.ai.selection.party_match_dataset_feat_prepare -r final1vs1 data/party_match_feat_mapping_final1vs1.json
+for f in data/party_match_dataset_final1vs1*.jsonl; do python -m pokeai.ai.selection.party_match_dataset_feat ${f%.*}.pth $f data/party_match_feat_mapping_final1vs1.json ; done
+python -m pokeai.ai.selection.party_match_train data/party_match_dataset_final1vs1_mcv_train_n1m_m1.pth data/party_match_dataset_final1vs1_mcv_val_n1k_m100.pth data/train_final1vs1_mcv_1 --feat_map data/party_match_feat_mapping_final1vs1.json | tee data/train_final1vs1_mcv_1.log
+
+PYTHONUNBUFFERED=1 python -m pokeai.ai.selection.do_loop_baseline data/do_loop_baseline_final1vs1_mcv_01.pkl -r final3vs3lv55all --feat_map data/party_match_feat_mapping_final1vs1.json --model data/train_final1vs1_mcv_1/model_final.pth --hill_climb_iterations 100 --neighbor_iterations 100 --num_cycles 100 | tee -a data/do_loop_baseline_final1vs1_mcv_01.log
 ```
