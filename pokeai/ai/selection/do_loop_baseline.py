@@ -104,8 +104,17 @@ def generate_best_party(party_set: list[Party], party_set_mixed_strategy: np.nda
 class PartyEvaluator:
     def __init__(self, feat_map_path: str, model_path: str):
         self.mapping = json_load(feat_map_path)["mapping"]
-        self.model = PartyMatchModel(n_vocab=get_n_vocab_from_mapping(self.mapping))
-        self.model.load_state_dict(torch.load(model_path, weights_only=True))
+        model_dict = torch.load(model_path, weights_only=True)
+        if "PartyMatchModelHyperparams" in model_dict:
+            model_kwargs = model_dict["PartyMatchModelHyperparams"]
+            model_weights = model_dict["PartyMatchModelWeights"]
+        else:
+            # 古いバージョンのモデル
+            model_kwargs = {"n_vocab": get_n_vocab_from_mapping(self.mapping)}
+            model_weights = model_dict
+
+        self.model = PartyMatchModel(**model_kwargs)
+        self.model.load_state_dict(model_weights)
         self.model.eval()
     
     def __call__(self, party1: Party, party2: Party) -> float:
