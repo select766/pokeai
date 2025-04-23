@@ -41,5 +41,10 @@ python -m pokeai.ai.selection.party_match_dataset_feat_prepare -r final1vs1 data
 for f in data/party_match_dataset_final1vs1*.jsonl; do python -m pokeai.ai.selection.party_match_dataset_feat ${f%.*}.pth $f data/party_match_feat_mapping_final1vs1.json ; done
 python -m pokeai.ai.selection.party_match_train_optuna data/party_match_dataset_final1vs1_mcv_train_n10m_m1.pth data/party_match_dataset_final1vs1_mcv_val_n1k_m100.pth data/train_final1vs1_mcv_1 --feat_map data/party_match_feat_mapping_final1vs1.json --n_trials 100 --optuna_storage sqlite:///data/optuna.db --optuna_study_name "final1vs1_mcv_1" | tee data/train_final1vs1_mcv_1.log
 
+# モデルのval errorの確認
+python -m pokeai.ai.selection.party_match_eval data/party_match_dataset_final1vs1_mcv_val_n1k_m100.pth data/party_match_dataset_final1vs1_mcv_val_n1k_m100_eval_result.pkl --feat_map data/party_match_feat_mapping_final1vs1.json  --model data/train_final1vs1_mcv_1/best_model.pth
+# モデルのtest errorの確認
+python -m pokeai.ai.selection.party_match_eval data/party_match_dataset_final1vs1_mcv_test_n1k_m100.pth data/party_match_dataset_final1vs1_mcv_test_n1k_m100_eval_result.pkl --feat_map data/party_match_feat_mapping_final1vs1.json  --model data/train_final1vs1_mcv_1/best_model.pth
+
 PYTHONUNBUFFERED=1 python -m pokeai.ai.selection.do_loop_baseline data/do_loop_baseline_final1vs1_mcv_01.pkl -r final3vs3lv55all --feat_map data/party_match_feat_mapping_final1vs1.json --model data/train_final1vs1_mcv_1/best_model.pth --hill_climb_iterations 100 --neighbor_iterations 100 --num_cycles 100 --move_count_variation | tee -a data/do_loop_baseline_final1vs1_mcv_01.log
 ```
