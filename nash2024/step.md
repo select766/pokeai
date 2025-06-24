@@ -10,6 +10,16 @@ python export_top_rate_party.py 672b539e2fb3394b4a0b8ed0 "nash2024/data/random_t
 python -m pokeai.ai.generic_move_model.rl_rating_battle "" "" --player_ids_file nash2024/data/random_top_100.json --match_count 9900 --match_algorithm round_robin --match_results_dir nash2024/data/ --rate_id 672b5e0f89c3cd9202fe28b4
 ```
 
+ポケモン候補間の勝率テーブルの作成
+win_rate_table_20241108.ipynb
+list_poke_candidates.ipynb
+
+100個から選ぶケースのdouble oracleの実装
+nash2024/party_do_20250330.ipynb
+
+100ポケモンを組み合わせたパーティ生成のdouble oracle
+nash2024/party_combi_do_fullscan_20250330.ipynb
+
 パーティ勝敗データセット作成
 
 ```bash
